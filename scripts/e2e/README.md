@@ -25,6 +25,28 @@ npx playwright install   # 初回のみ: chromium / firefox / webkit
 npm run e2e  # 3エンジンを直列実行。結果ラベルは PASS [chromium] ... 形式
 ```
 
+### ローカル専用オプション（CI では使わない）
+
+動画録画とモバイルコンテキスト実行は **ローカルデバッグ用**。CI ワークフローには載せない。
+
+| 環境変数 / npm script | 効果 |
+| --------------------- | ---- |
+| `RECORD_VIDEO=all` / `npm run e2e:video` | 全シナリオの動画を残す |
+| `RECORD_VIDEO=on-failure` / `npm run e2e:video:fail` | FAIL 時のみ動画を残す（PASS は削除） |
+| `E2E_MOBILE=1` / `npm run e2e:mobile` | 既存 17 シナリオをモバイルコンテキストで実行。ラベルは `[chromium:mobile] ...` |
+| `E2E_BROWSERS=chromium`（カンマ区切り可） | 実行ブラウザを絞る（未設定時は chromium,firefox,webkit） |
+
+- 出力先: `test-results/videos/{browserName}/{scenario-slug}.webm`
+- FAIL 時はコンソールに動画の絶対パスを出す
+- macOS での開き方: `open test-results/videos/chromium/....webm`
+- `RECORD_VIDEO` 設定時のみシナリオごとに BrowserContext を開閉する（未設定時は従来どおりブラウザごと page 共有）
+- 動画とモバイルは併用可（例: `E2E_MOBILE=1 RECORD_VIDEO=on-failure npm run e2e`）
+- ブラウザ絞り込みとの併用例:
+  ```bash
+  E2E_BROWSERS=chromium RECORD_VIDEO=all npm run e2e
+  E2E_MOBILE=1 E2E_BROWSERS=chromium RECORD_VIDEO=on-failure npm run e2e
+  ```
+
 ## 地図（覚えるのは4フォルダ）
 
 | フォルダ    | 役割                                           | 触る頻度 |
@@ -115,9 +137,9 @@ run.ts
 
 | ファイル     | 内容                                                       |
 | ------------ | ---------------------------------------------------------- |
-| `runner.ts`  | `[TEST]` ログ、PASS/FAIL 集計                              |
-| `session.ts` | `createE2ePage`, `setupE2eFixtures`, `teardownE2eFixtures` |
-| `config.ts`  | `TRACKING_ORIGIN`, `UA_TOKEN`, 各種 ms 定数                |
+| `runner.ts`  | `[TEST]` ログ、PASS/FAIL 集計（`runE2eCase` は成否 boolean を返す） |
+| `session.ts` | `createE2eSession`, `createE2ePage`, `setupE2eFixtures`, `teardownE2eFixtures` |
+| `config.ts`  | `TRACKING_ORIGIN`, `UA_TOKEN`, `parseRecordVideoMode`, `isE2eMobile`, 各種 ms 定数 |
 | `types.ts`   | `E2eContext`（`browserName` 付き）                         |
 
 ## 新しいテストを追加する手順

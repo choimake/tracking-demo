@@ -23,4 +23,10 @@ export interface E2eContext {
   trackerLogs: string[];
   tracking: TrackingClient;
   fixtures: E2eFixtures;
+  /** E2E_MOBILE 相当。外側 session がモバイルコンテキストかどうか */
+  mobile: boolean;
+  /** RECORD_VIDEO 時のみ。Playwright recordVideo.dir */
+  recordVideoDir?: string;
+  /** RECORD_VIDEO 時のみ。最終 webm パス(scenario-slug.webm) */
+  scenarioVideoPath?: string;
 }

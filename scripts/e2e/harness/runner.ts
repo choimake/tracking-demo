@@ -2,14 +2,17 @@
 export class E2eRunner {
   private readonly results: string[] = [];
 
-  async runE2eCase(name: string, fn: () => Promise<void>): Promise<void> {
+  /** 成功なら true、失敗なら false を返す */
+  async runE2eCase(name: string, fn: () => Promise<void>): Promise<boolean> {
     console.log(`\n[TEST] ${name}`);
     try {
       await fn();
       this.results.push(`PASS ${name}`);
+      return true;
     } catch (error) {
       this.results.push(`FAIL ${name} — ${(error as Error).message}`);
       console.error("  ", (error as Error).message);
+      return false;
     }
   }
 

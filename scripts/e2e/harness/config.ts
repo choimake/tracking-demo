@@ -66,3 +66,65 @@ export const UA_TOKEN: Record<BrowserName, string> = {
 
 /** seed / デモのワークスペース ID */
 export const WORKSPACE_ID = "ws-001";
+
+/** RECORD_VIDEO のパース結果。未設定・不正値は null(録画なし) */
+export type RecordVideoMode = "all" | "on-failure";
+
+/** `RECORD_VIDEO=all|on-failure` をパースする。未設定時は null */
+export function parseRecordVideoMode(): RecordVideoMode | null {
+  const value = process.env.RECORD_VIDEO?.trim().toLowerCase();
+  if (value === "all" || value === "on-failure") {
+    return value;
+  }
+  return null;
+}
+
+/** `E2E_MOBILE=1` 等の truthy 値でモバイルコンテキスト実行にする */
+export function isE2eMobile(): boolean {
+  const value = process.env.E2E_MOBILE?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
+const ALL_BROWSERS: BrowserName[] = ["chromium", "firefox", "webkit"];
+
+/**
+ * `E2E_BROWSERS=chromium` または `chromium,firefox` で実行ブラウザを絞る。
+ * 未設定時は全ブラウザ。不正な名前は Error。
+ */
+export function parseE2eBrowsers(): BrowserName[] {
+  const raw = process.env.E2E_BROWSERS?.trim();
+  if (!raw) {
+    return [...ALL_BROWSERS];
+  }
+  const names = raw.split(",").map((s) => s.trim().toLowerCase());
+  const result: BrowserName[] = [];
+  for (const name of names) {
+    if (name !== "chromium" && name !== "firefox" && name !== "webkit") {
+      throw new Error(
+        `未知の E2E_BROWSERS 値: ${name} (chromium|firefox|webkit)`
+      );
+    }
+    if (!result.includes(name)) {
+      result.push(name);
+    }
+  }
+  if (result.length === 0) {
+    throw new Error("E2E_BROWSERS が空です");
+  }
+  return result;
+}
+
+/** シナリオ名を動画ファイル名用の安全な slug に変換する */
+export function toScenarioSlug(name: string): string {
+  return name
+    .trim()
+    .replace(/[/\\?%*:|"<>]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** ブラウザ別の動画出力ディレクトリ(`test-results/videos/{browserName}`) */
+export function e2eVideoDir(browserName: BrowserName): string {
+  return path.resolve("test-results", "videos", browserName);
+}

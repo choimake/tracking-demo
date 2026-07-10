@@ -45,19 +45,18 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
   let browserStatus: "pass" | "fail" = "pass";
 
   const browser = await BROWSERS[browserName].launch();
+  let context: Awaited<ReturnType<typeof createE2ePage>>["context"] | undefined;
   try {
-    const {
-      page,
-      trackerLogs,
-      tracking: pageTracking,
-    } = await createE2ePage(browser);
+    const session = await createE2ePage(browser);
+    context = session.context;
     const ctx: E2eContext = {
       browser,
       browserName,
       fixtures,
-      trackerLogs,
-      page,
-      tracking: pageTracking,
+      mobile: false,
+      trackerLogs: session.trackerLogs,
+      page: session.page,
+      tracking: session.tracking,
     };
 
     for (const scenario of e2eScenarios) {
@@ -85,6 +84,11 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
       }
     }
   } finally {
+    if (context) {
+      await context.close().catch((error) => {
+        process.stderr.write(`  context.close failed: ${String(error)}\n`);
+      });
+    }
     await browser.close().catch(() => {});
     await teardownE2eFixtures(tracking, fixtures);
   }
