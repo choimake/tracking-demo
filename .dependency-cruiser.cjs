@@ -1,0 +1,65 @@
+/** @type {import("dependency-cruiser").IConfiguration} */
+module.exports = {
+  forbidden: [
+    {
+      name: "no-circular",
+      severity: "error",
+      comment: "循環依存は禁止(型だけの import は除外)",
+      from: {},
+      to: {
+        circular: true,
+        dependencyTypesNot: ["type-only"],
+      },
+    },
+    {
+      name: "no-orphans",
+      severity: "warn",
+      comment: "どこからも参照されないモジュール",
+      from: {
+        orphan: true,
+        pathNot: [
+          "(^|/)main\\.ts$",
+          "(^|/)run\\.ts$",
+          "(^|/)run-bench\\.ts$",
+          "(^|/)suite-worker\\.ts$",
+          "\\.d\\.ts$",
+          "(^|/)gamp\\.ts$",
+        ],
+      },
+      to: {},
+    },
+    {
+      name: "not-to-dev-dep",
+      severity: "error",
+      comment: "本番コードから devDependency への依存は禁止",
+      from: { path: "^src", pathNot: "\\.test\\.|\\.spec\\." },
+      to: {
+        dependencyTypes: ["npm-dev"],
+        pathNot: "node_modules/@types/",
+      },
+    },
+  ],
+  options: {
+    doNotFollow: {
+      path: ["node_modules"],
+      dependencyTypes: [
+        "npm",
+        "npm-dev",
+        "npm-optional",
+        "npm-peer",
+        "npm-bundled",
+      ],
+    },
+    tsPreCompilationDeps: true,
+    tsConfig: { fileName: "tsconfig.json" },
+    // NodeNext の `import './foo.js'` → `foo.ts` を解決するため
+    webpackConfig: {
+      fileName: ".dependency-cruiser.webpack.cjs",
+    },
+    enhancedResolveOptions: {
+      exportsFields: ["exports"],
+      conditionNames: ["import", "require", "node", "default"],
+      mainFields: ["module", "main", "types", "typings"],
+    },
+  },
+};

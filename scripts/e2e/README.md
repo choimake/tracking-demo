@@ -1,0 +1,196 @@
+# E2E テスト (`scripts/e2e/`)
+
+`tracker.js`（計測スクリプト）を Chromium / Firefox / WebKit headless で実ブラウザ検証するテスト群。
+デモサイト（顧客 LP 役・別オリジン）にタグを貼った本番相当の構成を再現する。
+
+## テスト方針（何を見るか）
+
+計測 E2E の真実のソースは **Hit（`data/db.json` のヒット1件）** である。件数 API は便利な集計だが、最終判定はヒット単位で行う。
+
+| 観点         | 見るもの                                               | 主な手段                                                                |
+| ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| どのイベント | `eventId` / `type`（event or pageview）                | `waitForNewHit` + `expectHitPayload`                                    |
+| いつ         | `ts` が Act 前後の窓（`sinceMs`〜`untilMs`）に入るか   | `expectHitPayload` の ts 窓                                             |
+| 何回         | 件数の +N / ちょうど N                                 | `expectEventCountIncreasedBy` / `expectExactPageviewCountAfterDelay` 等 |
+| payload      | `url`・`workspaceId` など                              | `expectHitPayload`                                                      |
+| ブラウザ     | `ua` にエンジン別トークン（Chrome / Firefox / Safari） | `UA_TOKEN[browserName]`                                                 |
+
+発火系シナリオの基本パターン: **sinceMs → Act → 件数 +1 → waitForNewHit → expectHitPayload**。
+
+## 実行
+
+```bash
+npm start    # 別ターミナル: 計測サーバー(3100) + デモサイト(3200)
+npx playwright install   # 初回のみ: chromium / firefox / webkit
+npm run e2e  # 3エンジンを直列実行。結果ラベルは PASS [chromium] ... 形式
+```
+
+## 地図（覚えるのは4フォルダ）
+
+| フォルダ    | 役割                                           | 触る頻度 |
+| ----------- | ---------------------------------------------- | -------- |
+| `tests/`    | **何を検証するか**（シナリオ本体）             | 高       |
+| `browser/`  | **ページをどう操作するか**（Act）              | 中       |
+| `tracking/` | **ビーコンが届いたかどう確認するか**（Assert） | 中       |
+| `harness/`  | 実行の裏方（ランナー・セットアップ・定数）     | 低       |
+
+ルートの `run.ts`（起動）と `scenarios.ts`（シナリオ登録）だけ別に置いている。
+
+## ディレクトリ構成
+
+```
+scripts/e2e/
+├── run.ts              # エントリ（3ブラウザ直列・後片付け・終了コード）
+├── scenarios.ts        # 全シナリオの登録一覧（新規追加時はここに1行）
+├── tests/              # シナリオ本体（1ファイル = 1ケース）
+├── browser/
+│   ├── actions.ts      # デモサイト操作（getByRole ベース）
+│   └── index.ts        # barrel export
+├── tracking/
+│   ├── client.ts       # 計測サーバー API クライアント / Hit 直読み
+│   ├── assertions.ts   # 件数・ヒット単位の着弾待ち・期待値検証
+│   ├── seed-events.ts  # 固定イベント ID（ev_purchase 等）
+│   └── index.ts        # barrel export
+└── harness/
+    ├── runner.ts       # runE2eCase / PASS・FAIL 集計
+    ├── session.ts      # ページ生成・フィクスチャ setup/teardown
+    ├── config.ts       # オリジン URL・タイムアウト・UA_TOKEN
+    └── types.ts        # E2eContext 等の型
+```
+
+## データの流れ
+
+```
+run.ts
+  ├─ harness/session.ts   … フィクスチャ準備・page 生成（ブラウザごと）
+  ├─ scenarios.ts         … 何を実行するか
+  └─ tests/*.ts           … 各シナリオ
+        ├─ browser/        … デモサイト操作（Act）
+        └─ tracking/       … 件数・Hit アサーション（Assert）
+```
+
+計測 E2E は「ページを触る」と「サーバーにビーコンが届いたか読む」の二系統がある。
+フォルダ名がその二系統に対応している。
+
+## 各フォルダの詳細
+
+### `tests/` — シナリオ本体
+
+| ファイル                 | 検証内容                                                                           |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `tag-load.ts`            | タグ読み込み + 初回ページビュー（クロスオリジン）                                  |
+| `url-reach.ts`           | URL 到達トリガー（MPA 遷移）                                                       |
+| `click-trigger.ts`       | クリックトリガー                                                                   |
+| `scroll-trigger.ts`      | スクロール率 50%                                                                   |
+| `time-on-page.ts`        | ページ滞在時間（検証用 2 秒イベント）                                              |
+| `exit-intent.ts`         | 離脱インテント                                                                     |
+| `spa-history.ts`         | SPA: pushState 遷移                                                                |
+| `gtm-dedup.ts`           | GTM 併用時の二重計上防止                                                           |
+| `datalayer-manual.ts`    | 手動 `tdDataLayer.push`                                                            |
+| `datalayer-queue.ts`     | ロード前キュー再生                                                                 |
+| `double-tag-guard.ts`    | タグ二重設置ガード                                                                 |
+| `disabled-event.ts`      | 無効イベントの計測停止                                                             |
+| `spa-popstate.ts`        | SPA popstate(戻る): リロードなし・pageview再送・購入イベントは戻るだけでは増えない |
+| `time-on-page-cancel.ts` | 滞在タイマー破棄: 閾値未満の滞在を繰り返しても発火しない                           |
+| `fire-semantics.ts`      | 発火回数: クリックは複数回(fire)・スクロールは1PVにつき1回(fireOnce)               |
+| `url-normalize.ts`       | URL正規化: 大文字小文字・末尾スラッシュ・日本語パス                                |
+| `exit-intent-mobile.ts`  | モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない          |
+
+### `browser/` — ページ操作
+
+デモサイト（`demo-site/`）上の Playwright 操作を集約。
+テストからは `import { gotoDemoPage } from '../browser/index.js'` で使う。
+
+### `tracking/` — サーバー検証
+
+- `client.ts` — 管理 API 呼び出し、`data/db.json` 直読み（`getHitsMatching` / `getPageviewHitsSince`）
+- `assertions.ts` — `quiesceBeacons`, `expectEventCountIncreasedBy`, `waitForNewHit`, `expectHitPayload` 等
+- `seed-events.ts` — `EVENT_ID_PURCHASE` 等の定数
+
+テストからは `import { EVENT_ID_CART, quiesceBeacons } from '../tracking/index.js'` で使う。
+
+### `harness/` — 実行の仕組み
+
+普段あまり触らない。ランナー・型・定数・セッション管理。
+
+| ファイル     | 内容                                                       |
+| ------------ | ---------------------------------------------------------- |
+| `runner.ts`  | `[TEST]` ログ、PASS/FAIL 集計                              |
+| `session.ts` | `createE2ePage`, `setupE2eFixtures`, `teardownE2eFixtures` |
+| `config.ts`  | `TRACKING_ORIGIN`, `UA_TOKEN`, 各種 ms 定数                |
+| `types.ts`   | `E2eContext`（`browserName` 付き）                         |
+
+## 新しいテストを追加する手順
+
+1. `tests/my-scenario.ts` に `export async function testMyScenario(ctx: E2eContext)` を書く
+2. 必要なら `browser/actions.ts` に操作を追加
+3. `scenarios.ts` の `e2eScenarios` に `{ name, run }` を登録
+4. `npm run e2e` で確認
+
+テンプレート（件数 + ヒット単位の 5 観点）:
+
+```ts
+import type { E2eContext } from "../harness/types.js";
+import { UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
+import {
+  EVENT_ID_CART,
+  quiesceBeacons,
+  expectEventCountIncreasedBy,
+  waitForNewHit,
+  expectHitPayload,
+} from "../tracking/index.js";
+import { gotoDemoPage } from "../browser/index.js";
+
+export async function testMyScenario(ctx: E2eContext): Promise<void> {
+  await quiesceBeacons(ctx.tracking);
+  const cartCountBefore = await ctx.tracking.getEventCount7d(EVENT_ID_CART);
+  const sinceMs = Date.now();
+
+  await gotoDemoPage(ctx.page, "/products");
+  // ... Act ...
+
+  await expectEventCountIncreasedBy(
+    ctx.tracking,
+    EVENT_ID_CART,
+    cartCountBefore,
+    1,
+    "カート追加イベント +1"
+  );
+  const hit = await waitForNewHit(
+    ctx.tracking,
+    { eventId: EVENT_ID_CART, sinceMs, type: "event" },
+    "カート追加ヒット取得"
+  );
+  expectHitPayload(hit, {
+    eventId: EVENT_ID_CART,
+    type: "event",
+    urlIncludes: "/products",
+    workspaceId: WORKSPACE_ID,
+    uaIncludes: UA_TOKEN[ctx.browserName],
+    sinceMs,
+    untilMs: Date.now(),
+  });
+}
+```
+
+## 注意
+
+- `gtm-dedup.ts` では `pushState` と `tdDataLayer.push` を**同一 tick**で実行する必要があるため、`browser/actions` を個別に呼ばず `page.evaluate` にまとめている
+- `tracking/client.ts` の `getHitsForEvent` / `getHitsMatching` は API 経由ではなく `data/db.json` を直読みする
+- テストは順次実行。**並列化すると `data/db.json` の件数が競合する**（ブラウザマトリクスも直列のみ）
+- フィクスチャ（検証用イベント等）は全ブラウザ共通で 1 回 setup / 最後に teardown
+- `browser/actions.ts` の `spaPushState` は素の `history.pushState` を呼ぶだけでよい。tracker.js が
+  `pushState` 自体をパッチして `onHistoryChange` を呼ぶため、`popstate` を手動発火すると二重処理になる
+- `exit-intent-mobile.ts` の `isMobile` は Playwright の制約で **Firefox 未サポート**（コンテキスト生成が
+  例外になる）。Firefox 実行時は `isMobile` を付けず `hasTouch` / `viewport` のみで代替している
+
+## スコープ外（未検証・非対応）
+
+- **ハッシュルーティング（`#/path`）によるページ遷移**: tracker.js は History API
+  （`pushState`/`replaceState`/`popstate`）のみを検知し、`hashchange` はフックしていない
+- **クエリパラメータのみの変更**: URL到達トリガーは `location.pathname` のみで照合するため、
+  パスが同一でクエリだけ変わるケースは新しいページビューとして再評価されない
+- **モバイル実機・実ブラウザでの離脱インテント発火**: 離脱インテントはデスクトップのカーソル操作
+  （`mouseout`）前提のトリガー。`exit-intent-mobile.ts` はタップ操作のみでは「発火しない」ことの確認に
+  限定しており、モバイルでの発火自体は非対応
+- `replaceState` 単体の挙動、`sendBeacon` 失敗時の `fetch` フォールバック経路、CSP環境、管理画面のE2E

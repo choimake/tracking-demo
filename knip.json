@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["src/tracker/tracker.ts"],
+  "project": ["src/**/*.ts", "scripts/**/*.ts"],
+  "ignoreBinaries": ["mise"],
+  "ignoreDependencies": ["ultracite"],
+  "ignoreExportsUsedInFile": true
+}

@@ -1,0 +1,21 @@
+{
+  "extends": ["./node_modules/ultracite/config/oxlint/core/.oxlintrc.json"],
+  "ignorePatterns": [
+    "node_modules/**",
+    "data/**",
+    "demo-site/**",
+    "public/**",
+    ".claude/**"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn",
+    "pedantic": "off",
+    "style": "off",
+    "restriction": "off"
+  },
+  "rules": {
+    "func-style": "off"
+  }
+}

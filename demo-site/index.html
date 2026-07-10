@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ホーム | 計測デモサイト</title>
+<!-- ▼ 管理画面「タグ設置」からコピーして貼り付けた計測タグ ▼ -->
+<!-- 計測タグ -->
+<script>
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'tracker.start':new Date().getTime(),event:'tracker.js'});
+var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;
+j.src='http://localhost:3100/tracker.js?id='+i;f.parentNode.insertBefore(j,f);
+})(window,document,'script','tdDataLayer','ws-001');
+</script>
+<!-- End 計測タグ -->
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<nav>
+  <a href="/">ホーム</a>
+  <a href="/products">商品一覧(スクロール/クリック検証)</a>
+  <a href="/spa">SPAデモ(History Change検証)</a>
+  <a href="http://localhost:3100/admin" target="_blank">管理画面 ↗</a>
+</nav>
+<main>
+<h1>計測デモサイト</h1>
+<div class="hint">このサイトは静的な HTML で、&lt;head&gt; に管理画面で発行した計測タグを貼り付けてあります。
+計測サーバー(localhost:3100)とは別オリジン(localhost:3200)で動いています。
+開発者コンソールを開くと <b>[tracker]</b> のログでイベント発火を確認できます。</div>
+<div class="card"><b>検証できるトリガー</b>
+<ul>
+<li>URL到達 — <a href="/order/complete">注文完了ページ</a> を開く</li>
+<li>クリック — <a href="/products">商品一覧</a> の「カートに入れる」を押す</li>
+<li>スクロール50% — <a href="/products">商品一覧</a> を下までスクロール</li>
+<li>滞在60秒 — このページに60秒滞在(管理画面「CV計測設定」のトグルで有効化が必要)</li>
+<li>離脱インテント — カーソルをページ上端の外へ動かす(管理画面「CV計測設定」のトグルで有効化が必要)</li>
+<li>SPA遷移 — <a href="/spa">SPAデモ</a> でページ遷移</li>
+</ul></div>
+<div class="filler">
+<p>ダミー本文 — スクロール率・滞在時間トリガーの検証用コンテンツです。ページを下までスクロールしたり、そのまま滞在したりすると対応するイベントが発火します。</p>
+<p>ダミー本文 — このページに滞在し続けると滞在時間トリガーが発火します。</p>
+<p>ダミー本文 — ページを下までスクロールするとスクロール率トリガーが発火します。</p>
+<p class="marker">―― このあたりが縦50%地点 ――</p>
+<p>ダミー本文 — カーソルをビューポートの上端外へ動かすと離脱インテントが発火します。</p>
+<p>ダミー本文 — SPA デモでは pushState による疑似遷移を計測できます。</p>
+<p>ダミー本文 — 計測タグは非同期読み込みのため、ページ表示をブロックしません。</p>
+</div>
+</main>
+</body>
+</html>

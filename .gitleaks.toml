@@ -1,0 +1,12 @@
+# gitleaks 設定。デフォルトルールを継承し、誤検知しやすいパスだけ除外する。
+title = "tracking-demo"
+
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)data/''',
+  '''(^|/)scripts/e2e/bench/results/''',
+]

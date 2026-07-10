@@ -1,0 +1,14 @@
+body { font-family: -apple-system, "Hiragino Sans", sans-serif; margin: 0; color: #1a1a2e; }
+nav { display: flex; gap: 16px; padding: 14px 24px; background: #1a1a2e; position: sticky; top: 0; }
+nav a { color: #e6e6f0; text-decoration: none; font-size: 14px; }
+nav a:hover { text-decoration: underline; }
+main { max-width: 760px; margin: 0 auto; padding: 32px 24px 80px; }
+h1 { font-size: 24px; }
+.hint { background: #eef4ff; border: 1px solid #c4d7ff; border-radius: 8px; padding: 12px 16px; font-size: 13px; margin: 16px 0; }
+.card { border: 1px solid #ddd; border-radius: 10px; padding: 16px 20px; margin: 12px 0; }
+button { cursor: pointer; border: 0; border-radius: 8px; padding: 10px 18px; font-size: 14px; }
+.add-to-cart { background: #e5484d; color: #fff; }
+.spa-nav button { background: #3b5bdb; color: #fff; margin-right: 8px; }
+.filler p { color: #555; line-height: 2; margin: 24px 0; }
+.marker { text-align: center; color: #999; border-top: 1px dashed #ccc; padding-top: 8px; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background: #f1f3f5; padding: 2px 6px; border-radius: 4px; }

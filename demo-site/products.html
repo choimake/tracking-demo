@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>商品一覧 | 計測デモサイト</title>
+<!-- 計測タグ -->
+<script>
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'tracker.start':new Date().getTime(),event:'tracker.js'});
+var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;
+j.src='http://localhost:3100/tracker.js?id='+i;f.parentNode.insertBefore(j,f);
+})(window,document,'script','tdDataLayer','ws-001');
+</script>
+<!-- End 計測タグ -->
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<nav>
+  <a href="/">ホーム</a>
+  <a href="/products">商品一覧(スクロール/クリック検証)</a>
+  <a href="/spa">SPAデモ(History Change検証)</a>
+  <a href="http://localhost:3100/admin" target="_blank">管理画面 ↗</a>
+</nav>
+<main>
+<h1>商品一覧</h1>
+<div class="hint">「カートに入れる」でクリックトリガー(<code>click:.add-to-cart</code>)、
+下までスクロールでスクロール率トリガーが発火します。</div>
+<div class="card"><b>ワイヤレスイヤホン</b> — ¥3,000
+  <div style="margin-top:8px"><button class="add-to-cart">カートに入れる</button></div></div>
+<div class="card"><b>スマートウォッチ</b> — ¥6,000
+  <div style="margin-top:8px"><button class="add-to-cart">カートに入れる</button></div></div>
+<div class="card"><b>モバイルバッテリー</b> — ¥9,000
+  <div style="margin-top:8px"><button class="add-to-cart">カートに入れる</button></div></div>
+<p><a href="/order/complete">→ 購入手続きへ(注文完了ページ)</a></p>
+<div class="filler">
+<p>ダミー本文 1/14 — スクロール率・滞在時間トリガーの検証用コンテンツです。</p>
+<p>ダミー本文 2/14 — ページを下までスクロールするとスクロール率トリガーが発火します。</p>
+<p>ダミー本文 3/14 — 発火の様子は開発者コンソールの [tracker] ログで確認できます。</p>
+<p>ダミー本文 4/14 — 計測結果は管理画面の「直近7日間」件数に反映されます。</p>
+<p>ダミー本文 5/14 — このページは静的な HTML で、タグを head に貼っただけの構成です。</p>
+<p>ダミー本文 6/14 — 計測サーバーとは別オリジンのため、CORS 越しの計測になります。</p>
+<p>ダミー本文 7/14 — ここまでで半分弱です。</p>
+<p class="marker">―― このあたりが縦50%地点 ――</p>
+<p>ダミー本文 8/14 — スクロール50%イベントはこのあたりで発火します。</p>
+<p>ダミー本文 9/14 — 発火は1ページビューにつき1回だけ記録されます。</p>
+<p>ダミー本文 10/14 — SPA 遷移時はページビューが切り替わり再評価されます。</p>
+<p>ダミー本文 11/14 — 離脱インテントはカーソルが上端外へ出た瞬間に発火します。</p>
+<p>ダミー本文 12/14 — 滞在時間トリガーは読み込みからの経過秒数で発火します。</p>
+<p>ダミー本文 13/14 — もうすぐ最下部です。</p>
+<p>ダミー本文 14/14 — 最下部に到達しました。</p>
+</div>
+<p><a href="/order/complete">→ 購入手続きへ(注文完了ページ)</a></p>
+</main>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "name": "tracking-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "mise exec -- oxlint .",
+    "lint:fix": "mise exec -- oxlint --fix .",
+    "format": "mise exec -- oxfmt --check .",
+    "format:fix": "mise exec -- oxfmt .",
+    "check": "mise exec -- ultracite check",
+    "fix": "mise exec -- ultracite fix",
+    "knip": "mise exec -- knip",
+    "deps": "mise exec -- depcruise --config .dependency-cruiser.cjs \"src/**/*.ts\" \"scripts/**/*.ts\"",
+    "quality": "npm run typecheck && npm run check && npm run knip && npm run deps",
+    "secrets": "mise exec -- gitleaks detect --source . --verbose --redact",
+    "secrets:staged": "mise exec -- gitleaks protect --staged --verbose --redact",
+    "e2e": "tsx scripts/e2e/run.ts",
+    "e2e:bench": "tsx scripts/e2e/bench/run-bench.ts"
+  },
+  "dependencies": {
+    "esbuild": "^0.24.2",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.2",
+    "playwright": "^1.61.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "ultracite": "7.3.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>注文完了 | 計測デモサイト</title>
+<!-- 計測タグ -->
+<script>
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'tracker.start':new Date().getTime(),event:'tracker.js'});
+var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;
+j.src='http://localhost:3100/tracker.js?id='+i;f.parentNode.insertBefore(j,f);
+})(window,document,'script','tdDataLayer','ws-001');
+</script>
+<!-- End 計測タグ -->
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<nav>
+  <a href="/">ホーム</a>
+  <a href="/products">商品一覧(スクロール/クリック検証)</a>
+  <a href="/spa">SPAデモ(History Change検証)</a>
+  <a href="http://localhost:3100/admin" target="_blank">管理画面 ↗</a>
+</nav>
+<main>
+<h1>ご注文ありがとうございました 🎉</h1>
+<div class="hint">このページの表示で URL到達トリガー(<code>url:/order/complete</code>)が発火します。</div>
+<p><a href="/">ホームへ戻る</a></p>
+</main>
+</body>
+</html>

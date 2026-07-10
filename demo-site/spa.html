@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPAデモ | 計測デモサイト</title>
+<!-- 計測タグ -->
+<script>
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'tracker.start':new Date().getTime(),event:'tracker.js'});
+var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;
+j.src='http://localhost:3100/tracker.js?id='+i;f.parentNode.insertBefore(j,f);
+})(window,document,'script','tdDataLayer','ws-001');
+</script>
+<!-- End 計測タグ -->
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<nav>
+  <a href="/">ホーム</a>
+  <a href="/products">商品一覧(スクロール/クリック検証)</a>
+  <a href="/spa">SPAデモ(History Change検証)</a>
+  <a href="http://localhost:3100/admin" target="_blank">管理画面 ↗</a>
+</nav>
+<main>
+<h1>SPAデモ</h1>
+<div class="hint">下のボタンは <code>history.pushState</code> による疑似ページ遷移です(ページ再読み込みなし)。
+tracker.js が History Change を検知し、新しいページビューとして URL 到達トリガー等を再評価します。<br>
+GTM 経由設置の場合の <code>tdDataLayer.push({event:'tracker.pageview'})</code> も試せます。</div>
+<div class="spa-nav">
+  <button onclick="go('/spa')">トップ</button>
+  <button onclick="go('/spa/pricing')">料金</button>
+  <button onclick="go('/order/complete')">注文完了(SPA遷移でURL到達)</button>
+  <button onclick="window.tdDataLayer.push({event:'tracker.pageview'})">dataLayer で手動ページビュー送信</button>
+</div>
+<div class="card">現在の疑似URL: <code id="cur"></code></div>
+<script>
+  function go(path) {
+    history.pushState({}, '', path);
+    render();
+  }
+  function render() {
+    document.getElementById('cur').textContent = location.pathname;
+  }
+  window.addEventListener('popstate', render);
+  render();
+</script>
+<div class="filler">
+<p>ダミー本文 — SPA でもスクロール率・滞在時間トリガーはページビューごとに再評価されます。</p>
+<p>ダミー本文 — pushState で URL が変わると tracker.js が新しいページビューとして扱います。</p>
+</div>
+</main>
+</body>
+</html>
