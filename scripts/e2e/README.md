@@ -7,7 +7,7 @@
 
 ## テスト方針（何を見るか）
 
-計測 E2E の真実のソースは **Hit（`data/db.json` のヒット1件）** である。件数 API は便利な集計だが、最終判定はヒット単位で行う。
+計測 E2E の真実のソースは **Hit（run 専用 DB のヒット1件）** である。件数 API は便利な集計だが、最終判定はヒット単位で行う。
 
 | 観点         | 見るもの                                               | 主な手段                                                                                  |
 | ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
@@ -22,10 +22,13 @@
 ## 実行
 
 ```bash
-npm start    # 別ターミナル: 計測サーバー(3100) + デモサイト(3200)
 npx playwright install   # 初回のみ: chromium / firefox / webkit
-npm run e2e  # 3エンジンを直列実行。結果ラベルは PASS [chromium] ... 形式
+npm run e2e  # run 専用スタックを起動し、3エンジンを直列実行
 ```
+
+`npm run e2e` は空きポートを動的に割り当てる。3100/3200 が使用中でも影響を受けない。
+各 run は `data/e2e-*.tmp` を専用 DB として使う。終了時に子プロセスと専用 DB を削除する。
+強制終了等で専用 DB が残った場合、次回 E2E 起動時に更新から24時間を過ぎたファイルを回収する。
 
 ### ローカル専用オプション（CI では使わない）
 
@@ -58,13 +61,14 @@ npm run e2e  # 3エンジンを直列実行。結果ラベルは PASS [chromium]
 | `tracking/` | **ビーコンが届いたかどう確認するか**（Assert） | 中       |
 | `harness/`  | 実行の裏方（ランナー・セットアップ・定数）     | 低       |
 
-ルートの `run.ts`（起動）と `scenarios.ts`（シナリオ登録）だけ別に置いている。
+ルートの `launch.ts`（スタック起動）、`run.ts`（テスト実行）、`scenarios.ts`（シナリオ登録）だけ別に置いている。
 
 ## ディレクトリ構成
 
 ```
 scripts/e2e/
-├── run.ts              # エントリ（3ブラウザ直列・後片付け・終了コード）
+├── launch.ts           # run 専用スタックとテスト子プロセスの起動・停止
+├── run.ts              # 3ブラウザ直列・フィクスチャ後片付け・終了コード
 ├── scenarios.ts        # 全シナリオの登録一覧（新規追加時はここに1行）
 ├── tests/              # シナリオ本体（1ファイル = 1ケース）
 ├── browser/
@@ -76,6 +80,7 @@ scripts/e2e/
 │   ├── seed-events.ts  # 固定イベント ID（ev_purchase 等）
 │   └── index.ts        # barrel export
 └── harness/
+    ├── stack.ts        # 動的ポート・専用 DB・health 待機・cleanup
     ├── runner.ts       # runE2eCase / PASS・FAIL 集計
     ├── session.ts      # ページ生成・フィクスチャ setup/teardown
     ├── config.ts       # オリジン URL・タイムアウト・UA_TOKEN
@@ -85,7 +90,9 @@ scripts/e2e/
 ## データの流れ
 
 ```
-run.ts
+launch.ts
+  ├─ harness/stack.ts     … run 専用スタックの起動・停止
+  └─ run.ts
   ├─ harness/session.ts   … フィクスチャ準備・page 生成（シナリオごと context）
   ├─ scenarios.ts         … 何を実行するか
   └─ tests/*.ts           … 各シナリオ
@@ -130,7 +137,7 @@ run.ts
 
 ### `tracking/` — サーバー検証
 
-- `client.ts` — 管理 API 呼び出し、`data/db.json` 直読み（`getHitsMatching` / `getPageviewHitsSince`）
+- `client.ts` — 管理 API 呼び出し、run 専用 DB 直読み（`getHitsMatching` / `getPageviewHitsSince`）
 - `assertions.ts` — `quiesceBeacons`, `expectEventCountIncreasedBy`, `waitForNewHit`, `expectHitPayload`（末尾で `expectAnonIdsPresent`）, `expectAnonIdsPresent`, `ANON_VID_RE` / `ANON_SID_RE` 等
 - `seed-events.ts` — `EVENT_ID_PURCHASE` 等の定数
 
@@ -142,6 +149,7 @@ run.ts
 
 | ファイル     | 内容                                                                               |
 | ------------ | ---------------------------------------------------------------------------------- |
+| `stack.ts`   | 動的ポート確保、run 専用 DB、サーバー起動待ち、停止、専用 DB 回収                  |
 | `runner.ts`  | `[TEST]` ログ、PASS/FAIL 集計（`runE2eCase` は成否 boolean を返す）                |
 | `session.ts` | `createE2eSession`, `createE2ePage`, `setupE2eFixtures`, `teardownE2eFixtures`     |
 | `config.ts`  | `TRACKING_ORIGIN`, `UA_TOKEN`, `parseRecordVideoMode`, `isE2eMobile`, 各種 ms 定数 |
@@ -203,8 +211,8 @@ export async function testMyScenario(ctx: E2eContext): Promise<void> {
 ## 注意
 
 - `gtm-dedup.ts` では `pushState` と `tdDataLayer.push` を**同一 tick**で実行する必要があるため、`browser/actions` を個別に呼ばず `page.evaluate` にまとめている
-- `tracking/client.ts` の `getHitsForEvent` / `getHitsMatching` は API 経由ではなく `data/db.json` を直読みする
-- テストは順次実行。**並列化すると `data/db.json` の件数が競合する**（ブラウザマトリクスも直列のみ）
+- `tracking/client.ts` の `getHitsForEvent` / `getHitsMatching` は API 経由ではなく run 専用 DB を直読みする
+- 別 run は動的ポートと専用 DB で隔離する。同一 run 内のブラウザマトリクスとシナリオは直列実行する
 - フィクスチャ（検証用イベント等）は全ブラウザ共通で 1 回 setup / 最後に teardown
 - `browser/actions.ts` の `spaPushState` は素の `history.pushState` を呼ぶだけでよい。tracker.js が
   `pushState` 自体をパッチして `onHistoryChange` を呼ぶため、`popstate` を手動発火すると二重処理になる

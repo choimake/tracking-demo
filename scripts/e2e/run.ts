@@ -1,6 +1,5 @@
-// tracker.js(計測スクリプト)の実ブラウザ検証のエントリ。
-// 実行: npm run e2e (npm start で両サーバーが起動していること)
-// Chromium / Firefox / WebKit を直列実行する(共有 db.json のため並列禁止)
+// launch.ts が起動した run 専用スタックに対して実ブラウザ検証を行う子プロセス。
+// Chromium / Firefox / WebKit を直列実行する。
 // シナリオごとに BrowserContext を開閉し、Cookie 等のブラウザ状態を隔離する
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -26,6 +25,8 @@ import type { E2eContext, E2eFixtures } from "./harness/types.js";
 import { finalizeScenarioVideo } from "./harness/video.js";
 import { e2eScenarios } from "./scenarios.js";
 import { TrackingClient } from "./tracking/client.js";
+
+export type E2eSuiteEntry = string;
 
 const BROWSERS: Record<
   BrowserName,
@@ -145,6 +146,9 @@ async function runBrowserScenarios(options: {
 }
 
 async function main(): Promise<void> {
+  if (process.env.E2E_SUITE_FAIL_IMMEDIATELY === "1") {
+    throw new Error("E2E_SUITE_FAIL_IMMEDIATELY による意図的な失敗");
+  }
   const tracking = new TrackingClient();
   const fixtures = await setupE2eFixtures(tracking);
   const runner = new E2eRunner();
@@ -179,4 +183,6 @@ async function main(): Promise<void> {
   process.exit(runner.exitCode);
 }
 
-main();
+if (process.env.E2E_SUITE_CHILD === "1") {
+  main();
+}

@@ -10,7 +10,7 @@
 
 ## 用語
 
-- **Hit**: `data/db.json` に記録されたビーコン1件。計測 E2E の最終判定の真実源
+- **Hit**: run 専用 DB に記録されたビーコン1件。計測 E2E の最終判定の真実源
 - **Act**: デモサイト上の操作（遷移・クリック・スクロール等）
 - **Assert**: 計測サーバー側の件数・Hit 検証
 - **barrel**: `browser/index.ts` / `tracking/index.ts` 経由の再エクスポート。テストはここから import する
@@ -24,7 +24,8 @@
 | `tracking/`    | Assert   | 件数待ち・`waitForNewHit`・`expectHitPayload`・匿名 ID 正規表現 |
 | `harness/`     | 裏方     | ランナー・セッション・定数（`config.ts`）・型                   |
 | `scenarios.ts` | 登録     | `{ name, run }` の一覧                                          |
-| `run.ts`       | 起動     | ブラウザ直列実行・setup/teardown                                |
+| `launch.ts`    | 起動     | run 専用スタック・テスト子プロセス・cleanup                     |
+| `run.ts`       | 実行     | ブラウザ直列実行・setup/teardown                                |
 
 依存方向: `browser` は `tracking` / `tests` に依存しない。`tracking` が依存できる `harness` は `config` のみ（他の harness は禁止）。`harness/session`・`types` から `tracking` への依存は可。`harness/config`・`runner`・`video` は `tracking` に依存しない。これらは `.dependency-cruiser.cjs` で error として担保する。
 
@@ -62,11 +63,11 @@
 - `sleep` は `harness/config.ts` に置き、`tracking` から re-export しない
 - 匿名 ID 形式の正規表現は `tracking/assertions.ts` の `ANON_VID_RE` / `ANON_SID_RE` に一本化する
 
-### 実行と共有状態
+### 実行と隔離状態
 
-- 通常は直列実行する。共有 `data/db.json` の件数が競合するため
-- 並列は隔離前提（専用 DB / 独立ワーカー等）がない限り行わない
-- ブラウザマトリクス（chromium / firefox / webkit）も直列のみ
+- E2E run ごとに動的ポートと専用 DB を使う
+- 同一 run のシナリオとブラウザマトリクスは直列実行する
+- 並列ワーカーを同一 run に追加する場合、ワーカーごとに専用 DB を割り当てる
 
 ### シナリオごと context の扱い
 
@@ -89,7 +90,7 @@
 1. `tests/<name>.ts` に `export async function test…(ctx: E2eContext)` を書く
 2. デモサイト上の操作を追加するときは `browser/actions.ts` に Act を書く
 3. `scenarios.ts` の `e2eScenarios` に `{ name, run }` を1行登録する
-4. `npm run e2e` で確認する（事前に `npm start` で両サーバー起動）
+4. `npm run e2e` で確認する
 
 テンプレートと既存シナリオ一覧は README を参照する。
 
