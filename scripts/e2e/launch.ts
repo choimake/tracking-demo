@@ -12,8 +12,6 @@ const ROOT = path.resolve(
 );
 const TSX_CLI = createRequire(import.meta.url).resolve("tsx/cli");
 const SUITE_ENTRY = path.join(ROOT, "scripts/e2e/run.ts");
-// run.ts は TSX の子プロセスで実行するため、Knip に動的 entry として通知する。
-import.meta.resolve("./run.js");
 
 async function main(): Promise<void> {
   let stack: Awaited<ReturnType<typeof startStack>> | undefined;
