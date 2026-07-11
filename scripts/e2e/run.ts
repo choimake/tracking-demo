@@ -27,8 +27,6 @@ import { finalizeScenarioVideo } from "./harness/video.js";
 import { e2eScenarios } from "./scenarios.js";
 import { TrackingClient } from "./tracking/client.js";
 
-export type E2eSuiteEntry = string;
-
 const BROWSERS: Record<
   BrowserName,
   typeof chromium | typeof firefox | typeof webkit
@@ -204,4 +202,9 @@ async function main(): Promise<void> {
 
 if (process.env.E2E_SUITE_CHILD === "1") {
   main();
+} else {
+  console.error(
+    "scripts/e2e/run.ts は npm run e2e（launch.ts 経由）で実行してください。"
+  );
+  process.exitCode = 1;
 }

@@ -9,7 +9,7 @@
 - 基準に origin へ未 push の commit を含む場合は、依頼文にその旨を明示する
 - push は統合タイミングでリポジトリ所有者がまとめて実施する
 
-基準 hash は main worktree で `git rev-parse --short main` で確認する。例: 本フロー策定時点のローカル main は `6ee57b9` であり、origin/main より commit 2 件（`d3b063c`、`6ee57b9`）分先行している。
+基準 hash は main worktree で `git rev-parse --short main` で確認する。例: 本フロー策定時点のローカル main は `6ee57b9` であり、origin/main より commit 2 件分（`d3b063c`、`6ee57b9`）先行している。
 
 ## worktree 運用ルール
 
@@ -49,7 +49,7 @@ git worktree prune
 git branch --list 'task/*'
 ```
 
-worktree の一覧を確認する。cleanup 後に不要な entry が残っていないことをこのコマンドで確認する。
+worktree の一覧を確認する。削除後に不要な entry が残っていないことをこのコマンドで確認する。
 
 ```bash
 git worktree list
@@ -94,8 +94,7 @@ git worktree list
 ## 制約（現時点の非対応）
 
 - worktree はファイル編集の衝突を防ぐが、ポート・DB・外部サービス・CPU の共有資源は隔離しない
-- 計測サーバー（ポート 3100）・デモサイト（ポート 3200）・`data/db.json` は worktree 間で共有される。Hermetic stack（タスク01）完了までは、複数 worktree から `npm start` / `npm run e2e` を同時実行しない
-- DB を共有したまま並列実行するには、tenant・workspace・namespace・run ID のいずれかによる論理分離が必要になる。現時点では未対応のため直列実行する
+- `npm start` は計測サーバーに既定ポート 3100、デモサイトに既定ポート 3200 を使う。複数 worktree から同時に起動しない
 - repository 全体へ作用する Git 操作（`git worktree add` / `git worktree remove`、branch 削除）と mutation 実行（`npm run mutation`）を同時に行わない
 - ignored/untracked ファイル（`memory/`、`.env` 等）は worktree 間で共有されない
 - 各 worktree で `npm install` を個別に実行する必要がある

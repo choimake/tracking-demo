@@ -4,31 +4,16 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { stackEnvRecord, startStack } from "./harness/stack.js";
-import type { E2eSuiteEntry } from "./run.js";
+import { signalChild, stackEnvRecord, startStack } from "./harness/stack.js";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../.."
 );
 const TSX_CLI = createRequire(import.meta.url).resolve("tsx/cli");
-const SUITE_ENTRY: E2eSuiteEntry = path.join(ROOT, "scripts/e2e/run.ts");
-
-function signalSuite(
-  suite: ReturnType<typeof spawn> | undefined,
-  signal: NodeJS.Signals
-): void {
-  if (suite?.pid === undefined) return;
-  try {
-    if (process.platform === "win32") {
-      suite.kill(signal);
-    } else {
-      process.kill(-suite.pid, signal);
-    }
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
-  }
-}
+const SUITE_ENTRY = path.join(ROOT, "scripts/e2e/run.ts");
+// run.ts は TSX の子プロセスで実行するため、Knip に動的 entry として通知する。
+import.meta.resolve("./run.js");
 
 async function main(): Promise<void> {
   let stack: Awaited<ReturnType<typeof startStack>> | undefined;
@@ -37,8 +22,10 @@ async function main(): Promise<void> {
   let forceKillTimer: NodeJS.Timeout | undefined;
   const interrupt = (signal: NodeJS.Signals): void => {
     interruptedSignal ??= signal;
-    signalSuite(suite, signal);
-    forceKillTimer ??= setTimeout(() => signalSuite(suite, "SIGKILL"), 5000);
+    if (suite) signalChild(suite, signal);
+    forceKillTimer ??= setTimeout(() => {
+      if (suite) signalChild(suite, "SIGKILL");
+    }, 5000);
   };
   const onSigint = (): void => interrupt("SIGINT");
   const onSigterm = (): void => interrupt("SIGTERM");
@@ -86,7 +73,7 @@ async function main(): Promise<void> {
     if (forceKillTimer) clearTimeout(forceKillTimer);
     process.off("SIGINT", onSigint);
     process.off("SIGTERM", onSigterm);
-    signalSuite(suite, "SIGTERM");
+    if (suite) signalChild(suite, "SIGTERM");
     if (stack) {
       await stack.stop();
       console.log(`[E2E stack] cleanup complete runId=${stack.runId}`);

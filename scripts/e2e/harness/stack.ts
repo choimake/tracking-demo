@@ -149,7 +149,7 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
   throw new Error(`health timeout: ${url}; last=${String(lastError)}`);
 }
 
-function signalChild(child: ChildProcess, signal: NodeJS.Signals): void {
+export function signalChild(child: ChildProcess, signal: NodeJS.Signals): void {
   if (child.pid === undefined) {
     return;
   }
