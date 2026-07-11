@@ -1,5 +1,5 @@
+import { runExitIntentMobileAct } from "../browser/index.js";
 import {
-  DEMO_SITE_ORIGIN,
   EXIT_INTENT_MOBILE_CHECK_DELAY_MS,
   parseRecordVideoMode,
 } from "../harness/config.js";
@@ -61,16 +61,6 @@ export async function testExitIntentMobile(ctx: E2eContext): Promise<void> {
       }
     }
   }
-}
-
-async function runExitIntentMobileAct(page: E2eContext["page"]): Promise<void> {
-  await page.goto(`${DEMO_SITE_ORIGIN}/`, { waitUntil: "load" });
-  // タップ相当の操作のみ(合成 mouseout は使わない)。
-  // body 全体をタップすると本文中のリンクに当たり遷移してしまうため、
-  // リンクを含まない見出し(h1)を対象にする
-  await page.locator("h1").tap();
-  await page.evaluate(() => window.scrollTo(0, 200));
-  await page.locator("h1").tap();
 }
 
 async function assertNoExitIntent(

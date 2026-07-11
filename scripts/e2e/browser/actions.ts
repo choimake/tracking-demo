@@ -126,3 +126,17 @@ export async function preloadTdDataLayerQueue(page: Page): Promise<void> {
     ];
   });
 }
+
+/**
+ * モバイル exit_intent 非発火用の Act。
+ * タップ相当の操作のみ(合成 mouseout は使わない)。
+ * body 全体をタップすると本文中のリンクに当たり遷移してしまうため、
+ * リンクを含まない見出し(h1)を対象にする。
+ * pageview コンソール待ちはしない(素の goto のまま)
+ */
+export async function runExitIntentMobileAct(page: Page): Promise<void> {
+  await page.goto(`${DEMO_SITE_ORIGIN}/`, { waitUntil: "load" });
+  await page.locator("h1").tap();
+  await page.evaluate(() => window.scrollTo(0, 200));
+  await page.locator("h1").tap();
+}
