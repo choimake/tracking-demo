@@ -18,11 +18,13 @@
 | payload      | `url`・`workspaceId`・`vid`・`sid`                     | `expectHitPayload`（末尾で常に `expectAnonIdsPresent`。`vid`/`sid` 完全一致はオプション）                    |
 | ブラウザ     | `ua` にエンジン別トークン（Chrome / Firefox / Safari） | `UA_TOKEN[browserName]`                                                                                      |
 
+`expectHitCountAtMost` は現在、回帰契約のみで使用する。
+
 発火系シナリオの基本パターン: **Hit カーソル取得 → Act → 相関済み件数を正確に +1 → waitForNewHit → expectHitPayload**。
 
 ## Hit 相関方式
 
-通常 run は、`run ID / browser / scenario` から相関 ID を作る。Playwright は相関 ID をシナリオ専用 BrowserContext の User-Agent 末尾へ付ける。`TrackingClient` は run 専用 DB を読むとき、User-Agent 末尾が完全一致する Hit だけを取得・集計する。同一シナリオ内では、Act 前に DB 末尾の Hit ID を取得する。Act 後はその Hit ID より後だけを対象にする。この方式は Hit の `ts` とテスト実行環境の時計を相関条件に使わない。
+通常 run は、`run ID / browser / scenario` から相関 ID を作る。Playwright は相関 ID をシナリオ専用 BrowserContext の User-Agent 末尾へ付ける。`TrackingClient` はE2E専用の観測APIを使い、User-Agent 末尾が完全一致する Hit だけを取得・集計する。同一シナリオ内では、Act 前に観測末尾の Hit ID を取得する。Act 後はその Hit ID より後だけを対象にする。この方式は Hit の `ts` とテスト実行環境の時計を相関条件に使わない。
 
 相関 ID は Cookie の `vid` / `sid` を使わない。Cookie 無効、ID 再発行、複数タブでも BrowserContext の User-Agent は変わらないためである。既存 User-Agent は保持する。そのため、ブラウザエンジンの検証も継続する。独立 BrowserContext を作る Cookie 無効とモバイルのケースは、外側シナリオの相関 ID を明示的に継承する。
 
@@ -33,7 +35,7 @@
 - 専用 HTTP ヘッダー: CORS と収集サーバーの Hit 型を変更する。本番の入力面を増やす。
 - URL のクエリ: 遷移時に保持されず、計測対象 URL の検証を汚す。
 
-公開タグと収集サーバーは変更しない。相関情報は E2E の BrowserContext と DB 読み取り境界だけで扱う。run の cleanup は `stack.ts` が所有する専用 DB だけを削除する。共有 DB を使う構成へ変更する場合も、相関 ID を cleanup 条件に含める必要がある。
+公開タグと収集APIは変更しない。相関情報はE2EのBrowserContextと観測APIだけで扱う。観測APIはE2E専用スタックだけで有効になる。通常起動では404を返す。runのcleanupは`stack.ts`が所有する専用DBだけを削除する。共有DBを使う構成へ変更する場合も、相関IDをcleanup条件に含める必要がある。
 
 `npm run quality` は Node レベルの相関・assertion回帰チェックと assertion Mutation Testing を自動実行する。単独で確認する場合は次のコマンドを実行する。
 
@@ -154,26 +156,26 @@ launch.ts
 
 件数保証は次の4区分で表す。複合シナリオは区間ごとの保証を併記する。
 
-| シナリオ                 | 件数保証                                                                  |
-| ------------------------ | ------------------------------------------------------------------------- |
-| `tag-load.ts`            | 初回pageviewを正確に1件                                                   |
-| `url-reach.ts`           | URL到達イベントを正確に1件                                                |
-| `click-trigger.ts`       | クリックイベントを正確に1件                                               |
-| `scroll-trigger.ts`      | スクロールイベントを正確に1件                                             |
-| `time-on-page.ts`        | 滞在イベントを正確に1件                                                   |
-| `exit-intent.ts`         | 非離脱操作は観測期間中0件。離脱操作は正確に1件                            |
-| `spa-history.ts`         | pageviewを正確に2件。購入イベントを正確に1件。同一パス操作は観測期間中0件 |
-| `gtm-dedup.ts`           | 各遷移のpageviewを正確に1件。購入イベントは最低1件                        |
-| `datalayer-manual.ts`    | 手動pageviewを正確に1件                                                   |
-| `datalayer-queue.ts`     | pageviewを正確に1件。購入イベントを正確に1件                              |
-| `double-tag-guard.ts`    | 初回と二重設置後のpageviewを正確に1件                                     |
-| `disabled-event.ts`      | 無効イベントを観測期間中0件                                               |
-| `spa-popstate.ts`        | 戻る操作のpageviewを正確に1件。購入イベントを正確に1件                    |
-| `time-on-page-cancel.ts` | 滞在イベントを観測期間中0件                                               |
-| `fire-semantics.ts`      | クリックイベントを正確に2件。スクロールイベントを正確に1件                |
-| `url-normalize.ts`       | 各URL到達イベントを正確に1件                                              |
-| `exit-intent-mobile.ts`  | 離脱イベントを観測期間中0件                                               |
-| `cookie-identity.ts`     | 各Actのpageviewを最低1件。SPA区間は最低2件。購入完了イベントを正確に1件   |
+| シナリオ                 | 件数保証                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `tag-load.ts`            | 初回pageviewを正確に1件                                                         |
+| `url-reach.ts`           | URL到達イベントを正確に1件                                                      |
+| `click-trigger.ts`       | クリックイベントを正確に1件                                                     |
+| `scroll-trigger.ts`      | スクロールイベントを正確に1件                                                   |
+| `time-on-page.ts`        | 滞在イベントを正確に1件                                                         |
+| `exit-intent.ts`         | 非離脱操作は観測期間中0件。離脱操作は正確に1件                                  |
+| `spa-history.ts`         | pageviewを正確に2件。購入イベントを正確に1件。同一パス操作は観測期間中0件       |
+| `gtm-dedup.ts`           | 各遷移のpageviewを正確に1件。同一tick遷移の購入イベントはsettle時点で正確に+1件 |
+| `datalayer-manual.ts`    | 手動pageviewを正確に1件                                                         |
+| `datalayer-queue.ts`     | pageviewを正確に1件。購入イベントを正確に1件                                    |
+| `double-tag-guard.ts`    | 初回と二重設置後のpageviewを正確に1件                                           |
+| `disabled-event.ts`      | 無効イベントを観測期間中0件                                                     |
+| `spa-popstate.ts`        | 戻る操作のpageviewを正確に1件。購入イベントを正確に1件                          |
+| `time-on-page-cancel.ts` | 滞在イベントを観測期間中0件                                                     |
+| `fire-semantics.ts`      | クリックイベントを正確に2件。スクロールイベントを正確に1件                      |
+| `url-normalize.ts`       | 各URL到達イベントを正確に1件                                                    |
+| `exit-intent-mobile.ts`  | 離脱イベントを観測期間中0件                                                     |
+| `cookie-identity.ts`     | 各Actのpageviewを最低1件。SPA区間は最低2件。購入完了イベントを正確に1件         |
 
 ### `browser/` — ページ操作
 
@@ -182,7 +184,7 @@ launch.ts
 
 ### `tracking/` — サーバー検証
 
-- `client.ts` — 管理 API 呼び出し、相関 ID と Hit カーソルによる run 専用 DB 直読み
+- `client.ts` — 管理API呼び出し、観測APIの応答検証、相関IDとHitカーソルによるHit抽出
 - `assertions.ts` — 4区分の件数helper、`quiesceBeacons`、`waitForNewHit`、`expectHitPayload`（末尾で `expectAnonIdsPresent`）、匿名ID正規表現
 - `seed-events.ts` — `EVENT_ID_PURCHASE` 等の定数
 

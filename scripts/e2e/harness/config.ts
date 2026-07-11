@@ -1,12 +1,8 @@
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 // E2E実行対象のオリジンと、待機/タイムアウトに使う定数を集約する。
 export const TRACKING_ORIGIN = `http://localhost:${process.env.PORT ?? 3100}`;
 export const DEMO_SITE_ORIGIN = `http://localhost:${process.env.SITE_PORT ?? 3200}`;
-export const DB_PATH = process.env.DB_PATH
-  ? pathToFileURL(path.resolve(process.env.DB_PATH))
-  : new URL("../../../data/db.json", import.meta.url);
 
 export const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));

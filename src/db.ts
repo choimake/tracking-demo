@@ -217,6 +217,7 @@ function writeDb(): void {
 }
 
 let saveTimer: NodeJS.Timeout | null = null;
+const SAVE_DEBOUNCE_MS = Number(process.env.DB_SAVE_DEBOUNCE_MS ?? 100);
 export function save(): void {
   if (saveTimer) {
     return;
@@ -231,7 +232,7 @@ export function save(): void {
       // ここで握りつぶしてログだけ残す(ディスクフル・権限喪失等でもプロセスは生存させる)
       console.error("db.json の書き込みに失敗しました", error);
     }
-  }, 100);
+  }, SAVE_DEBOUNCE_MS);
 }
 
 // プロセス終了時にデバウンス中の保存を取りこぼさない

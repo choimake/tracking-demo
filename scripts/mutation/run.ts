@@ -137,14 +137,38 @@ function loadResumedMutants(
   return doneIds;
 }
 
-/** src/ 配下に未コミット変更がないこと（docs/scripts の新規追加は許容） */
+const SOURCE_PATHS = execFileSync("git", ["ls-files", "--", "src/"], {
+  cwd: ROOT,
+  encoding: "utf8",
+})
+  .trim()
+  .split("\n")
+  .filter(Boolean);
+const SOURCE_BASELINE = new Map(
+  SOURCE_PATHS.map((file) => [file, fs.readFileSync(path.join(ROOT, file))])
+);
+const SOURCE_STATUS_BASELINE = execFileSync(
+  "git",
+  ["status", "--porcelain", "--", "src/"],
+  { cwd: ROOT, encoding: "utf8" }
+).trim();
+
+/** src/ 配下がmutation開始時の状態と一致することを確認する。 */
 function assertCleanTree(): void {
-  const out = execFileSync("git", ["status", "--porcelain", "--", "src/"], {
+  const status = execFileSync("git", ["status", "--porcelain", "--", "src/"], {
     cwd: ROOT,
     encoding: "utf8",
   }).trim();
-  if (out) {
-    throw new Error(`src/ が dirty です。盲目的に revert しません:\n${out}`);
+  if (status !== SOURCE_STATUS_BASELINE) {
+    throw new Error(
+      `src/ の差分がmutation開始時から変化しました:\n開始時:\n${SOURCE_STATUS_BASELINE}\n現在:\n${status}`
+    );
+  }
+  for (const [file, baseline] of SOURCE_BASELINE) {
+    const current = fs.readFileSync(path.join(ROOT, file));
+    if (!current.equals(baseline)) {
+      throw new Error(`src/ の内容がmutation開始時から変化しました: ${file}`);
+    }
   }
 }
 
@@ -238,7 +262,11 @@ function applyMutant(m: CatalogMutant): void {
 }
 
 function restoreFile(file: string): void {
-  execFileSync("git", ["checkout", "--", file], { cwd: ROOT });
+  const baseline = SOURCE_BASELINE.get(file);
+  if (!baseline) {
+    throw new Error(`mutation開始時の復元元がありません: ${file}`);
+  }
+  fs.writeFileSync(path.join(ROOT, file), baseline);
 }
 
 function writeResultsAtomic(data: ResultsFile): void {

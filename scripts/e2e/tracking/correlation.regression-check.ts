@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
+import http from "node:http";
 
 interface TestHit {
   id: string;
@@ -63,13 +61,19 @@ const hits: TestHit[] = [
 ];
 
 export async function runCorrelationRegressionCheck(): Promise<void> {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "e2e-correlation-"));
-  const dbPath = path.join(tempDir, "db.json");
-  process.env.DB_PATH = dbPath;
+  const server = http.createServer((_request, response) => {
+    response.setHeader("Content-Type", "application/json");
+    response.end(JSON.stringify({ hits }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
-    await fs.writeFile(dbPath, JSON.stringify({ hits }));
     const { TrackingClient } = await import("./client.js");
-    const tracking = new TrackingClient(correlationA);
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    const tracking = new TrackingClient(
+      correlationA,
+      `http://127.0.0.1:${address.port}`
+    );
 
     assert.deepEqual(
       (
@@ -96,11 +100,19 @@ export async function runCorrelationRegressionCheck(): Promise<void> {
     assert.equal(await tracking.getEventCount7d("ev_purchase"), 2);
     await assert.rejects(
       tracking.getHitsMatching({ afterHitId: "missing" }),
-      /Hit cursor が DB に存在しません/
+      /Hit cursor が観測結果に存在しません/
     );
     console.log("correlation regression check: PASS");
   } finally {
-    await fs.rm(tempDir, { force: true, recursive: true });
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
   }
 }
 

@@ -11,6 +11,7 @@ import type { HitFilter, HitRecord, TrackingClient } from "./client.js";
 
 type HitReader = Pick<TrackingClient, "getHitsMatching">;
 type TagCheckReader = Pick<TrackingClient, "getTagCheck">;
+type EventCountReader = Pick<TrackingClient, "getEventCount7d">;
 
 interface ObservationOptions {
   observationMs?: number;
@@ -101,7 +102,7 @@ export async function quiesceBeacons(
 }
 
 export async function expectEventCountExactlyIncreasedBy(
-  tracking: TrackingClient,
+  tracking: EventCountReader,
   eventId: string,
   countBefore: number,
   expectedDelta: number,

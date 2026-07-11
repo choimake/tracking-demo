@@ -24,6 +24,8 @@ export interface StackEnv {
   PORT: number;
   SITE_PORT: number;
   DB_PATH: string;
+  DB_SAVE_DEBOUNCE_MS?: number;
+  E2E_OBSERVATION_ENABLED: "0" | "1";
   TRACKING_ORIGIN: string;
   DEMO_SITE_URL: string;
 }
@@ -40,6 +42,10 @@ export interface StartStackOptions {
   startupTimeoutMs?: number;
   /** tracking の起動確認パス。故障診断テストで上書きできる。 */
   trackingHealthPath?: string;
+  /** falseの場合は観測APIを登録しない。通常E2Eではtrue。 */
+  observationEnabled?: boolean;
+  /** 観測APIの保存前回帰テストでのみ上書きする。 */
+  dbSaveDebounceMs?: number;
 }
 
 export interface StackHandle {
@@ -104,7 +110,11 @@ async function reservePort(): Promise<PortReservation> {
   };
 }
 
-async function buildEnv(runId: string, dbLabel: string): Promise<StackEnv> {
+async function buildEnv(
+  runId: string,
+  dbLabel: string,
+  options: StartStackOptions
+): Promise<StackEnv> {
   cleanupStaleData();
   const tracking = await reservePort();
   const site = await reservePort();
@@ -118,6 +128,8 @@ async function buildEnv(runId: string, dbLabel: string): Promise<StackEnv> {
       PORT: tracking.port,
       SITE_PORT: site.port,
       DB_PATH,
+      DB_SAVE_DEBOUNCE_MS: options.dbSaveDebounceMs,
+      E2E_OBSERVATION_ENABLED: options.observationEnabled === false ? "0" : "1",
       TRACKING_ORIGIN: `http://localhost:${tracking.port}`,
       DEMO_SITE_URL: `http://localhost:${site.port}`,
     };
@@ -211,7 +223,7 @@ async function startStackAttempt(
     options.workerIndex === undefined
       ? (options.dbLabel ?? "suite")
       : `${options.dbLabel ?? "suite"}-${options.workerIndex}`;
-  const env = await buildEnv(runId, workerLabel);
+  const env = await buildEnv(runId, workerLabel, options);
   const child = spawn(process.execPath, [TSX_CLI, "src/main.ts"], {
     cwd: ROOT,
     detached: process.platform !== "win32",
@@ -317,6 +329,11 @@ export function stackEnvRecord(env: StackEnv): NodeJS.ProcessEnv {
     PORT: String(env.PORT),
     SITE_PORT: String(env.SITE_PORT),
     DB_PATH: env.DB_PATH,
+    DB_SAVE_DEBOUNCE_MS:
+      env.DB_SAVE_DEBOUNCE_MS === undefined
+        ? undefined
+        : String(env.DB_SAVE_DEBOUNCE_MS),
+    E2E_OBSERVATION_ENABLED: env.E2E_OBSERVATION_ENABLED,
     TRACKING_ORIGIN: env.TRACKING_ORIGIN,
     DEMO_SITE_URL: env.DEMO_SITE_URL,
   };

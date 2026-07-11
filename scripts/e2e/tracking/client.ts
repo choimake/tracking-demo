@@ -1,7 +1,4 @@
-import { readFile } from "node:fs/promises";
-
 import {
-  DB_PATH,
   E2E_CORRELATION_UA_PREFIX,
   TRACKING_ORIGIN,
 } from "../harness/config.js";
@@ -47,15 +44,73 @@ export interface TagCheckResult {
   hits: HitRecord[];
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function requireStringField(
+  value: Record<string, unknown>,
+  field: string,
+  index: number
+): string {
+  const fieldValue = value[field];
+  if (typeof fieldValue !== "string") {
+    throw new Error(
+      `観測API応答が不正です: hits[${index}].${field} がstringではありません`
+    );
+  }
+  return fieldValue;
+}
+
+function parseHitRecord(value: unknown, index: number): HitRecord {
+  if (!isRecord(value)) {
+    throw new Error(
+      `観測API応答が不正です: hits[${index}] がobjectではありません`
+    );
+  }
+  if (value.eventId !== null && typeof value.eventId !== "string") {
+    throw new Error(
+      `観測API応答が不正です: hits[${index}].eventId がstring|nullではありません`
+    );
+  }
+  if (typeof value.test !== "boolean") {
+    throw new Error(
+      `観測API応答が不正です: hits[${index}].test がbooleanではありません`
+    );
+  }
+  return {
+    eventId: value.eventId,
+    id: requireStringField(value, "id", index),
+    sid: requireStringField(value, "sid", index),
+    test: value.test,
+    ts: requireStringField(value, "ts", index),
+    type: requireStringField(value, "type", index),
+    ua: requireStringField(value, "ua", index),
+    url: requireStringField(value, "url", index),
+    vid: requireStringField(value, "vid", index),
+    workspaceId: requireStringField(value, "workspaceId", index),
+  };
+}
+
+function parseObservationHits(value: unknown): HitRecord[] {
+  if (!isRecord(value) || !Array.isArray(value.hits)) {
+    throw new Error("観測API応答が不正です: hits配列がありません");
+  }
+  return value.hits.map(parseHitRecord);
+}
+
 /** 計測サーバー(TRACKING_ORIGIN)の管理APIへのアクセスをまとめたクライアント */
 export class TrackingClient {
-  constructor(private readonly correlationId?: string) {}
+  constructor(
+    private readonly correlationId?: string,
+    private readonly trackingOrigin = TRACKING_ORIGIN
+  ) {}
 
   async fetchTracking<T = unknown>(
     path: string,
     opts: RequestInit = {}
   ): Promise<T> {
-    const res = await fetch(TRACKING_ORIGIN + path, {
+    const res = await fetch(this.trackingOrigin + path, {
       headers: { "Content-Type": "application/json" },
       ...opts,
     });
@@ -78,18 +133,14 @@ export class TrackingClient {
     if (this.correlationId) {
       return (await this.getHitsMatching({ eventId, type: "event" })).length;
     }
-    return (
-      (await this.getEventSummaries()).find((e) => e.id === eventId)?.count7d ??
-      -1
-    );
+    return this.requireEventSummary(eventId, await this.getEventSummaries())
+      .count7d;
   }
 
   /** 管理 API が表示する直近7日間のイベント件数 */
   async getEventCount7dFromApi(eventId: string): Promise<number> {
-    return (
-      (await this.getEventSummaries()).find((e) => e.id === eventId)?.count7d ??
-      -1
-    );
+    return this.requireEventSummary(eventId, await this.getEventSummaries())
+      .count7d;
   }
 
   /** 管理画面のタグ動作確認 API が返す pageview を取得する */
@@ -105,12 +156,24 @@ export class TrackingClient {
       .length;
   }
 
-  // 疑似DBファイルを直接読む(受信経路を通らず記録内容そのものを確認するため)
+  private requireEventSummary(
+    eventId: string,
+    events: EventSummary[]
+  ): EventSummary {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) {
+      throw new Error(
+        `イベントが管理API応答に存在しません: eventId=${eventId}`
+      );
+    }
+    return event;
+  }
+
+  /** E2E専用の観測APIから、collect済みのHitを取得する。 */
   async getAllHits(): Promise<HitRecord[]> {
-    const raw = JSON.parse(await readFile(DB_PATH, "utf8")) as {
-      hits: HitRecord[];
-    };
-    return raw.hits;
+    return parseObservationHits(
+      await this.fetchTracking<unknown>("/api/e2e/observations/hits")
+    );
   }
 
   async getHitsForEvent(eventId: string): Promise<HitRecord[]> {
@@ -122,7 +185,7 @@ export class TrackingClient {
     return this.getHitsMatching({ afterHitId, type: "pageview" });
   }
 
-  /** Act 前の DB 末尾を取得する。Hit がない場合は undefined を返す */
+  /** Act 前の観測末尾を取得する。Hit がない場合はundefinedを返す。 */
   async captureHitCursor(): Promise<string | undefined> {
     return (await this.getAllHits()).at(-1)?.id;
   }
@@ -133,7 +196,9 @@ export class TrackingClient {
       ? allHits.findIndex((hit) => hit.id === filter.afterHitId)
       : -1;
     if (filter.afterHitId && cursorIndex < 0) {
-      throw new Error(`Hit cursor が DB に存在しません: ${filter.afterHitId}`);
+      throw new Error(
+        `Hit cursor が観測結果に存在しません: ${filter.afterHitId}`
+      );
     }
     const expectedUaSuffix = this.correlationId
       ? ` ${E2E_CORRELATION_UA_PREFIX}${this.correlationId}`

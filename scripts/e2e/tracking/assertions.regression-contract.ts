@@ -4,6 +4,7 @@ import type { HitRecord } from "./client.js";
 
 type AssertionsApi = Pick<
   typeof import("./assertions.js"),
+  | "expectEventCountExactlyIncreasedBy"
   | "expectHitCountAtMost"
   | "expectHitCountExactly"
   | "expectNoHitsDuringObservation"
@@ -26,6 +27,20 @@ const hit = (id: string): HitRecord => ({
 export async function runAssertionsRegressionContract(
   assertions: AssertionsApi
 ): Promise<void> {
+  const excessiveEventCount = { getEventCount7d: async () => 2 };
+  await assert.rejects(
+    assertions.expectEventCountExactlyIncreasedBy(
+      excessiveEventCount,
+      "ev_purchase",
+      0,
+      1,
+      "到達待ち途中の超過",
+      20
+    ),
+    /イベント件数が期待値を超過: got=2 want=1/,
+    "到達待ち途中に期待件数を超過した場合は失敗する"
+  );
+
   const twoHits = { getHitsMatching: async () => [hit("1"), hit("2")] };
   await assert.rejects(
     assertions.expectHitCountExactly(twoHits, {}, 1, "1件期待", {
@@ -48,14 +63,14 @@ export async function runAssertionsRegressionContract(
   const observationStartedAt = Date.now();
   const lateHitReader = {
     getHitsMatching: async () =>
-      Date.now() - observationStartedAt >= 35 ? [hit("late")] : [],
+      Date.now() - observationStartedAt >= 80 ? [hit("late")] : [],
   };
   await assert.rejects(
     assertions.expectNoHitsDuringObservation(
       lateHitReader,
       {},
       "観測窓末尾のHit",
-      { observationMs: 40, pollIntervalMs: 5 }
+      { observationMs: 100, pollIntervalMs: 10 }
     ),
     /観測期間中/,
     "観測窓の末尾直前に投入したHitを検出する"

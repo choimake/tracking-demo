@@ -16,6 +16,12 @@ interface AssertionMutant {
 
 const mutants: AssertionMutant[] = [
   {
+    after: "if (false) {",
+    before: "if (actualCount > expectedCount) {",
+    expectedFailure: "到達待ち途中に期待件数を超過した場合は失敗する",
+    name: "到達待ち途中の超過判定を削除",
+  },
+  {
     after: "if (actualCount < expectedCount) {",
     before: "if (actualCount !== expectedCount) {",
     expectedFailure: "1件期待へ2件投入した場合は失敗する",

@@ -11,6 +11,7 @@ import type { Hit, TrackEvent } from "./types.js";
 
 const PORT = Number(process.env.PORT ?? 3100);
 const DEMO_SITE_URL = process.env.DEMO_SITE_URL ?? "http://localhost:3200";
+const E2E_OBSERVATION_ENABLED = process.env.E2E_OBSERVATION_ENABLED === "1";
 const app = express();
 // text/plain の JSON パースは sendBeacon を受ける /api/collect に限定する。
 // 全ルートに許可すると、プリフライトなしの単純リクエストで管理APIへ書き込めてしまう(CSRF)
@@ -123,6 +124,14 @@ app.post("/api/collect", (req, res) => {
   save();
   res.status(201).json({ ok: true });
 });
+
+// E2E専用の観測境界。通常起動ではルート自体を登録しない。
+// ファイル保存ではなくメモリ上のread modelを返すため、collect受理直後から観測できる。
+if (E2E_OBSERVATION_ENABLED) {
+  app.get("/api/e2e/observations/hits", (_req, res) => {
+    res.json({ hits: db.hits });
+  });
+}
 
 // ---- 管理系 API ----
 function baseUrl(req: express.Request): string {
