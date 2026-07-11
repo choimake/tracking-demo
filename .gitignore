@@ -47,3 +47,4 @@ Thumbs.db
 # エディタ / エージェント用（リポジトリ外で管理）
 .claude/
 .cursor/
+memory/
