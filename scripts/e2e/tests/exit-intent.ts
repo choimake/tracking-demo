@@ -3,11 +3,7 @@ import {
   simulateExitIntent,
   simulateNonExitMouseout,
 } from "../browser/index.js";
-import {
-  BEACON_SETTLE_MS,
-  UA_TOKEN,
-  WORKSPACE_ID,
-} from "../harness/config.js";
+import { BEACON_SETTLE_MS, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_EXIT_INTENT,

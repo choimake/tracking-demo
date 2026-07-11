@@ -15,11 +15,8 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 import type { SuiteWorkerResult } from "../e2e/bench/serial-runner.js";
-import {
-  startStack,
-  stackEnvRecord,
-  type StackEnv,
-} from "../e2e/bench/stack.js";
+import type { StackEnv } from "../e2e/bench/stack.js";
+import { startStack, stackEnvRecord } from "../e2e/bench/stack.js";
 import { e2eScenarios } from "../e2e/scenarios.js";
 
 const ROOT = path.resolve(
@@ -259,79 +256,85 @@ function runSuiteWorkerKillable(
   result?: SuiteWorkerResult;
   errorExcerpt?: string;
 }> {
-  return new Promise((resolve) => {
-    const child: ChildProcess = spawn(
-      "npx",
-      ["tsx", WORKER_SCRIPT, "--browsers", "chromium"],
-      {
-        cwd: ROOT,
-        env: {
-          ...process.env,
-          ...stackEnvRecord(stackEnv),
-          E2E_BROWSERS: "chromium",
-        },
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
-    let stdout = "";
-    let stderr = "";
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      child.kill("SIGKILL");
-      resolve({
-        kind: "timeout",
-        errorExcerpt: `E2E soft-timeout ${timeoutMs}ms`,
-      });
-    }, timeoutMs);
+  type WorkerOutcome = {
+    kind: "ok" | "timeout" | "error";
+    result?: SuiteWorkerResult;
+    errorExcerpt?: string;
+  };
+  // resolve を executor 外へ逃がし、oxlint promise/no-multiple-resolved を回避する
+  let settle!: (value: WorkerOutcome) => void;
+  const promise = new Promise<WorkerOutcome>((resolve) => {
+    settle = resolve;
+  });
+  const child: ChildProcess = spawn(
+    "npx",
+    ["tsx", WORKER_SCRIPT, "--browsers", "chromium"],
+    {
+      cwd: ROOT,
+      env: {
+        ...process.env,
+        ...stackEnvRecord(stackEnv),
+        E2E_BROWSERS: "chromium",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    }
+  );
+  let stdout = "";
+  let stderr = "";
+  let settled = false;
+  const finish = (value: WorkerOutcome) => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    clearTimeout(timer);
+    settle(value);
+  };
+  const timer = setTimeout(() => {
+    if (settled) {
+      return;
+    }
+    child.kill("SIGKILL");
+    finish({
+      kind: "timeout",
+      errorExcerpt: `E2E soft-timeout ${timeoutMs}ms`,
+    });
+  }, timeoutMs);
 
-    child.stdout?.on("data", (c: Buffer) => {
-      stdout += c.toString();
-    });
-    child.stderr?.on("data", (c: Buffer) => {
-      stderr += c.toString();
-      process.stderr.write(c);
-    });
-    child.on("error", (error) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      resolve({
-        kind: "error",
-        errorExcerpt: String(error),
-      });
-    });
-    child.on("exit", () => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      const lines = stdout.trim().split("\n").filter(Boolean);
-      const last = lines.at(-1);
-      if (!last) {
-        resolve({
-          kind: "error",
-          errorExcerpt: `no JSON from suite-worker\n${stderr.slice(-2000)}`,
-        });
-        return;
-      }
-      try {
-        const parsed = JSON.parse(last) as SuiteWorkerResult;
-        resolve({ kind: "ok", result: parsed });
-      } catch (error) {
-        resolve({
-          kind: "error",
-          errorExcerpt: `JSON parse failed: ${String(error)}`,
-        });
-      }
+  child.stdout?.on("data", (c: Buffer) => {
+    stdout += c.toString();
+  });
+  child.stderr?.on("data", (c: Buffer) => {
+    stderr += c.toString();
+    process.stderr.write(c);
+  });
+  child.on("error", (error) => {
+    finish({
+      kind: "error",
+      errorExcerpt: String(error),
     });
   });
+  child.on("exit", () => {
+    const lines = stdout.trim().split("\n").filter(Boolean);
+    const last = lines.at(-1);
+    if (!last) {
+      finish({
+        kind: "error",
+        errorExcerpt: `no JSON from suite-worker\n${stderr.slice(-2000)}`,
+      });
+      return;
+    }
+    try {
+      const parsed = JSON.parse(last) as SuiteWorkerResult;
+      finish({ kind: "ok", result: parsed });
+    } catch (error) {
+      finish({
+        kind: "error",
+        errorExcerpt: `JSON parse failed: ${String(error)}`,
+      });
+    }
+  });
+  return promise;
 }
 
 function classifyAttempt(

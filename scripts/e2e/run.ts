@@ -1,6 +1,7 @@
 // tracker.js(計測スクリプト)の実ブラウザ検証のエントリ。
 // 実行: npm run e2e (npm start で両サーバーが起動していること)
 // Chromium / Firefox / WebKit を直列実行する(共有 db.json のため並列禁止)
+// シナリオごとに BrowserContext を開閉し、Cookie 等のブラウザ状態を隔離する
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -75,26 +76,37 @@ async function closeSessionContext(context: BrowserContext): Promise<void> {
   }
 }
 
-/** 録画時: シナリオごとに context を開閉する(close 時に webm が確定するため) */
-async function runBrowserScenariosWithVideo(options: {
+/**
+ * シナリオ間の Cookie 等隔離のため、常にシナリオごとに context を開閉する。
+ * 録画あり時のみ recordVideoDir を渡し、close 後に video を finalize する。
+ */
+async function runBrowserScenarios(options: {
   browser: Browser;
   browserName: BrowserName;
   deviceLabel: string;
   fixtures: E2eFixtures;
   mobile: boolean;
-  mode: RecordVideoMode;
+  recordVideoMode: RecordVideoMode | null;
   runner: E2eRunner;
 }): Promise<void> {
-  const { browser, browserName, deviceLabel, fixtures, mobile, mode, runner } =
-    options;
-  const videoDir = e2eVideoDir(browserName);
-  await fs.mkdir(videoDir, { recursive: true });
+  const {
+    browser,
+    browserName,
+    deviceLabel,
+    fixtures,
+    mobile,
+    recordVideoMode,
+    runner,
+  } = options;
+  const videoDir = recordVideoMode ? e2eVideoDir(browserName) : undefined;
+  if (videoDir) {
+    await fs.mkdir(videoDir, { recursive: true });
+  }
 
   for (const scenario of e2eScenarios) {
-    const videoPath = path.join(
-      videoDir,
-      `${toScenarioSlug(scenario.name)}.webm`
-    );
+    const videoPath = videoDir
+      ? path.join(videoDir, `${toScenarioSlug(scenario.name)}.webm`)
+      : undefined;
     const session = await createE2eSession(browser, {
       browserName,
       mobile,
@@ -120,49 +132,15 @@ async function runBrowserScenariosWithVideo(options: {
       );
     } finally {
       await closeSessionContext(session.context);
-      await finalizeOrDiscardScenarioVideo({
-        mode,
-        ok,
-        page: session.page,
-        videoPath,
-      });
+      if (recordVideoMode && videoPath) {
+        await finalizeOrDiscardScenarioVideo({
+          mode: recordVideoMode,
+          ok,
+          page: session.page,
+          videoPath,
+        });
+      }
     }
-  }
-}
-
-/** フラグなし: 速度優先でブラウザごとに page を共有 */
-async function runBrowserScenariosShared(options: {
-  browser: Browser;
-  browserName: BrowserName;
-  deviceLabel: string;
-  fixtures: E2eFixtures;
-  mobile: boolean;
-  runner: E2eRunner;
-}): Promise<void> {
-  const { browser, browserName, deviceLabel, fixtures, mobile, runner } =
-    options;
-  const session = await createE2eSession(browser, {
-    browserName,
-    mobile,
-  });
-  const ctx: E2eContext = {
-    browser,
-    browserName,
-    fixtures,
-    mobile,
-    page: session.page,
-    trackerLogs: session.trackerLogs,
-    tracking: session.tracking,
-  };
-
-  try {
-    for (const scenario of e2eScenarios) {
-      await runner.runE2eCase(`[${deviceLabel}] ${scenario.name}`, () =>
-        scenario.run(ctx)
-      );
-    }
-  } finally {
-    await closeSessionContext(session.context);
   }
 }
 
@@ -180,26 +158,15 @@ async function main(): Promise<void> {
       console.log(`\n===== browser: ${deviceLabel} =====`);
       const browser = await BROWSERS[browserName].launch();
       try {
-        if (recordVideoMode) {
-          await runBrowserScenariosWithVideo({
-            browser,
-            browserName,
-            deviceLabel,
-            fixtures,
-            mobile,
-            mode: recordVideoMode,
-            runner,
-          });
-        } else {
-          await runBrowserScenariosShared({
-            browser,
-            browserName,
-            deviceLabel,
-            fixtures,
-            mobile,
-            runner,
-          });
-        }
+        await runBrowserScenarios({
+          browser,
+          browserName,
+          deviceLabel,
+          fixtures,
+          mobile,
+          recordVideoMode,
+          runner,
+        });
       } finally {
         await browser.close().catch(() => {});
       }

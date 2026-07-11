@@ -62,7 +62,7 @@ export async function createE2eSession(
   return { context, page, trackerLogs, tracking: new TrackingClient() };
 }
 
-/** テスト全体で使い回すページを1枚開き、[tracker] ログの収集を開始する */
+/** シナリオ用に context / page を1組開き、[tracker] ログの収集を開始する */
 export async function createE2ePage(browser: Browser): Promise<E2eSession> {
   return createE2eSession(browser);
 }

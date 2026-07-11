@@ -15,17 +15,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "guard-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S11"
-      ],
+      "expectedKillers": ["S11"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S11"
-          ],
+          "failedScenarioIds": ["S11"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:24:33.565Z",
           "endedAt": "2026-07-11T05:25:20.074Z",
@@ -43,10 +39,7 @@
       "file": "src/tracker/tracker.ts",
       "operator": "field-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S01",
-        "S18"
-      ],
+      "expectedKillers": ["S01", "S18"],
       "attempts": [
         {
           "attemptNumber": 1,
@@ -86,18 +79,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "guard-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S04",
-        "S15"
-      ],
+      "expectedKillers": ["S04", "S15"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S15"
-          ],
+          "failedScenarioIds": ["S15"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:26:01.177Z",
           "endedAt": "2026-07-11T05:26:46.843Z",
@@ -115,17 +103,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "wrong-call",
       "class": "primary",
-      "expectedKillers": [
-        "S15"
-      ],
+      "expectedKillers": ["S15"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S15"
-          ],
+          "failedScenarioIds": ["S15"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:26:46.952Z",
           "endedAt": "2026-07-11T05:27:35.876Z",
@@ -143,9 +127,7 @@
       "file": "src/tracker/tracker.ts",
       "operator": "boundary-shift",
       "class": "primary",
-      "expectedKillers": [
-        "S04"
-      ],
+      "expectedKillers": ["S04"],
       "attempts": [
         {
           "attemptNumber": 1,
@@ -169,9 +151,7 @@
       "file": "src/tracker/tracker.ts",
       "operator": "wrong-api",
       "class": "primary",
-      "expectedKillers": [
-        "S03"
-      ],
+      "expectedKillers": ["S03"],
       "attempts": [
         {
           "attemptNumber": 1,
@@ -195,9 +175,7 @@
       "file": "src/tracker/tracker.ts",
       "operator": "guard-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S06"
-      ],
+      "expectedKillers": ["S06"],
       "attempts": [
         {
           "attemptNumber": 1,
@@ -221,17 +199,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "wrong-branch",
       "class": "primary",
-      "expectedKillers": [
-        "S17"
-      ],
+      "expectedKillers": ["S17"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S17"
-          ],
+          "failedScenarioIds": ["S17"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:29:54.288Z",
           "endedAt": "2026-07-11T05:30:40.576Z",
@@ -249,10 +223,7 @@
       "file": "src/tracker/tracker.ts",
       "operator": "guard-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S07",
-        "S08"
-      ],
+      "expectedKillers": ["S07", "S08"],
       "attempts": [
         {
           "attemptNumber": 1,
@@ -276,17 +247,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "call-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S13"
-      ],
+      "expectedKillers": ["S13"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S13"
-          ],
+          "failedScenarioIds": ["S13"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:31:26.617Z",
           "endedAt": "2026-07-11T05:32:17.542Z",
@@ -304,18 +271,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "boundary-shift",
       "class": "primary",
-      "expectedKillers": [
-        "S08",
-        "S09"
-      ],
+      "expectedKillers": ["S08", "S09"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S08"
-          ],
+          "failedScenarioIds": ["S08"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:32:17.644Z",
           "endedAt": "2026-07-11T05:33:06.120Z",
@@ -333,19 +295,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "boundary-shift",
       "class": "primary",
-      "expectedKillers": [
-        "S08",
-        "S09"
-      ],
+      "expectedKillers": ["S08", "S09"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S08",
-            "S09"
-          ],
+          "failedScenarioIds": ["S08", "S09"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:33:06.219Z",
           "endedAt": "2026-07-11T05:34:02.022Z",
@@ -363,17 +319,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "guard-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S08"
-      ],
+      "expectedKillers": ["S08"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S08"
-          ],
+          "failedScenarioIds": ["S08"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:34:02.124Z",
           "endedAt": "2026-07-11T05:34:50.415Z",
@@ -391,17 +343,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "negation",
       "class": "primary",
-      "expectedKillers": [
-        "S10"
-      ],
+      "expectedKillers": ["S10"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S10"
-          ],
+          "failedScenarioIds": ["S10"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:34:50.512Z",
           "endedAt": "2026-07-11T05:35:36.409Z",
@@ -419,17 +367,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "cleanup-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S14"
-      ],
+      "expectedKillers": ["S14"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S14"
-          ],
+          "failedScenarioIds": ["S14"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:35:36.505Z",
           "endedAt": "2026-07-11T05:36:22.236Z",
@@ -447,18 +391,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "arithmetic",
       "class": "primary",
-      "expectedKillers": [
-        "S05",
-        "S14"
-      ],
+      "expectedKillers": ["S05", "S14"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S14"
-          ],
+          "failedScenarioIds": ["S14"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:36:22.339Z",
           "endedAt": "2026-07-11T05:37:05.429Z",
@@ -476,17 +415,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "normalize-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S16"
-      ],
+      "expectedKillers": ["S16"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S16"
-          ],
+          "failedScenarioIds": ["S16"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:37:05.530Z",
           "endedAt": "2026-07-11T05:37:56.271Z",
@@ -504,17 +439,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "side-effect-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S18"
-      ],
+      "expectedKillers": ["S18"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S18"
-          ],
+          "failedScenarioIds": ["S18"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:37:56.372Z",
           "endedAt": "2026-07-11T05:38:40.637Z",
@@ -532,9 +463,7 @@
       "file": "src/tracker/tracker.ts",
       "operator": "guard-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S18"
-      ],
+      "expectedKillers": ["S18"],
       "attempts": [
         {
           "attemptNumber": 1,
@@ -558,22 +487,13 @@
       "file": "src/tracker/tracker.ts",
       "operator": "call-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S07",
-        "S13"
-      ],
+      "expectedKillers": ["S07", "S13"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S07",
-            "S13",
-            "S14",
-            "S16",
-            "S18"
-          ],
+          "failedScenarioIds": ["S07", "S13", "S14", "S16", "S18"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:39:27.043Z",
           "endedAt": "2026-07-11T05:40:29.976Z",
@@ -591,12 +511,7 @@
       "file": "src/tracker/tracker.ts",
       "operator": "wrong-argument",
       "class": "primary",
-      "expectedKillers": [
-        "S02",
-        "S03",
-        "S06",
-        "S15"
-      ],
+      "expectedKillers": ["S02", "S03", "S06", "S15"],
       "attempts": [
         {
           "attemptNumber": 1,
@@ -633,17 +548,13 @@
       "file": "src/shared/trigger.ts",
       "operator": "transform-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S16"
-      ],
+      "expectedKillers": ["S16"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S16"
-          ],
+          "failedScenarioIds": ["S16"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:42:04.261Z",
           "endedAt": "2026-07-11T05:42:54.972Z",
@@ -661,17 +572,13 @@
       "file": "src/shared/trigger.ts",
       "operator": "transform-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S16"
-      ],
+      "expectedKillers": ["S16"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S16"
-          ],
+          "failedScenarioIds": ["S16"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:42:55.078Z",
           "endedAt": "2026-07-11T05:43:46.099Z",
@@ -689,17 +596,13 @@
       "file": "src/shared/trigger.ts",
       "operator": "transform-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S16"
-      ],
+      "expectedKillers": ["S16"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S16"
-          ],
+          "failedScenarioIds": ["S16"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:43:46.207Z",
           "endedAt": "2026-07-11T05:44:37.308Z",
@@ -717,17 +620,13 @@
       "file": "src/server.ts",
       "operator": "filter-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S12"
-      ],
+      "expectedKillers": ["S12"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S12"
-          ],
+          "failedScenarioIds": ["S12"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:44:37.431Z",
           "endedAt": "2026-07-11T05:45:23.541Z",
@@ -745,17 +644,13 @@
       "file": "src/server.ts",
       "operator": "guard-removal",
       "class": "primary",
-      "expectedKillers": [
-        "S12"
-      ],
+      "expectedKillers": ["S12"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S12"
-          ],
+          "failedScenarioIds": ["S12"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:45:23.644Z",
           "endedAt": "2026-07-11T05:46:06.939Z",
@@ -773,17 +668,13 @@
       "file": "src/server.ts",
       "operator": "wrong-branch",
       "class": "primary",
-      "expectedKillers": [
-        "S12"
-      ],
+      "expectedKillers": ["S12"],
       "attempts": [
         {
           "attemptNumber": 1,
           "result": "killed",
           "exitStatus": "fail",
-          "failedScenarioIds": [
-            "S12"
-          ],
+          "failedScenarioIds": ["S12"],
           "errorExcerpt": null,
           "startedAt": "2026-07-11T05:46:07.042Z",
           "endedAt": "2026-07-11T05:46:52.780Z",
@@ -801,9 +692,7 @@
       "file": "src/server.ts",
       "operator": "config-change",
       "class": "primary",
-      "expectedKillers": [
-        "S01"
-      ],
+      "expectedKillers": ["S01"],
       "attempts": [
         {
           "attemptNumber": 1,
@@ -843,10 +732,7 @@
       "file": "src/server.ts",
       "operator": "negation",
       "class": "primary",
-      "expectedKillers": [
-        "S01",
-        "S18"
-      ],
+      "expectedKillers": ["S01", "S18"],
       "attempts": [
         {
           "attemptNumber": 1,

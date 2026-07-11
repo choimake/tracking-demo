@@ -15,14 +15,14 @@
 
 ## 2. 採用した契約（本リポジトリ）
 
-| 項目 | 内容 |
-|------|------|
-| Oracle | `E2E_BROWSERS=chromium`・全18シナリオ（[`scripts/e2e/scenarios.ts`](../scripts/e2e/scenarios.ts)） |
-| 方式 | シナリオ対応のキュレーション変異（自動乱数変異ではない） |
-| 件数 | primary 29 + control-survived 3 = **32**（凍結カタログで固定） |
-| 隔離 | bench の `PORT` / `SITE_PORT` / `DB_PATH`（[`scripts/e2e/bench/stack.ts`](../scripts/e2e/bench/stack.ts)） |
-| 改善 | しない。survived は観察としてレポートに残すのみ |
-| 適用 | カタログの `beforeString` / `afterString` のみ（要約 `change` は適用に使わない） |
+| 項目   | 内容                                                                                                       |
+| ------ | ---------------------------------------------------------------------------------------------------------- |
+| Oracle | `E2E_BROWSERS=chromium`・全18シナリオ（[`scripts/e2e/scenarios.ts`](../scripts/e2e/scenarios.ts)）         |
+| 方式   | シナリオ対応のキュレーション変異（自動乱数変異ではない）                                                   |
+| 件数   | primary 29 + control-survived 3 = **32**（凍結カタログで固定）                                             |
+| 隔離   | bench の `PORT` / `SITE_PORT` / `DB_PATH`（[`scripts/e2e/bench/stack.ts`](../scripts/e2e/bench/stack.ts)） |
+| 改善   | しない。survived は観察としてレポートに残すのみ                                                            |
+| 適用   | カタログの `beforeString` / `afterString` のみ（要約 `change` は適用に使わない）                           |
 
 ```
 kill_rate = killed_primary_count / (primary_total - excluded_primary_count)
@@ -34,14 +34,14 @@ kill_rate = killed_primary_count / (primary_total - excluded_primary_count)
 
 ## 3. 結果の読み方
 
-| 結果 | 意味 |
-|------|------|
-| **killed** | スイートが fail し、かつ失敗シナリオが `expectedKillers` と交差する |
-| **survived** | スイートが pass、または fail しても期待シナリオと交差しない |
-| **unexpected-kill** | fail したが期待シナリオ以外だけが落ちた。enum 上は survived + フラグ |
-| **control-survived が survived** | 対照群として健全（未検証経路のまま） |
-| **control-survived が killed** | 前提崩れ。カタログ／スコープの再検討サイン |
-| **mutant-suspected** | timeout/error 確定後、変異なし再実行が green → 変異がハング等を起こした疑い（分母除外は維持し、killed には読み替えない） |
+| 結果                             | 意味                                                                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **killed**                       | スイートが fail し、かつ失敗シナリオが `expectedKillers` と交差する                                                      |
+| **survived**                     | スイートが pass、または fail しても期待シナリオと交差しない                                                              |
+| **unexpected-kill**              | fail したが期待シナリオ以外だけが落ちた。enum 上は survived + フラグ                                                     |
+| **control-survived が survived** | 対照群として健全（未検証経路のまま）                                                                                     |
+| **control-survived が killed**   | 前提崩れ。カタログ／スコープの再検討サイン                                                                               |
+| **mutant-suspected**             | timeout/error 確定後、変異なし再実行が green → 変異がハング等を起こした疑い（分母除外は維持し、killed には読み替えない） |
 
 一般化禁止: 「このコードベースの変異検出力は ○%」とは言わない。言えるのは「この32件に対する Chromium E2E の検出力」まで。
 
@@ -57,14 +57,14 @@ kill_rate = killed_primary_count / (primary_total - excluded_primary_count)
 
 ## 5. 関連ファイル
 
-| ファイル | 役割 |
-|----------|------|
-| [`mutation-catalog.json`](mutation-catalog.json) | 凍結カタログ（機械可読・SHA-256 対象） |
-| [`mutation-catalog.md`](mutation-catalog.md) | カタログの人間向け要約 |
-| [`mutation-results.json`](mutation-results.json) | 1回の実行の生データ |
-| [`mutation-report.md`](mutation-report.md) | 1回の実行の解釈 |
-| [`scripts/mutation/run.ts`](../scripts/mutation/run.ts) | 評価用ランナー |
-| [`report.md`](report.md) | E2E 並列ベンチ（本手法とは別軸） |
+| ファイル                                                | 役割                                   |
+| ------------------------------------------------------- | -------------------------------------- |
+| [`mutation-catalog.json`](mutation-catalog.json)        | 凍結カタログ（機械可読・SHA-256 対象） |
+| [`mutation-catalog.md`](mutation-catalog.md)            | カタログの人間向け要約                 |
+| [`mutation-results.json`](mutation-results.json)        | 1回の実行の生データ                    |
+| [`mutation-report.md`](mutation-report.md)              | 1回の実行の解釈                        |
+| [`scripts/mutation/run.ts`](../scripts/mutation/run.ts) | 評価用ランナー                         |
+| [`report.md`](report.md)                                | E2E 並列ベンチ（本手法とは別軸）       |
 
 ## 6. 再現の入口
 

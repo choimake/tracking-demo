@@ -97,7 +97,7 @@ function assertCookieExpires(
   }
 }
 
-/** 共有 context の _td_vid / _td_sid 値をスナップショットする */
+/** シナリオ context の _td_vid / _td_sid 値をスナップショットする */
 async function snapshotTdCookies(
   page: E2eContext["page"]
 ): Promise<{ vid: string | undefined; sid: string | undefined }> {
@@ -500,22 +500,22 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
 
   // (h) Cookie 無効化相当: 独立 BrowserContext で document.cookie を読み書き不能にし、
   // ビーコンは届くが遷移をまたいだ再訪識別は成立しないことを確認する
-  // (共有 ctx.page を汚染しない)
+  // (シナリオ ctx.page を汚染しない)
   const sharedCookiesBeforeH = await snapshotTdCookies(ctx.page);
   if (!sharedCookiesBeforeH.vid || !sharedCookiesBeforeH.sid) {
     throw new Error(
-      `(h) 開始前に共有 context の _td_vid/_td_sid がない: vid=${sharedCookiesBeforeH.vid} sid=${sharedCookiesBeforeH.sid}`
+      `(h) 開始前にシナリオ context の _td_vid/_td_sid がない: vid=${sharedCookiesBeforeH.vid} sid=${sharedCookiesBeforeH.sid}`
     );
   }
   // (g2) 後の vid/sid が残っていること(独立 context 汚染検知の基準)
   if (sharedCookiesBeforeH.vid !== afterInvalidSid.vid) {
     throw new Error(
-      `(h) 開始前の共有 _td_vid が (g2) 後と不一致: cookie=${sharedCookiesBeforeH.vid} hit=${afterInvalidSid.vid}`
+      `(h) 開始前のシナリオ _td_vid が (g2) 後と不一致: cookie=${sharedCookiesBeforeH.vid} hit=${afterInvalidSid.vid}`
     );
   }
   if (sharedCookiesBeforeH.sid !== afterInvalidSid.sid) {
     throw new Error(
-      `(h) 開始前の共有 _td_sid が (g2) 後と不一致: cookie=${sharedCookiesBeforeH.sid} hit=${afterInvalidSid.sid}`
+      `(h) 開始前のシナリオ _td_sid が (g2) 後と不一致: cookie=${sharedCookiesBeforeH.sid} hit=${afterInvalidSid.sid}`
     );
   }
 
@@ -585,16 +585,16 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
     }
   }
 
-  // 独立 context の initScript / clearCookies が共有 page を汚染していないこと
+  // 独立 context の initScript / clearCookies がシナリオ page を汚染していないこと
   const sharedCookiesAfterH = await snapshotTdCookies(ctx.page);
   if (sharedCookiesAfterH.vid !== sharedCookiesBeforeH.vid) {
     throw new Error(
-      `(h) 後に共有 _td_vid が変わった: before=${sharedCookiesBeforeH.vid} after=${sharedCookiesAfterH.vid}`
+      `(h) 後にシナリオ _td_vid が変わった: before=${sharedCookiesBeforeH.vid} after=${sharedCookiesAfterH.vid}`
     );
   }
   if (sharedCookiesAfterH.sid !== sharedCookiesBeforeH.sid) {
     throw new Error(
-      `(h) 後に共有 _td_sid が変わった: before=${sharedCookiesBeforeH.sid} after=${sharedCookiesAfterH.sid}`
+      `(h) 後にシナリオ _td_sid が変わった: before=${sharedCookiesBeforeH.sid} after=${sharedCookiesAfterH.sid}`
     );
   }
   const sharedDocumentCookie = await ctx.page.evaluate(() => document.cookie);
@@ -603,10 +603,10 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
     !sharedDocumentCookie.includes(`_td_sid=${sharedCookiesBeforeH.sid}`)
   ) {
     throw new Error(
-      `(h) 後に共有 page の document.cookie が読めない/値が消えた: ${sharedDocumentCookie}`
+      `(h) 後にシナリオ page の document.cookie が読めない/値が消えた: ${sharedDocumentCookie}`
     );
   }
   console.log(
-    "  ✓ Cookie 無効相当の独立 context が共有 page の Cookie を汚染していない"
+    "  ✓ Cookie 無効相当の独立 context がシナリオ page の Cookie を汚染していない"
   );
 }

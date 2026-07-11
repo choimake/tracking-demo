@@ -6,53 +6,53 @@ kill rate は 24/29 （82.8%）でした。これはキュレーションカタ�
 
 ## 2. 実行条件
 
-| 項目 | 値 |
-|------|-----|
-| runId | mutation-2026-07-11T05-23-46-944Z |
-| gitShaBaseline | ed9e3dc79fa97f42ed0c433582b826aec2eb347b |
-| catalogSha256 | 293b7034622a9fba096e1fc0b2eeb011c5d5dbe58cbdafd7b24534f6385458e8 |
-| Node | v22.21.1 |
-| Playwright | 1.61.1 |
-| Chromium | 149.0.7827.55 |
-| baseline | green |
-| 所要時間 | 1747.0s |
+| 項目           | 値                                                               |
+| -------------- | ---------------------------------------------------------------- |
+| runId          | mutation-2026-07-11T05-23-46-944Z                                |
+| gitShaBaseline | ed9e3dc79fa97f42ed0c433582b826aec2eb347b                         |
+| catalogSha256  | 293b7034622a9fba096e1fc0b2eeb011c5d5dbe58cbdafd7b24534f6385458e8 |
+| Node           | v22.21.1                                                         |
+| Playwright     | 1.61.1                                                           |
+| Chromium       | 149.0.7827.55                                                    |
+| baseline       | green                                                            |
+| 所要時間       | 1747.0s                                                          |
 
 ## 3. 全mutant結果表
 
-| id | class | file | result | expectedKillers | failed | unexpectedKill |
-|----|-------|------|--------|-----------------|--------|----------------|
-| M-TR01 | primary | src/tracker/tracker.ts | killed | S11 | S11 | false |
-| M-TR02 | primary | src/tracker/tracker.ts | killed | S01,S18 | S01,S02,S03,S04,S05,S06,S07,S08,S09,S10,S11,S13,S15,S16,S18 | false |
-| M-TR03 | primary | src/tracker/tracker.ts | killed | S04,S15 | S15 | false |
-| M-TR04 | primary | src/tracker/tracker.ts | killed | S15 | S15 | false |
-| M-TR05 | primary | src/tracker/tracker.ts | survived | S04 | - | false |
-| M-TR06 | primary | src/tracker/tracker.ts | survived | S03 | - | false |
-| M-TR07 | primary | src/tracker/tracker.ts | survived | S06 | - | false |
-| M-TR08 | primary | src/tracker/tracker.ts | killed | S17 | S17 | false |
-| M-TR09 | primary | src/tracker/tracker.ts | survived | S07,S08 | - | false |
-| M-TR10 | primary | src/tracker/tracker.ts | killed | S13 | S13 | false |
-| M-TR11 | primary | src/tracker/tracker.ts | killed | S08,S09 | S08 | false |
-| M-TR12 | primary | src/tracker/tracker.ts | killed | S08,S09 | S08,S09 | false |
-| M-TR13 | primary | src/tracker/tracker.ts | killed | S08 | S08 | false |
-| M-TR14 | primary | src/tracker/tracker.ts | killed | S10 | S10 | false |
-| M-TR15 | primary | src/tracker/tracker.ts | killed | S14 | S14 | false |
-| M-TR16 | primary | src/tracker/tracker.ts | killed | S05,S14 | S14 | false |
-| M-TR17 | primary | src/tracker/tracker.ts | killed | S16 | S16 | false |
-| M-TR18 | primary | src/tracker/tracker.ts | killed | S18 | S18 | false |
-| M-TR19 | primary | src/tracker/tracker.ts | survived | S18 | - | false |
-| M-TR20 | primary | src/tracker/tracker.ts | killed | S07,S13 | S07,S13,S14,S16,S18 | false |
-| M-TR21 | primary | src/tracker/tracker.ts | killed | S02,S03,S06,S15 | S02,S03,S04,S05,S06,S07,S08,S10,S13,S15,S16,S18 | false |
-| M-TG01 | primary | src/shared/trigger.ts | killed | S16 | S16 | false |
-| M-TG02 | primary | src/shared/trigger.ts | killed | S16 | S16 | false |
-| M-TG03 | primary | src/shared/trigger.ts | killed | S16 | S16 | false |
-| M-SV01 | primary | src/server.ts | killed | S12 | S12 | false |
-| M-SV02 | primary | src/server.ts | killed | S12 | S12 | false |
-| M-SV03 | primary | src/server.ts | killed | S12 | S12 | false |
-| M-SV04 | primary | src/server.ts | killed | S01 | S01,S02,S03,S04,S05,S06,S07,S08,S09,S10,S11,S13,S15,S16,S18 | false |
-| M-SV05 | primary | src/server.ts | killed | S01,S18 | S01,S02,S03,S04,S05,S06,S07,S08,S09,S10,S11,S12,S13,S15,S16,S18 | false |
-| M-CS01 | control-survived | src/tracker/tracker.ts | survived | - | - | false |
-| M-CS02 | control-survived | src/tracker/tracker.ts | survived | - | - | false |
-| M-CS03 | control-survived | src/server.ts | survived | - | - | false |
+| id     | class            | file                   | result   | expectedKillers | failed                                                          | unexpectedKill |
+| ------ | ---------------- | ---------------------- | -------- | --------------- | --------------------------------------------------------------- | -------------- |
+| M-TR01 | primary          | src/tracker/tracker.ts | killed   | S11             | S11                                                             | false          |
+| M-TR02 | primary          | src/tracker/tracker.ts | killed   | S01,S18         | S01,S02,S03,S04,S05,S06,S07,S08,S09,S10,S11,S13,S15,S16,S18     | false          |
+| M-TR03 | primary          | src/tracker/tracker.ts | killed   | S04,S15         | S15                                                             | false          |
+| M-TR04 | primary          | src/tracker/tracker.ts | killed   | S15             | S15                                                             | false          |
+| M-TR05 | primary          | src/tracker/tracker.ts | survived | S04             | -                                                               | false          |
+| M-TR06 | primary          | src/tracker/tracker.ts | survived | S03             | -                                                               | false          |
+| M-TR07 | primary          | src/tracker/tracker.ts | survived | S06             | -                                                               | false          |
+| M-TR08 | primary          | src/tracker/tracker.ts | killed   | S17             | S17                                                             | false          |
+| M-TR09 | primary          | src/tracker/tracker.ts | survived | S07,S08         | -                                                               | false          |
+| M-TR10 | primary          | src/tracker/tracker.ts | killed   | S13             | S13                                                             | false          |
+| M-TR11 | primary          | src/tracker/tracker.ts | killed   | S08,S09         | S08                                                             | false          |
+| M-TR12 | primary          | src/tracker/tracker.ts | killed   | S08,S09         | S08,S09                                                         | false          |
+| M-TR13 | primary          | src/tracker/tracker.ts | killed   | S08             | S08                                                             | false          |
+| M-TR14 | primary          | src/tracker/tracker.ts | killed   | S10             | S10                                                             | false          |
+| M-TR15 | primary          | src/tracker/tracker.ts | killed   | S14             | S14                                                             | false          |
+| M-TR16 | primary          | src/tracker/tracker.ts | killed   | S05,S14         | S14                                                             | false          |
+| M-TR17 | primary          | src/tracker/tracker.ts | killed   | S16             | S16                                                             | false          |
+| M-TR18 | primary          | src/tracker/tracker.ts | killed   | S18             | S18                                                             | false          |
+| M-TR19 | primary          | src/tracker/tracker.ts | survived | S18             | -                                                               | false          |
+| M-TR20 | primary          | src/tracker/tracker.ts | killed   | S07,S13         | S07,S13,S14,S16,S18                                             | false          |
+| M-TR21 | primary          | src/tracker/tracker.ts | killed   | S02,S03,S06,S15 | S02,S03,S04,S05,S06,S07,S08,S10,S13,S15,S16,S18                 | false          |
+| M-TG01 | primary          | src/shared/trigger.ts  | killed   | S16             | S16                                                             | false          |
+| M-TG02 | primary          | src/shared/trigger.ts  | killed   | S16             | S16                                                             | false          |
+| M-TG03 | primary          | src/shared/trigger.ts  | killed   | S16             | S16                                                             | false          |
+| M-SV01 | primary          | src/server.ts          | killed   | S12             | S12                                                             | false          |
+| M-SV02 | primary          | src/server.ts          | killed   | S12             | S12                                                             | false          |
+| M-SV03 | primary          | src/server.ts          | killed   | S12             | S12                                                             | false          |
+| M-SV04 | primary          | src/server.ts          | killed   | S01             | S01,S02,S03,S04,S05,S06,S07,S08,S09,S10,S11,S13,S15,S16,S18     | false          |
+| M-SV05 | primary          | src/server.ts          | killed   | S01,S18         | S01,S02,S03,S04,S05,S06,S07,S08,S09,S10,S11,S12,S13,S15,S16,S18 | false          |
+| M-CS01 | control-survived | src/tracker/tracker.ts | survived | -               | -                                                               | false          |
+| M-CS02 | control-survived | src/tracker/tracker.ts | survived | -               | -                                                               | false          |
+| M-CS03 | control-survived | src/server.ts          | survived | -               | -                                                               | false          |
 
 ## 4. survived 分析（primary）
 
@@ -92,4 +92,3 @@ npm run mutation
 - M-TR07: guard-removal が survived（ギャップまたは等価の可能性）
 - M-TR09: guard-removal が survived（ギャップまたは等価の可能性）
 - M-TR19: guard-removal が survived（ギャップまたは等価の可能性）
-

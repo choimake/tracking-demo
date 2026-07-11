@@ -17,14 +17,14 @@
 
 ## フォルダ責務
 
-| 場所 | 責務 | 書くこと |
-| --- | --- | --- |
-| `tests/` | 検証意図 | sinceMs・Act 呼び出し・件数/Hit の期待 |
-| `browser/` | Act | Playwright の locator / `getByRole` / ページ操作 |
-| `tracking/` | Assert | 件数待ち・`waitForNewHit`・`expectHitPayload`・匿名 ID 正規表現 |
-| `harness/` | 裏方 | ランナー・セッション・定数（`config.ts`）・型 |
-| `scenarios.ts` | 登録 | `{ name, run }` の一覧 |
-| `run.ts` | 起動 | ブラウザ直列実行・setup/teardown |
+| 場所           | 責務     | 書くこと                                                        |
+| -------------- | -------- | --------------------------------------------------------------- |
+| `tests/`       | 検証意図 | sinceMs・Act 呼び出し・件数/Hit の期待                          |
+| `browser/`     | Act      | Playwright の locator / `getByRole` / ページ操作                |
+| `tracking/`    | Assert   | 件数待ち・`waitForNewHit`・`expectHitPayload`・匿名 ID 正規表現 |
+| `harness/`     | 裏方     | ランナー・セッション・定数（`config.ts`）・型                   |
+| `scenarios.ts` | 登録     | `{ name, run }` の一覧                                          |
+| `run.ts`       | 起動     | ブラウザ直列実行・setup/teardown                                |
 
 依存方向: `browser` は `tracking` / `tests` に依存しない。`tracking` が依存できる `harness` は `config` のみ（他の harness は禁止）。`harness/session`・`types` から `tracking` への依存は可。`harness/config`・`runner`・`video` は `tracking` に依存しない。これらは `.dependency-cruiser.cjs` で error として担保する。
 
@@ -68,10 +68,10 @@
 - 並列は隔離前提（専用 DB / 独立ワーカー等）がない限り行わない
 - ブラウザマトリクス（chromium / firefox / webkit）も直列のみ
 
-### 共有 page の扱い
+### シナリオごと context の扱い
 
-- 既定ではブラウザごとに page を共有する（`RECORD_VIDEO` 未設定時）
-- 共有 `ctx.page` を汚染しない。Cookie 無効化などの副作用は独立 `BrowserContext` で行い、終了後に共有側が無傷であることを assert する（例: `cookie-identity.ts` (h)）
+- 常にシナリオごとに BrowserContext を開閉する（Cookie 等の隔離のため。録画の有無は問わない）
+- 副作用は自シナリオの page 内に閉じる。Cookie 無効化などの副作用は独立 `BrowserContext` で行い、終了後にシナリオ page が無傷であることを assert する（例: `cookie-identity.ts` (h)）
 - フィクスチャやトグルしたイベント状態は teardown で戻す
 
 ## 禁止事項
@@ -81,7 +81,7 @@
 - `ANON_VID_RE` / `ANON_SID_RE` を別ファイルで再定義する
 - タイムアウト等のマジックナンバーをテストに散在させる（`harness/config` へ）
 - 共有 `data/db.json` のままシナリオやブラウザを並列実行する
-- 共有 page / Cookie / フィクスチャを汚したまま次シナリオへ進む
+- シナリオ page / Cookie / フィクスチャを汚したまま次シナリオへ進む
 - README「スコープ外」の未検証領域を、根拠なく「対応済み」にする変更
 
 ## 新規シナリオ手順
