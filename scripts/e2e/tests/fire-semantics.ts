@@ -10,8 +10,8 @@ import {
   EVENT_ID_CART,
   EVENT_ID_SCROLL_50,
   quiesceBeacons,
-  expectEventCountIncreasedBy,
-  expectExactEventCountAfterDelay,
+  expectEventCountExactlyIncreasedBy,
+  expectEventCountExactly,
   waitForCondition,
   waitForNewHit,
   expectHitPayload,
@@ -34,7 +34,7 @@ export async function testFireSemantics(ctx: E2eContext): Promise<void> {
   // --- クリック: 2回押して +2(fire、1PV内で複数回発火を許容) ---
   await clickAddToCart(ctx.page);
   await clickAddToCart(ctx.page);
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_CART,
     cartCountBefore,
@@ -63,7 +63,7 @@ export async function testFireSemantics(ctx: E2eContext): Promise<void> {
 
   // --- スクロール: 最下部→先頭→再最下部でも +1 のまま(fireOnce、同一PV内では再発火なし) ---
   await scrollToBottom(ctx.page);
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_SCROLL_50,
     scrollCountBefore,
@@ -85,13 +85,12 @@ export async function testFireSemantics(ctx: E2eContext): Promise<void> {
 
   await scrollToTop(ctx.page);
   await scrollToBottom(ctx.page);
-  await expectExactEventCountAfterDelay(
+  await expectEventCountExactly(
     ctx.tracking,
     EVENT_ID_SCROLL_50,
     scrollCountBefore + 1,
-    BEACON_SETTLE_MS,
-    (actualCount) =>
-      `スクロール50%イベントが ${actualCount - scrollCountBefore} 件(期待 +1件のまま。再スクロールでの再発火)`
+    "再スクロール後もスクロール50%イベントは+1件のまま",
+    { observationMs: BEACON_SETTLE_MS }
   );
   console.log(
     "  ✓ 同一PV内で最下部→先頭→再最下部としても再発火しない(fireOnce)ことを確認"

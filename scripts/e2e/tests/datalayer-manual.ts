@@ -8,7 +8,7 @@ import {
 import type { E2eContext } from "../harness/types.js";
 import {
   quiesceBeacons,
-  expectPageviewCountAfter,
+  expectPageviewCountExactly,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -22,7 +22,7 @@ export async function testDataLayerManualPageview(
   await sleep(MANUAL_PUSH_GAP_MS);
   const hitCursor = await ctx.tracking.captureHitCursor();
   await clickManualPageview(ctx.page);
-  await expectPageviewCountAfter(
+  await expectPageviewCountExactly(
     ctx.tracking,
     hitCursor,
     1,

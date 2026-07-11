@@ -10,9 +10,9 @@ import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
   quiesceBeacons,
-  expectEventCountIncreasedBy,
-  expectExactPageviewCountAfterDelay,
-  expectPageviewCountAfter,
+  expectEventCountExactlyIncreasedBy,
+  expectNoHitsDuringObservation,
+  expectPageviewCountExactly,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -26,14 +26,14 @@ export async function testSpaHistoryChange(ctx: E2eContext): Promise<void> {
   await gotoDemoPage(ctx.page, "/spa");
   await setNoReloadMarker(ctx.page);
   await clickSpaOrderComplete(ctx.page);
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_PURCHASE,
     purchaseCountBefore,
     1,
     "SPA遷移で購入完了イベント +1"
   );
-  await expectPageviewCountAfter(
+  await expectPageviewCountExactly(
     ctx.tracking,
     hitCursor,
     2,
@@ -76,13 +76,11 @@ export async function testSpaHistoryChange(ctx: E2eContext): Promise<void> {
   // 同一パス replaceState: 早期 return があれば追加 PV なし、削除変異なら +1
   const samePathCursor = await ctx.tracking.captureHitCursor();
   await spaReplaceStateSamePath(ctx.page);
-  await expectExactPageviewCountAfterDelay(
+  await expectNoHitsDuringObservation(
     ctx.tracking,
-    samePathCursor,
-    0,
-    BEACON_SETTLE_MS,
-    (actualCount) =>
-      `同一パス replaceState で pageview が ${actualCount} 件(期待 0 件)`
+    { afterHitId: samePathCursor, eventId: null, type: "pageview" },
+    "同一パス replaceState の追加 pageview",
+    { observationMs: BEACON_SETTLE_MS }
   );
   console.log("  ✓ 同一パス replaceState では追加 pageview なし");
 }

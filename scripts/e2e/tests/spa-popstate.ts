@@ -9,7 +9,9 @@ import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
   quiesceBeacons,
-  expectEventCountIncreasedBy,
+  expectEventCountExactlyIncreasedBy,
+  expectEventCountExactly,
+  expectHitCountExactly,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -26,7 +28,7 @@ export async function testSpaPopstate(ctx: E2eContext): Promise<void> {
   await gotoDemoPage(ctx.page, "/spa");
   await setNoReloadMarker(ctx.page);
   await clickSpaOrderComplete(ctx.page);
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_PURCHASE,
     purchaseCountBefore,
@@ -65,6 +67,12 @@ export async function testSpaPopstate(ctx: E2eContext): Promise<void> {
     urlIncludes: "/spa",
     workspaceId: WORKSPACE_ID,
   });
+  await expectHitCountExactly(
+    ctx.tracking,
+    { afterHitId: backCursor, eventId: null, type: "pageview" },
+    1,
+    "戻る操作の pageview"
+  );
 
   const marker = await getNoReloadMarker(ctx.page);
   if (marker !== 1) {
@@ -74,12 +82,11 @@ export async function testSpaPopstate(ctx: E2eContext): Promise<void> {
   }
   console.log("  ✓ 戻る操作でリロードなし(popstate)を確認");
 
-  const purchaseCountAfterBack =
-    await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  if (purchaseCountAfterBack !== purchaseCountBefore + 1) {
-    throw new Error(
-      `戻る操作だけで購入完了イベントが ${purchaseCountAfterBack - purchaseCountBefore} 件(期待 +1 件のまま。戻るだけでの誤発火)`
-    );
-  }
+  await expectEventCountExactly(
+    ctx.tracking,
+    EVENT_ID_PURCHASE,
+    purchaseCountBefore + 1,
+    "戻る操作後の購入完了イベント"
+  );
   console.log("  ✓ 戻る操作だけでは購入完了イベントが増えないことを確認");
 }

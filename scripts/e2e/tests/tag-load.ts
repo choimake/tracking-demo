@@ -2,7 +2,8 @@ import { gotoDemoPage } from "../browser/index.js";
 import { UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
-  expectPageviewCountAfter,
+  expectPageviewCountExactly,
+  expectTagCheckContainsHit,
   expectTrackerLogContains,
   waitForNewHit,
   expectHitPayload,
@@ -12,7 +13,7 @@ import {
 export async function testTagLoadAndPageview(ctx: E2eContext): Promise<void> {
   const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountAfter(
+  await expectPageviewCountExactly(
     ctx.tracking,
     hitCursor,
     1,
@@ -35,9 +36,5 @@ export async function testTagLoadAndPageview(ctx: E2eContext): Promise<void> {
     urlIncludes: "/",
     workspaceId: WORKSPACE_ID,
   });
-  const tagCheck = await ctx.tracking.getTagCheck(Date.parse(hit.ts));
-  if (!tagCheck.hits.some((tagCheckHit) => tagCheckHit.id === hit.id)) {
-    throw new Error("/api/tag-check の応答に受信済み pageview が含まれない");
-  }
-  console.log("  ✓ /api/tag-check が受信済み pageview を返す");
+  await expectTagCheckContainsHit(ctx.tracking, hit);
 }

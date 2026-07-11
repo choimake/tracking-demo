@@ -11,7 +11,7 @@ import {
   EVENT_ID_PURCHASE,
   quiesceBeacons,
   waitForCondition,
-  expectExactPageviewCountAfterDelay,
+  expectPageviewCountExactly,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -55,13 +55,12 @@ export async function testGtmHistoryChangeDedup(
         purchaseCountBeforeInitial + 1
   );
 
-  await expectExactPageviewCountAfterDelay(
+  await expectPageviewCountExactly(
     tracking,
     transitionCursor,
     1,
-    BEACON_SETTLE_MS,
-    (actualCount) =>
-      `pageview が ${actualCount} 件(期待 1 件。遅延した重複ビーコンによる水増し)`
+    "遅延した重複 pageview なし",
+    { observationMs: BEACON_SETTLE_MS }
   );
   const purchaseCountAfterSettle =
     await tracking.getEventCount7d(EVENT_ID_PURCHASE);
@@ -100,6 +99,13 @@ export async function testGtmHistoryChangeDedup(
       (await tracking.getPageviewCountAfter(resendCursor)) === 1 &&
       (await tracking.getEventCount7d(EVENT_ID_PURCHASE)) ===
         purchaseCountBeforeManualResend + 1
+  );
+  await expectPageviewCountExactly(
+    tracking,
+    resendCursor,
+    1,
+    "手動再送の遅延した重複 pageview なし",
+    { observationMs: BEACON_SETTLE_MS }
   );
 
   const resendHit = await waitForNewHit(

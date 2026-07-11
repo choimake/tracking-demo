@@ -4,7 +4,7 @@ import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
   quiesceBeacons,
-  expectEventCountIncreasedBy,
+  expectEventCountExactlyIncreasedBy,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -16,7 +16,7 @@ export async function testUrlReachTrigger(ctx: E2eContext): Promise<void> {
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
   const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/order/complete");
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_PURCHASE,
     purchaseCountBefore,

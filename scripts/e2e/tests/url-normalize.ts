@@ -4,7 +4,7 @@ import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
   quiesceBeacons,
-  expectEventCountIncreasedBy,
+  expectEventCountExactlyIncreasedBy,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -23,7 +23,7 @@ export async function testUrlNormalize(ctx: E2eContext): Promise<void> {
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
   const caseCursor = await ctx.tracking.captureHitCursor();
   await spaPushState(ctx.page, "/Order/Complete/");
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_PURCHASE,
     purchaseCountBefore,
@@ -52,7 +52,7 @@ export async function testUrlNormalize(ctx: E2eContext): Promise<void> {
   const jpCountBefore = await ctx.tracking.getEventCount7d(japaneseUrlEventId);
   const jpCursor = await ctx.tracking.captureHitCursor();
   await spaPushState(ctx.page, jpEncodedPath);
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     japaneseUrlEventId,
     jpCountBefore,

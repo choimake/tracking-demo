@@ -9,16 +9,16 @@
 
 計測 E2E の真実のソースは **Hit（run 専用 DB のヒット1件）** である。件数 API は便利な集計だが、最終判定はヒット単位で行う。
 
-| 観点         | 見るもの                                               | 主な手段                                                                                  |
-| ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| どの実行     | `ua` 末尾の run・browser・scenario 相関 ID             | シナリオ専用 `TrackingClient`                                                             |
-| どの Act     | Act 前の Hit ID より後に追記されたか                   | `captureHitCursor` + `afterHitId`                                                         |
-| どのイベント | `eventId` / `type`（event or pageview）                | `waitForNewHit` + `expectHitPayload`                                                      |
-| 何回         | 相関 ID と Hit カーソルで隔離した件数                  | `expectEventCountIncreasedBy` / `expectExactPageviewCountAfterDelay`                      |
-| payload      | `url`・`workspaceId`・`vid`・`sid`                     | `expectHitPayload`（末尾で常に `expectAnonIdsPresent`。`vid`/`sid` 完全一致はオプション） |
-| ブラウザ     | `ua` にエンジン別トークン（Chrome / Firefox / Safari） | `UA_TOKEN[browserName]`                                                                   |
+| 観点         | 見るもの                                               | 主な手段                                                                                                     |
+| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| どの実行     | `ua` 末尾の run・browser・scenario 相関 ID             | シナリオ専用 `TrackingClient`                                                                                |
+| どの Act     | Act 前の Hit ID より後に追記されたか                   | `captureHitCursor` + `afterHitId`                                                                            |
+| どのイベント | `eventId` / `type`（event or pageview）                | `waitForNewHit` + `expectHitPayload`                                                                         |
+| 何回         | 相関 ID と Hit カーソルで隔離した件数                  | `expectHitCountAtLeast` / `expectHitCountExactly` / `expectHitCountAtMost` / `expectNoHitsDuringObservation` |
+| payload      | `url`・`workspaceId`・`vid`・`sid`                     | `expectHitPayload`（末尾で常に `expectAnonIdsPresent`。`vid`/`sid` 完全一致はオプション）                    |
+| ブラウザ     | `ua` にエンジン別トークン（Chrome / Firefox / Safari） | `UA_TOKEN[browserName]`                                                                                      |
 
-発火系シナリオの基本パターン: **Hit カーソル取得 → Act → 相関済み件数 +1 → waitForNewHit → expectHitPayload**。
+発火系シナリオの基本パターン: **Hit カーソル取得 → Act → 相関済み件数を正確に +1 → waitForNewHit → expectHitPayload**。
 
 ## Hit 相関方式
 
@@ -35,10 +35,10 @@
 
 公開タグと収集サーバーは変更しない。相関情報は E2E の BrowserContext と DB 読み取り境界だけで扱う。run の cleanup は `stack.ts` が所有する専用 DB だけを削除する。共有 DB を使う構成へ変更する場合も、相関 ID を cleanup 条件に含める必要がある。
 
-`npm run quality` は Node レベルの相関回帰チェックを自動実行する。単独で確認する場合は次のコマンドを実行する。
+`npm run quality` は Node レベルの相関・assertion回帰チェックと assertion Mutation Testing を自動実行する。単独で確認する場合は次のコマンドを実行する。
 
 ```bash
-npx tsx scripts/e2e/tracking/correlation.regression-check.ts
+npm run e2e:tracking-check
 ```
 
 ## 実行
@@ -152,6 +152,29 @@ launch.ts
 | `exit-intent-mobile.ts`  | モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない                                                                                                                                                                            |
 | `cookie-identity.ts`     | first-party Cookie: (a)〜(g) 発行・継続・再延長・区切り・リセット。(h) Cookie無効相当(**独立 BrowserContext** + シナリオ page の Cookie 非汚染 assert)。expires は browserName 別: chromium/firefox=uncapped\|約400日、webkit=それに加え ITP 相当7日 |
 
+件数保証は次の4区分で表す。複合シナリオは区間ごとの保証を併記する。
+
+| シナリオ                 | 件数保証                                                                  |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `tag-load.ts`            | 初回pageviewを正確に1件                                                   |
+| `url-reach.ts`           | URL到達イベントを正確に1件                                                |
+| `click-trigger.ts`       | クリックイベントを正確に1件                                               |
+| `scroll-trigger.ts`      | スクロールイベントを正確に1件                                             |
+| `time-on-page.ts`        | 滞在イベントを正確に1件                                                   |
+| `exit-intent.ts`         | 非離脱操作は観測期間中0件。離脱操作は正確に1件                            |
+| `spa-history.ts`         | pageviewを正確に2件。購入イベントを正確に1件。同一パス操作は観測期間中0件 |
+| `gtm-dedup.ts`           | 各遷移のpageviewを正確に1件。購入イベントは最低1件                        |
+| `datalayer-manual.ts`    | 手動pageviewを正確に1件                                                   |
+| `datalayer-queue.ts`     | pageviewを正確に1件。購入イベントを正確に1件                              |
+| `double-tag-guard.ts`    | 初回と二重設置後のpageviewを正確に1件                                     |
+| `disabled-event.ts`      | 無効イベントを観測期間中0件                                               |
+| `spa-popstate.ts`        | 戻る操作のpageviewを正確に1件。購入イベントを正確に1件                    |
+| `time-on-page-cancel.ts` | 滞在イベントを観測期間中0件                                               |
+| `fire-semantics.ts`      | クリックイベントを正確に2件。スクロールイベントを正確に1件                |
+| `url-normalize.ts`       | 各URL到達イベントを正確に1件                                              |
+| `exit-intent-mobile.ts`  | 離脱イベントを観測期間中0件                                               |
+| `cookie-identity.ts`     | 各Actのpageviewを最低1件。SPA区間は最低2件。購入完了イベントを正確に1件   |
+
 ### `browser/` — ページ操作
 
 デモサイト（`demo-site/`）上の Playwright 操作を集約。
@@ -160,7 +183,7 @@ launch.ts
 ### `tracking/` — サーバー検証
 
 - `client.ts` — 管理 API 呼び出し、相関 ID と Hit カーソルによる run 専用 DB 直読み
-- `assertions.ts` — `quiesceBeacons`, `expectEventCountIncreasedBy`, `waitForNewHit`, `expectHitPayload`（末尾で `expectAnonIdsPresent`）, `expectAnonIdsPresent`, `ANON_VID_RE` / `ANON_SID_RE` 等
+- `assertions.ts` — 4区分の件数helper、`quiesceBeacons`、`waitForNewHit`、`expectHitPayload`（末尾で `expectAnonIdsPresent`）、匿名ID正規表現
 - `seed-events.ts` — `EVENT_ID_PURCHASE` 等の定数
 
 テストからは `import { EVENT_ID_CART, quiesceBeacons } from '../tracking/index.js'` で使う。
@@ -192,7 +215,7 @@ import { UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import {
   EVENT_ID_CART,
   quiesceBeacons,
-  expectEventCountIncreasedBy,
+  expectEventCountExactlyIncreasedBy,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -206,7 +229,7 @@ export async function testMyScenario(ctx: E2eContext): Promise<void> {
   await gotoDemoPage(ctx.page, "/products");
   // ... Act ...
 
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_CART,
     cartCountBefore,

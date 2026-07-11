@@ -4,7 +4,7 @@ import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_SCROLL_50,
   quiesceBeacons,
-  expectEventCountIncreasedBy,
+  expectEventCountExactlyIncreasedBy,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -23,7 +23,7 @@ export async function testScrollTrigger(ctx: E2eContext): Promise<void> {
     throw new Error(`スクロール率がちょうど50%ではない: measured=${measured}`);
   }
   console.log("  ✓ スクロール率ちょうど50%(tracker同式)を確認");
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_SCROLL_50,
     scrollCountBefore,

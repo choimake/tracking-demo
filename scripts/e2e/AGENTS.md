@@ -40,7 +40,7 @@
 1. 直前シナリオの遅延ビーコンが件数に食い込む恐れがあるときは、Act 前に `quiesceBeacons` を呼ぶ
 2. `hitCursor = await tracking.captureHitCursor()`
 3. Act
-4. 件数 +1（例: `expectEventCountIncreasedBy`）
+4. 件数を正確に +1（例: `expectEventCountExactlyIncreasedBy`）
 5. `waitForNewHit`。`afterHitId` に `hitCursor` を指定する
 6. `expectHitPayload`
 

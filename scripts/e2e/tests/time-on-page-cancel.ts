@@ -8,7 +8,7 @@ import {
 import type { E2eContext } from "../harness/types.js";
 import {
   quiesceBeacons,
-  expectExactEventCountAfterDelay,
+  expectNoHitsDuringObservation,
 } from "../tracking/index.js";
 
 /**
@@ -19,7 +19,7 @@ import {
 export async function testTimeOnPageCancel(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const { timeOnPageEventId } = ctx.fixtures;
-  const countBefore = await ctx.tracking.getEventCount7d(timeOnPageEventId);
+  const hitCursor = await ctx.tracking.captureHitCursor();
 
   await gotoDemoPage(ctx.page, "/spa");
   for (let i = 0; i < TIME_ON_PAGE_CANCEL_BOUNCE_COUNT; i++) {
@@ -32,13 +32,11 @@ export async function testTimeOnPageCancel(ctx: E2eContext): Promise<void> {
     `  … 閾値未満(${TIME_ON_PAGE_CANCEL_BOUNCE_INTERVAL_MS}ms間隔)のHistory遷移を${TIME_ON_PAGE_CANCEL_BOUNCE_COUNT}回実施(合計滞在 ${totalBounceMs}ms は元タイマーの閾値を超過)`
   );
 
-  await expectExactEventCountAfterDelay(
+  await expectNoHitsDuringObservation(
     ctx.tracking,
-    timeOnPageEventId,
-    countBefore,
-    BEACON_SETTLE_MS,
-    (actualCount) =>
-      `滞在2秒イベントが ${actualCount - countBefore} 件増加(期待 0 件。閾値未満の滞在でタイマーが破棄されていない)`
+    { afterHitId: hitCursor, eventId: timeOnPageEventId, type: "event" },
+    "閾値未満の滞在で滞在2秒イベント",
+    { observationMs: BEACON_SETTLE_MS }
   );
   console.log(
     "  ✓ どのPVも閾値未満の滞在に留めた場合、タイマー破棄によりイベントが発火しないことを確認"

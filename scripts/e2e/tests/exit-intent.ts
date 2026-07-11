@@ -8,8 +8,8 @@ import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_EXIT_INTENT,
   quiesceBeacons,
-  expectEventCountIncreasedBy,
-  expectExactEventCountAfterDelay,
+  expectEventCountExactlyIncreasedBy,
+  expectNoHitsDuringObservation,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -22,20 +22,23 @@ export async function testExitIntentTrigger(ctx: E2eContext): Promise<void> {
   await gotoDemoPage(ctx.page, "/");
 
   // clientY > 0 ガード殺傷: ガード削除変異だとここで発火してしまう
+  const nonExitCursor = await ctx.tracking.captureHitCursor();
   await simulateNonExitMouseout(ctx.page);
-  await expectExactEventCountAfterDelay(
+  await expectNoHitsDuringObservation(
     ctx.tracking,
-    EVENT_ID_EXIT_INTENT,
-    exitCountBefore,
-    BEACON_SETTLE_MS,
-    (actualCount) =>
-      `非離脱 mouseout で exit_intent が発火した: count=${actualCount} (期待 ${exitCountBefore})`
+    {
+      afterHitId: nonExitCursor,
+      eventId: EVENT_ID_EXIT_INTENT,
+      type: "event",
+    },
+    "非離脱 mouseout の exit_intent",
+    { observationMs: BEACON_SETTLE_MS }
   );
   console.log("  ✓ 非離脱 mouseout(clientY>0)では件数不変");
 
   const hitCursor = await ctx.tracking.captureHitCursor();
   await simulateExitIntent(ctx.page);
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_EXIT_INTENT,
     exitCountBefore,

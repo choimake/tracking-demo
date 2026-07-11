@@ -13,9 +13,10 @@ import {
 import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
+  expectEventCountExactly,
   quiesceBeacons,
   waitForCondition,
-  expectExactPageviewCountAfterDelay,
+  expectPageviewCountExactly,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -36,21 +37,19 @@ export async function testDataLayerQueueReplay(ctx: E2eContext): Promise<void> {
       async () => (await ctx.tracking.getPageviewCountAfter(hitCursor)) >= 1,
       QUEUE_REPLAY_WAIT_TIMEOUT_MS
     );
-    await expectExactPageviewCountAfterDelay(
+    await expectPageviewCountExactly(
       ctx.tracking,
       hitCursor,
       1,
-      BEACON_SETTLE_MS,
-      (actualCount) =>
-        `pageview が ${actualCount} 件(期待 1 件。キュー再生と初期PVの二重送信)`
+      "キュー再生と初期PVの二重送信なし",
+      { observationMs: BEACON_SETTLE_MS }
     );
-    const purchaseCountAfter =
-      await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-    if (purchaseCountAfter !== purchaseCountBefore + 1) {
-      throw new Error(
-        `URL到達イベントが ${purchaseCountAfter - purchaseCountBefore} 件(期待 1 件。CV二重計上)`
-      );
-    }
+    await expectEventCountExactly(
+      ctx.tracking,
+      EVENT_ID_PURCHASE,
+      purchaseCountBefore + 1,
+      "キュー再生のURL到達イベント"
+    );
     console.log("  ✓ pageview 1件・URL到達イベント 1件(二重計上なし)");
 
     const pvHit = await waitForNewHit(

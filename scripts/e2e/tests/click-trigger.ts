@@ -4,7 +4,7 @@ import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_CART,
   quiesceBeacons,
-  expectEventCountIncreasedBy,
+  expectEventCountExactlyIncreasedBy,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -17,7 +17,7 @@ export async function testClickTrigger(ctx: E2eContext): Promise<void> {
   await gotoDemoPage(ctx.page, "/products");
   // closest('.add-to-cart') なら発火、matches 変異なら未発火
   await clickAddToCartChild(ctx.page);
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_CART,
     cartCountBefore,

@@ -1,14 +1,8 @@
 import { gotoDemoPage } from "../browser/index.js";
-import {
-  TRACKING_ORIGIN,
-  BEACON_SETTLE_MS,
-  UA_TOKEN,
-  WORKSPACE_ID,
-  sleep,
-} from "../harness/config.js";
+import { TRACKING_ORIGIN, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
-  expectPageviewCountAfter,
+  expectPageviewCountExactly,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -18,7 +12,7 @@ export async function testDuplicateTagGuard(ctx: E2eContext): Promise<void> {
   const { tracking, page, trackerLogs, browserName } = ctx;
   const hitCursor = await tracking.captureHitCursor();
   await gotoDemoPage(page, "/");
-  await expectPageviewCountAfter(
+  await expectPageviewCountExactly(
     tracking,
     hitCursor,
     1,
@@ -27,7 +21,12 @@ export async function testDuplicateTagGuard(ctx: E2eContext): Promise<void> {
   const pageviewCountBefore = await tracking.getPageviewCountAfter(hitCursor);
   const trackerLogsCountBefore = trackerLogs.length;
   await page.addScriptTag({ url: `${TRACKING_ORIGIN}/tracker.js?id=ws-001` });
-  await sleep(BEACON_SETTLE_MS);
+  await expectPageviewCountExactly(
+    tracking,
+    hitCursor,
+    1,
+    "二重設置後もpageviewは1件"
+  );
   if (
     !trackerLogs.slice(trackerLogsCountBefore).some((l) => l.includes("二重"))
   ) {

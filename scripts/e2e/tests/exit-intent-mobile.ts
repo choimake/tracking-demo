@@ -9,7 +9,7 @@ import { finalizeScenarioVideo } from "../harness/video.js";
 import {
   EVENT_ID_EXIT_INTENT,
   quiesceBeacons,
-  expectExactEventCountAfterDelay,
+  expectNoHitsDuringObservation,
 } from "../tracking/index.js";
 
 /**
@@ -20,13 +20,12 @@ import {
  */
 export async function testExitIntentMobile(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
-  const exitCountBefore =
-    await ctx.tracking.getEventCount7d(EVENT_ID_EXIT_INTENT);
+  const hitCursor = await ctx.tracking.captureHitCursor();
 
   // E2E_MOBILE 時は外側が既にモバイル＋録画対象なので内側 context を作らず ctx.page で Act
   if (ctx.mobile) {
     await runExitIntentMobileAct(ctx.page);
-    await assertNoExitIntent(ctx, exitCountBefore);
+    await assertNoExitIntent(ctx, hitCursor);
     return;
   }
 
@@ -42,7 +41,7 @@ export async function testExitIntentMobile(ctx: E2eContext): Promise<void> {
   let ok = false;
   try {
     await runExitIntentMobileAct(page);
-    await assertNoExitIntent(ctx, exitCountBefore);
+    await assertNoExitIntent(ctx, hitCursor);
     ok = true;
   } finally {
     try {
@@ -67,15 +66,13 @@ export async function testExitIntentMobile(ctx: E2eContext): Promise<void> {
 
 async function assertNoExitIntent(
   ctx: E2eContext,
-  exitCountBefore: number
+  hitCursor: string | undefined
 ): Promise<void> {
-  await expectExactEventCountAfterDelay(
+  await expectNoHitsDuringObservation(
     ctx.tracking,
-    EVENT_ID_EXIT_INTENT,
-    exitCountBefore,
-    EXIT_INTENT_MOBILE_CHECK_DELAY_MS,
-    (actualCount) =>
-      `モバイルコンテキストで離脱インテントイベントが ${actualCount - exitCountBefore} 件増加(期待 0 件。タップ操作のみでは発火しないはず)`
+    { afterHitId: hitCursor, eventId: EVENT_ID_EXIT_INTENT, type: "event" },
+    "モバイルのタップ操作による離脱インテントイベント",
+    { observationMs: EXIT_INTENT_MOBILE_CHECK_DELAY_MS }
   );
   console.log(
     "  ✓ モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しないことを確認"

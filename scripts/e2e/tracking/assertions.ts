@@ -1,5 +1,6 @@
 import {
   DEFAULT_WAIT_TIMEOUT_MS,
+  BEACON_SETTLE_MS,
   WAIT_POLL_INTERVAL_MS,
   QUIESCE_MAX_WAIT_MS,
   QUIESCE_POLL_INTERVAL_MS,
@@ -7,6 +8,21 @@ import {
   sleep,
 } from "../harness/config.js";
 import type { HitFilter, HitRecord, TrackingClient } from "./client.js";
+
+type HitReader = Pick<TrackingClient, "getHitsMatching">;
+type TagCheckReader = Pick<TrackingClient, "getTagCheck">;
+
+interface ObservationOptions {
+  observationMs?: number;
+  pollIntervalMs?: number;
+  timeoutMs?: number;
+}
+
+interface QuiesceOptions {
+  maxWaitMs?: number;
+  pollIntervalMs?: number;
+  stableDurationMs?: number;
+}
 
 const E2E_ASSERTIONS_STARTED_AT_MS = Date.now();
 
@@ -27,33 +43,64 @@ export async function waitForCondition(
   throw new Error(`✕ FAILED: ${label}`);
 }
 
-/**
- * ビーコン静穏待ち: 直前のテストで送信された遅延ビーコンが着弾しきるまで待つ。
- * イベント件数と pageview 件数の合計が約1秒間変化しなくなったら静穏とみなす
- * (countBefore / pageviewSinceMs 取得のフレーキー防止)
- */
-export async function quiesceBeacons(tracking: TrackingClient): Promise<void> {
-  const sumCounts = async () =>
-    (await tracking.getEventSummaries()).reduce(
-      (total, e) => total + e.count7d,
-      0
-    ) + (await tracking.getPageviewCountAfter());
-  const deadline = Date.now() + QUIESCE_MAX_WAIT_MS;
-  let previousSum = await sumCounts();
-  let stableSince = Date.now();
+async function observeUntilDeadline(
+  observationMs: number,
+  pollIntervalMs: number,
+  observe: () => Promise<void>
+): Promise<void> {
+  const deadline = Date.now() + observationMs;
   while (Date.now() < deadline) {
-    await sleep(QUIESCE_POLL_INTERVAL_MS);
-    const currentSum = await sumCounts();
-    if (currentSum !== previousSum) {
-      previousSum = currentSum;
-      stableSince = Date.now();
-    } else if (Date.now() - stableSince >= QUIESCE_STABLE_DURATION_MS) {
-      return;
-    }
+    await observe();
+    await sleep(Math.min(pollIntervalMs, Math.max(0, deadline - Date.now())));
+  }
+  await observe();
+}
+
+function assertExactCount(actualCount: number, expectedCount: number): void {
+  if (actualCount !== expectedCount) {
+    throw new Error(
+      `Hit 件数が不一致: got=${actualCount} want=${expectedCount}`
+    );
   }
 }
 
-export async function expectEventCountIncreasedBy(
+function assertZeroCount(actualCount: number): void {
+  if (actualCount !== 0) {
+    throw new Error(`観測期間中に ${actualCount} 件の Hit を検出`);
+  }
+}
+
+/**
+ * ビーコン静穏待ち: 現在のシナリオと相関する Hit ID 列が一定期間変化しないことを確認する。
+ * 他シナリオの遅延ビーコンは相関 ID で除外する。
+ */
+export async function quiesceBeacons(
+  tracking: HitReader,
+  options: QuiesceOptions = {}
+): Promise<void> {
+  const maxWaitMs = options.maxWaitMs ?? QUIESCE_MAX_WAIT_MS;
+  const pollIntervalMs = options.pollIntervalMs ?? QUIESCE_POLL_INTERVAL_MS;
+  const stableDurationMs =
+    options.stableDurationMs ?? QUIESCE_STABLE_DURATION_MS;
+  const hitIds = async () =>
+    (await tracking.getHitsMatching({})).map((hit) => hit.id).join("\n");
+  const deadline = Date.now() + maxWaitMs;
+  let previousHitIds = await hitIds();
+  let stableSince = Date.now();
+  while (Date.now() < deadline) {
+    await sleep(pollIntervalMs);
+    const currentHitIds = await hitIds();
+    if (currentHitIds !== previousHitIds) {
+      previousHitIds = currentHitIds;
+      stableSince = Date.now();
+    } else if (Date.now() - stableSince >= stableDurationMs) {
+      return;
+    }
+  }
+  throw new Error(`ビーコン静穏待ちが ${maxWaitMs}ms で timeout`);
+}
+
+export async function expectEventCountExactlyIncreasedBy(
   tracking: TrackingClient,
   eventId: string,
   countBefore: number,
@@ -61,56 +108,173 @@ export async function expectEventCountIncreasedBy(
   label: string,
   timeoutMs = DEFAULT_WAIT_TIMEOUT_MS
 ): Promise<void> {
+  const expectedCount = countBefore + expectedDelta;
   await waitForCondition(
     label,
-    async () =>
-      (await tracking.getEventCount7d(eventId)) === countBefore + expectedDelta,
+    async () => {
+      const actualCount = await tracking.getEventCount7d(eventId);
+      if (actualCount > expectedCount) {
+        throw new Error(
+          `イベント件数が期待値を超過: got=${actualCount} want=${expectedCount}`
+        );
+      }
+      return actualCount === expectedCount;
+    },
     timeoutMs
   );
+  await observeUntilDeadline(
+    BEACON_SETTLE_MS,
+    WAIT_POLL_INTERVAL_MS,
+    async () => {
+      assertExactCount(await tracking.getEventCount7d(eventId), expectedCount);
+    }
+  );
+  console.log(`  ✓ ${label}: 正確に+${expectedDelta}件`);
 }
 
-export async function expectPageviewCountAfter(
-  tracking: TrackingClient,
-  afterHitId: string | undefined,
+export async function expectHitCountAtLeast(
+  tracking: HitReader,
+  filter: HitFilter,
   minCount: number,
   label: string,
   timeoutMs = DEFAULT_WAIT_TIMEOUT_MS
 ): Promise<void> {
   await waitForCondition(
     label,
-    async () => (await tracking.getPageviewCountAfter(afterHitId)) >= minCount,
+    async () => (await tracking.getHitsMatching(filter)).length >= minCount,
     timeoutMs
   );
 }
 
-/** 猶予(delayMs)を空けてから pageview 件数がちょうど expectedCount 件であることを確認する */
-export async function expectExactPageviewCountAfterDelay(
-  tracking: TrackingClient,
+/** cursor 以降の pageview が最低N件に到達するまで待つ。 */
+export async function expectPageviewCountAtLeast(
+  tracking: HitReader,
   afterHitId: string | undefined,
-  expectedCount: number,
-  delayMs: number,
-  mismatchMessage: (actualCount: number) => string
+  minCount: number,
+  label: string,
+  timeoutMs = DEFAULT_WAIT_TIMEOUT_MS
 ): Promise<void> {
-  await sleep(delayMs);
-  const actualCount = await tracking.getPageviewCountAfter(afterHitId);
-  if (actualCount !== expectedCount) {
-    throw new Error(mismatchMessage(actualCount));
-  }
+  await expectHitCountAtLeast(
+    tracking,
+    { afterHitId, eventId: null, type: "pageview" },
+    minCount,
+    label,
+    timeoutMs
+  );
 }
 
-/** 猶予(delayMs)を空けてから、イベント件数(7日間)がちょうど expectedCount 件であることを確認する */
-export async function expectExactEventCountAfterDelay(
-  tracking: TrackingClient,
+/** 期待件数への到達後も観測を続け、観測期間を通して正確にN件であることを保証する。 */
+export async function expectHitCountExactly(
+  tracking: HitReader,
+  filter: HitFilter,
+  expectedCount: number,
+  label: string,
+  options: ObservationOptions = {}
+): Promise<void> {
+  const observationMs = options.observationMs ?? BEACON_SETTLE_MS;
+  const pollIntervalMs = options.pollIntervalMs ?? WAIT_POLL_INTERVAL_MS;
+  if (expectedCount > 0) {
+    await expectHitCountAtLeast(
+      tracking,
+      filter,
+      expectedCount,
+      label,
+      options.timeoutMs
+    );
+  }
+  await observeUntilDeadline(observationMs, pollIntervalMs, async () => {
+    assertExactCount(
+      (await tracking.getHitsMatching(filter)).length,
+      expectedCount
+    );
+  });
+  console.log(`  ✓ ${label}: 正確に${expectedCount}件`);
+}
+
+/** cursor 以降の pageview が観測期間を通して正確にN件であることを保証する。 */
+export async function expectPageviewCountExactly(
+  tracking: HitReader,
+  afterHitId: string | undefined,
+  expectedCount: number,
+  label: string,
+  options: ObservationOptions = {}
+): Promise<void> {
+  await expectHitCountExactly(
+    tracking,
+    { afterHitId, eventId: null, type: "pageview" },
+    expectedCount,
+    label,
+    options
+  );
+}
+
+/** 相関 ID が一致するイベントが観測期間を通して正確にN件であることを保証する。 */
+export async function expectEventCountExactly(
+  tracking: HitReader,
   eventId: string,
   expectedCount: number,
-  delayMs: number,
-  mismatchMessage: (actualCount: number) => string
+  label: string,
+  options: ObservationOptions = {}
 ): Promise<void> {
-  await sleep(delayMs);
-  const actualCount = await tracking.getEventCount7d(eventId);
-  if (actualCount !== expectedCount) {
-    throw new Error(mismatchMessage(actualCount));
+  await expectHitCountExactly(
+    tracking,
+    { eventId, type: "event" },
+    expectedCount,
+    label,
+    options
+  );
+}
+
+/** 観測期間を通して最大N件であることを保証する。 */
+export async function expectHitCountAtMost(
+  tracking: HitReader,
+  filter: HitFilter,
+  maximumCount: number,
+  label: string,
+  options: ObservationOptions = {}
+): Promise<void> {
+  await observeUntilDeadline(
+    options.observationMs ?? BEACON_SETTLE_MS,
+    options.pollIntervalMs ?? WAIT_POLL_INTERVAL_MS,
+    async () => {
+      const actualCount = (await tracking.getHitsMatching(filter)).length;
+      if (actualCount > maximumCount) {
+        throw new Error(
+          `Hit 件数が上限超過: got=${actualCount} max=${maximumCount}`
+        );
+      }
+    }
+  );
+  console.log(`  ✓ ${label}: 最大${maximumCount}件`);
+}
+
+/** 観測期間を通して0件であることを保証する。 */
+export async function expectNoHitsDuringObservation(
+  tracking: HitReader,
+  filter: HitFilter,
+  label: string,
+  options: ObservationOptions = {}
+): Promise<void> {
+  await observeUntilDeadline(
+    options.observationMs ?? BEACON_SETTLE_MS,
+    options.pollIntervalMs ?? WAIT_POLL_INTERVAL_MS,
+    async () => {
+      assertZeroCount((await tracking.getHitsMatching(filter)).length);
+    }
+  );
+  console.log(`  ✓ ${label}: 観測期間中0件`);
+}
+
+/** `/api/tag-check` が指定した Hit を返すことを検証する。 */
+export async function expectTagCheckContainsHit(
+  tracking: TagCheckReader,
+  hit: HitRecord
+): Promise<void> {
+  const tagCheck = await tracking.getTagCheck(Date.parse(hit.ts));
+  if (!tagCheck.hits.some((tagCheckHit) => tagCheckHit.id === hit.id)) {
+    throw new Error("/api/tag-check の応答に受信済み pageview が含まれない");
   }
+  console.log("  ✓ /api/tag-check が受信済み pageview を返す");
 }
 
 export async function expectTrackerLogContains(

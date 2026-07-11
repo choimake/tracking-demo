@@ -16,8 +16,8 @@ import {
   ANON_VID_RE,
   EVENT_ID_PURCHASE,
   expectAnonIdsPresent,
-  expectEventCountIncreasedBy,
-  expectPageviewCountAfter,
+  expectEventCountExactlyIncreasedBy,
+  expectPageviewCountAtLeast,
   expectHitPayload,
   quiesceBeacons,
   waitForNewHit,
@@ -119,7 +119,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   let hitCursor = await ctx.tracking.captureHitCursor();
   const issuedAtSec = Date.now() / 1000;
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountAfter(
+  await expectPageviewCountAtLeast(
     ctx.tracking,
     hitCursor,
     1,
@@ -182,7 +182,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   // (b) MPA 遷移後も同一 vid・同一 sid(セッション継続)
   hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/products");
-  await expectPageviewCountAfter(
+  await expectPageviewCountAtLeast(
     ctx.tracking,
     hitCursor,
     1,
@@ -211,14 +211,14 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   await gotoDemoPage(ctx.page, "/spa");
   await setNoReloadMarker(ctx.page);
   await clickSpaOrderComplete(ctx.page);
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     EVENT_ID_PURCHASE,
     purchaseCountBefore,
     1,
     "SPA 遷移で購入完了イベント +1"
   );
-  await expectPageviewCountAfter(
+  await expectPageviewCountAtLeast(
     ctx.tracking,
     hitCursor,
     2,
@@ -270,7 +270,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   hitCursor = await ctx.tracking.captureHitCursor();
   const renewedAtSec = Date.now() / 1000;
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountAfter(
+  await expectPageviewCountAtLeast(
     ctx.tracking,
     hitCursor,
     1,
@@ -328,7 +328,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   hitCursor = await ctx.tracking.captureHitCursor();
   const vidRenewedAtSec = Date.now() / 1000;
   await gotoDemoPage(ctx.page, "/products");
-  await expectPageviewCountAfter(
+  await expectPageviewCountAtLeast(
     ctx.tracking,
     hitCursor,
     1,
@@ -375,7 +375,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   });
   hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountAfter(
+  await expectPageviewCountAtLeast(
     ctx.tracking,
     hitCursor,
     1,
@@ -415,7 +415,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   });
   hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/products");
-  await expectPageviewCountAfter(
+  await expectPageviewCountAtLeast(
     ctx.tracking,
     hitCursor,
     1,
@@ -452,7 +452,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   await setTdSidCookie(ctx.page, INVALID_SID);
   hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountAfter(
+  await expectPageviewCountAtLeast(
     ctx.tracking,
     hitCursor,
     1,
@@ -530,7 +530,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
 
     hitCursor = await ctx.tracking.captureHitCursor();
     await gotoDemoPage(disabledPage, "/");
-    await expectPageviewCountAfter(
+    await expectPageviewCountAtLeast(
       ctx.tracking,
       hitCursor,
       1,
@@ -545,7 +545,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
 
     hitCursor = await ctx.tracking.captureHitCursor();
     await gotoDemoPage(disabledPage, "/products");
-    await expectPageviewCountAfter(
+    await expectPageviewCountAtLeast(
       ctx.tracking,
       hitCursor,
       1,

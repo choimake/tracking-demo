@@ -7,6 +7,7 @@ import {
   sleep,
 } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
+import { expectNoHitsDuringObservation } from "../tracking/index.js";
 
 /** 無効イベントは計測停止(配信除外・受信破棄・0件表示) */
 export async function testDisabledEventStopsTracking(
@@ -43,9 +44,15 @@ export async function testDisabledEventStopsTracking(
     console.log("  ✓ 受信側で破棄(HTTP 202・記録なし)");
 
     // 直前テストの滞在タイマーが残っていると誤検知するため、遷移後のログだけ見る
+    const hitCursor = await tracking.captureHitCursor();
     await gotoDemoPage(page, "/");
     const trackerLogsCountBefore = trackerLogs.length;
-    await sleep(DISABLED_EVENT_BROWSER_CHECK_DELAY_MS);
+    await expectNoHitsDuringObservation(
+      tracking,
+      { afterHitId: hitCursor, eventId: timeOnPageEventId, type: "event" },
+      "無効イベントのブラウザ発火",
+      { observationMs: DISABLED_EVENT_BROWSER_CHECK_DELAY_MS }
+    );
     if (
       trackerLogs
         .slice(trackerLogsCountBefore)

@@ -7,7 +7,7 @@ import {
 import type { E2eContext } from "../harness/types.js";
 import {
   quiesceBeacons,
-  expectEventCountIncreasedBy,
+  expectEventCountExactlyIncreasedBy,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -20,7 +20,7 @@ export async function testTimeOnPageTrigger(ctx: E2eContext): Promise<void> {
   );
   const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/");
-  await expectEventCountIncreasedBy(
+  await expectEventCountExactlyIncreasedBy(
     ctx.tracking,
     ctx.fixtures.timeOnPageEventId,
     timeOnPageCountBefore,
