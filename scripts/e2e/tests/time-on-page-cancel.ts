@@ -3,12 +3,12 @@ import {
   BEACON_SETTLE_MS,
   TIME_ON_PAGE_CANCEL_BOUNCE_COUNT,
   TIME_ON_PAGE_CANCEL_BOUNCE_INTERVAL_MS,
+  sleep,
 } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   quiesceBeacons,
   expectExactEventCountAfterDelay,
-  sleep,
 } from "../tracking/index.js";
 
 /**

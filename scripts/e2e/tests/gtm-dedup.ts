@@ -4,6 +4,7 @@ import {
   DEDUP_WINDOW_EXCEEDED_WAIT_MS,
   UA_TOKEN,
   WORKSPACE_ID,
+  sleep,
 } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
@@ -11,7 +12,6 @@ import {
   quiesceBeacons,
   waitForCondition,
   expectExactPageviewCountAfterDelay,
-  sleep,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";

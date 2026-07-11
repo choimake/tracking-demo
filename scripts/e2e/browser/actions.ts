@@ -3,8 +3,8 @@ import type { Page } from "playwright";
 import {
   DEMO_SITE_ORIGIN,
   DEFAULT_WAIT_TIMEOUT_MS,
+  sleep,
 } from "../harness/config.js";
-import { sleep } from "../tracking/assertions.js";
 
 /** demo-site のページへ遷移する(path は先頭スラッシュ付き。例: '/', '/products') */
 export async function gotoDemoPage(page: Page, path: string): Promise<void> {

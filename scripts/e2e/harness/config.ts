@@ -8,6 +8,9 @@ export const DB_PATH = process.env.DB_PATH
   ? pathToFileURL(path.resolve(process.env.DB_PATH))
   : new URL("../../../data/db.json", import.meta.url);
 
+export const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
 /** waitForCondition のデフォルトタイムアウト */
 export const DEFAULT_WAIT_TIMEOUT_MS = 5000;
 /** waitForCondition のポーリング間隔 */

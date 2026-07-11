@@ -3,12 +3,12 @@ import {
   MANUAL_PUSH_GAP_MS,
   UA_TOKEN,
   WORKSPACE_ID,
+  sleep,
 } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   quiesceBeacons,
   expectPageviewCountSince,
-  sleep,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";

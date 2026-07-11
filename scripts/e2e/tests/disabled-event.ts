@@ -4,9 +4,9 @@ import {
   DEMO_SITE_ORIGIN,
   DISABLED_EVENT_RECEIVE_CHECK_DELAY_MS,
   DISABLED_EVENT_BROWSER_CHECK_DELAY_MS,
+  sleep,
 } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
-import { sleep } from "../tracking/index.js";
 
 /** 無効イベントは計測停止(配信除外・受信破棄・0件表示) */
 export async function testDisabledEventStopsTracking(

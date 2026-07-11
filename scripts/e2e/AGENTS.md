@@ -26,6 +26,8 @@
 | `scenarios.ts` | 登録 | `{ name, run }` の一覧 |
 | `run.ts` | 起動 | ブラウザ直列実行・setup/teardown |
 
+依存方向: `browser` は `tracking` / `tests` に依存しない。`tracking` が依存できる `harness` は `config` のみ（他の harness は禁止）。`harness/session`・`types` から `tracking` への依存は可。`harness/config`・`runner`・`video` は `tracking` に依存しない。これらは `.dependency-cruiser.cjs` で error として担保する。
+
 ## 必須パターン
 
 ### 発火系の判定順
@@ -57,6 +59,7 @@
 ### 定数と匿名 ID
 
 - オリジン・タイムアウト・UA トークン等の定数は `harness/config.ts` に置く
+- `sleep` は `harness/config.ts` に置き、`tracking` から re-export しない
 - 匿名 ID 形式の正規表現は `tracking/assertions.ts` の `ANON_VID_RE` / `ANON_SID_RE` に一本化する
 
 ### 実行と共有状態

@@ -96,6 +96,8 @@ run.ts
 計測 E2E は「ページを触る」と「サーバーにビーコンが届いたか読む」の二系統がある。
 フォルダ名がその二系統に対応している。
 
+依存方向の要約: `browser` ↛ `tracking` / `tests`。`tracking` → `harness/config` のみ（他 harness 禁止）。`harness/session`・`types` → `tracking` 可。`harness/config`・`runner`・`video` ↛ `tracking`。`.dependency-cruiser.cjs` で error として担保する。
+
 ## 各フォルダの詳細
 
 ### `tests/` — シナリオ本体

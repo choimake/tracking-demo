@@ -4,11 +4,9 @@ import {
   QUIESCE_MAX_WAIT_MS,
   QUIESCE_POLL_INTERVAL_MS,
   QUIESCE_STABLE_DURATION_MS,
+  sleep,
 } from "../harness/config.js";
 import type { HitFilter, HitRecord, TrackingClient } from "./client.js";
-
-export const sleep = (ms: number): Promise<void> =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /** sendBeacon は非同期なので、期待値になるまで最大 timeoutMs ポーリングする */
 export async function waitForCondition(

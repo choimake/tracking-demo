@@ -4,11 +4,11 @@ import {
   BEACON_SETTLE_MS,
   UA_TOKEN,
   WORKSPACE_ID,
+  sleep,
 } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   expectPageviewCountSince,
-  sleep,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
