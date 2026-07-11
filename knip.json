@@ -5,8 +5,7 @@
     "scripts/e2e/run.ts",
     "scripts/e2e/harness/session.regression-check.ts",
     "scripts/e2e/tracking/sleep-export.regression-check.ts",
-    "scripts/e2e/bench/suite-worker.ts",
-    "scripts/mutation/run.ts"
+    "scripts/e2e/bench/suite-worker.ts"
   ],
   "project": ["src/**/*.ts", "scripts/**/*.ts"],
   "ignoreBinaries": ["mise"],
