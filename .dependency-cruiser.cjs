@@ -22,6 +22,7 @@ module.exports = {
           "(^|/)run\\.ts$",
           "(^|/)run-bench\\.ts$",
           "(^|/)suite-worker\\.ts$",
+          "(^|/)scripts/mutation/run\\.ts$",
           "\\.d\\.ts$",
           "(^|/)gamp\\.ts$",
         ],

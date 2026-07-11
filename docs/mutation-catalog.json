@@ -1,0 +1,325 @@
+[
+  {
+    "id": "M-TR01",
+    "file": "src/tracker/tracker.ts",
+    "operator": "guard-removal",
+    "change": "二重タグガードを無効化（__trackerLoaded でも return しない）",
+    "beforeString": "  if (w.__trackerLoaded) {\n    console.warn(\n      \"[tracker] 計測タグが二重に読み込まれています。2つ目以降の読み込みは無視します\"\n    );\n    return;\n  }",
+    "afterString": "  if (w.__trackerLoaded) {\n    console.warn(\n      \"[tracker] 計測タグが二重に読み込まれています。2つ目以降の読み込みは無視します\"\n    );\n  }",
+    "expectedKillers": ["S11"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR02",
+    "file": "src/tracker/tracker.ts",
+    "operator": "field-removal",
+    "change": "payload から vid/sid を除去",
+    "beforeString": "    const payload = JSON.stringify({\n      eventId,\n      sid: ensureSessionId(),\n      ts: new Date().toISOString(),\n      type,\n      ua: navigator.userAgent,\n      url: location.href,\n      vid: ensureClientId(),\n      ws: wsId,\n    });",
+    "afterString": "    const payload = JSON.stringify({\n      eventId,\n      ts: new Date().toISOString(),\n      type,\n      ua: navigator.userAgent,\n      url: location.href,\n      ws: wsId,\n    });",
+    "expectedKillers": ["S01", "S18"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR03",
+    "file": "src/tracker/tracker.ts",
+    "operator": "guard-removal",
+    "change": "fireOnce の firedThisPage ガードを削除",
+    "beforeString": "  function fireOnce(cfg: EventConfig): void {\n    if (firedThisPage.has(cfg.id)) {\n      return;\n    }\n    firedThisPage.add(cfg.id);\n    fire(cfg);\n  }",
+    "afterString": "  function fireOnce(cfg: EventConfig): void {\n    firedThisPage.add(cfg.id);\n    fire(cfg);\n  }",
+    "expectedKillers": ["S04", "S15"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR04",
+    "file": "src/tracker/tracker.ts",
+    "operator": "wrong-call",
+    "change": "クリック発火を fire から fireOnce に変更",
+    "beforeString": "            if (target.closest(parsed.value)) {\n              fire(cfg);\n            }",
+    "afterString": "            if (target.closest(parsed.value)) {\n              fireOnce(cfg);\n            }",
+    "expectedKillers": ["S15"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR05",
+    "file": "src/tracker/tracker.ts",
+    "operator": "boundary-shift",
+    "change": "スクロール閾値比較を >= から > に変更",
+    "beforeString": "      if (scrollPercent() >= Number(parsed.value)) {\n        fireOnce(cfg);\n      }",
+    "afterString": "      if (scrollPercent() > Number(parsed.value)) {\n        fireOnce(cfg);\n      }",
+    "expectedKillers": ["S04"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR06",
+    "file": "src/tracker/tracker.ts",
+    "operator": "wrong-api",
+    "change": "クリック委譲を closest から matches に変更",
+    "beforeString": "            if (target.closest(parsed.value)) {\n              fire(cfg);\n            }",
+    "afterString": "            if (target.matches(parsed.value)) {\n              fire(cfg);\n            }",
+    "expectedKillers": ["S03"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR07",
+    "file": "src/tracker/tracker.ts",
+    "operator": "guard-removal",
+    "change": "離脱インテントの clientY > 0 ガードを削除",
+    "beforeString": "      if (e.relatedTarget) {\n        return;\n      }\n      if (e.clientY > 0) {\n        return;\n      }",
+    "afterString": "      if (e.relatedTarget) {\n        return;\n      }",
+    "expectedKillers": ["S06"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR08",
+    "file": "src/tracker/tracker.ts",
+    "operator": "wrong-branch",
+    "change": "クリック時に exit_intent も発火させる（モバイル非発火を壊す）",
+    "beforeString": "        for (const { cfg, parsed } of events) {\n          if (parsed.type !== \"click\") {\n            continue;\n          }\n          try {\n            if (target.closest(parsed.value)) {\n              fire(cfg);\n            }\n          } catch {\n            // 不正なセレクタは無視\n          }\n        }",
+    "afterString": "        for (const { cfg, parsed } of events) {\n          if (parsed.type === \"exit_intent\") {\n            fireOnce(cfg);\n            continue;\n          }\n          if (parsed.type !== \"click\") {\n            continue;\n          }\n          try {\n            if (target.closest(parsed.value)) {\n              fire(cfg);\n            }\n          } catch {\n            // 不正なセレクタは無視\n          }\n        }",
+    "expectedKillers": ["S17"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR09",
+    "file": "src/tracker/tracker.ts",
+    "operator": "guard-removal",
+    "change": "History Change の同一パス早期 return を削除",
+    "beforeString": "    const onHistoryChange = () => {\n      const path = normalizePath(location.pathname);\n      if (path === currentPath) {\n        return;\n      }\n      currentPath = path;\n      log(\"History Change を検知(SPA遷移)\");\n      onPageview();\n    };",
+    "afterString": "    const onHistoryChange = () => {\n      const path = normalizePath(location.pathname);\n      currentPath = path;\n      log(\"History Change を検知(SPA遷移)\");\n      onPageview();\n    };",
+    "expectedKillers": ["S07", "S08"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR10",
+    "file": "src/tracker/tracker.ts",
+    "operator": "call-removal",
+    "change": "popstate リスナー登録を削除",
+    "beforeString": "    patch(\"pushState\");\n    patch(\"replaceState\");\n    window.addEventListener(\"popstate\", onHistoryChange);",
+    "afterString": "    patch(\"pushState\");\n    patch(\"replaceState\");",
+    "expectedKillers": ["S13"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR11",
+    "file": "src/tracker/tracker.ts",
+    "operator": "boundary-shift",
+    "change": "DEDUPE_WINDOW_MS を 0 に（即時 dedup 無効化）",
+    "beforeString": "  const DEDUPE_WINDOW_MS = 1000;",
+    "afterString": "  const DEDUPE_WINDOW_MS = 0;",
+    "expectedKillers": ["S08", "S09"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR12",
+    "file": "src/tracker/tracker.ts",
+    "operator": "boundary-shift",
+    "change": "DEDUPE_WINDOW_MS を極大に（実質永久 dedup）",
+    "beforeString": "  const DEDUPE_WINDOW_MS = 1000;",
+    "afterString": "  const DEDUPE_WINDOW_MS = 999999;",
+    "expectedKillers": ["S08", "S09"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR13",
+    "file": "src/tracker/tracker.ts",
+    "operator": "guard-removal",
+    "change": "手動 tracker.pageview の dedup ブロックを削除",
+    "beforeString": "      if (\n        lastPageviewPath === path &&\n        Date.now() - lastPageviewTime < DEDUPE_WINDOW_MS\n      ) {\n        log(\n          `tracker.pageview の手動送信をスキップ(直近${DEDUPE_WINDOW_MS}ms以内に同一パスのpageview送信済み): ${path}`\n        );\n        return;\n      }",
+    "afterString": "      if (false) {\n        log(\n          `tracker.pageview の手動送信をスキップ(直近${DEDUPE_WINDOW_MS}ms以内に同一パスのpageview送信済み): ${path}`\n        );\n        return;\n      }",
+    "expectedKillers": ["S08"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR14",
+    "file": "src/tracker/tracker.ts",
+    "operator": "negation",
+    "change": "キュー再生済みでも初期 onPageview を常に実行",
+    "beforeString": "      if (!replayedPageview) {\n        onPageview();\n      }",
+    "afterString": "      if (true) {\n        onPageview();\n      }",
+    "expectedKillers": ["S10"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR15",
+    "file": "src/tracker/tracker.ts",
+    "operator": "cleanup-removal",
+    "change": "ページ遷移時の滞在タイマー clearTimeout を削除",
+    "beforeString": "    firedThisPage = new Set();\n    timers.forEach((t) => clearTimeout(t));\n    timers = [];",
+    "afterString": "    firedThisPage = new Set();\n    timers = [];",
+    "expectedKillers": ["S14"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR16",
+    "file": "src/tracker/tracker.ts",
+    "operator": "arithmetic",
+    "change": "time_on_page のミリ秒換算を *1000 から *100 に",
+    "beforeString": "          window.setTimeout(() => fireOnce(cfg), Number(parsed.value) * 1000)",
+    "afterString": "          window.setTimeout(() => fireOnce(cfg), Number(parsed.value) * 100)",
+    "expectedKillers": ["S05", "S14"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR17",
+    "file": "src/tracker/tracker.ts",
+    "operator": "normalize-removal",
+    "change": "URL到達照合で location.pathname を正規化しない",
+    "beforeString": "        if (normalizePath(location.pathname) === normalizePath(parsed.value)) {\n          fireOnce(cfg);\n        }",
+    "afterString": "        if (location.pathname === normalizePath(parsed.value)) {\n          fireOnce(cfg);\n        }",
+    "expectedKillers": ["S16"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR18",
+    "file": "src/tracker/tracker.ts",
+    "operator": "side-effect-removal",
+    "change": "vid Cookie の書き込み（Max-Age 延長）を削除",
+    "beforeString": "    // ヒット送信のたびに Max-Age を延長(ローリング)\n    writeCookie(VID_COOKIE, vid, VID_MAX_AGE_SEC);\n    return vid;",
+    "afterString": "    // ヒット送信のたびに Max-Age を延長(ローリング)\n    return vid;",
+    "expectedKillers": ["S18"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR19",
+    "file": "src/tracker/tracker.ts",
+    "operator": "guard-removal",
+    "change": "sid 形式不正時の再発行を削除",
+    "beforeString": "    // 欠落・期限切れ(ブラウザが Cookie を落とす)・形式不正時のみ再発行\n    if (!sid || !SID_RE.test(sid)) {\n      sid = `s_${crypto.randomUUID()}`;\n    }",
+    "afterString": "    // 欠落・期限切れ(ブラウザが Cookie を落とす)・形式不正時のみ再発行\n    if (!sid) {\n      sid = `s_${crypto.randomUUID()}`;\n    }",
+    "expectedKillers": ["S18"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR20",
+    "file": "src/tracker/tracker.ts",
+    "operator": "call-removal",
+    "change": "History patch 内で onHistoryChange を呼ばない",
+    "beforeString": "      history[method] = function (...args: Parameters<History[\"pushState\"]>) {\n        const ret = orig(...args);\n        onHistoryChange();\n        return ret;\n      };",
+    "afterString": "      history[method] = function (...args: Parameters<History[\"pushState\"]>) {\n        const ret = orig(...args);\n        return ret;\n      };",
+    "expectedKillers": ["S07", "S13"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR21",
+    "file": "src/tracker/tracker.ts",
+    "operator": "wrong-argument",
+    "change": "イベント発火を pageview 送信にすり替える",
+    "beforeString": "  function fire(cfg: EventConfig): void {\n    log(`イベント発火: ${cfg.name} (${cfg.trigger})`);\n    send(cfg.id, \"event\");\n  }",
+    "afterString": "  function fire(cfg: EventConfig): void {\n    log(`イベント発火: ${cfg.name} (${cfg.trigger})`);\n    send(null, \"pageview\");\n  }",
+    "expectedKillers": ["S02", "S03", "S06", "S15"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TG01",
+    "file": "src/shared/trigger.ts",
+    "operator": "transform-removal",
+    "change": "normalizePath の toLowerCase を削除",
+    "beforeString": "  return p.toLowerCase();\n}",
+    "afterString": "  return p;\n}",
+    "expectedKillers": ["S16"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TG02",
+    "file": "src/shared/trigger.ts",
+    "operator": "transform-removal",
+    "change": "normalizePath の末尾スラッシュ除去を削除",
+    "beforeString": "  let p = path.replace(/\\/+$/, \"\");",
+    "afterString": "  let p = path;",
+    "expectedKillers": ["S16"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TG03",
+    "file": "src/shared/trigger.ts",
+    "operator": "transform-removal",
+    "change": "normalizePath の decodeURIComponent をスキップ",
+    "beforeString": "  try {\n    p = decodeURIComponent(p);\n  } catch {\n    // 不正なパーセントエンコードはそのまま比較する\n  }",
+    "afterString": "  try {\n    // decode skipped by mutant\n  } catch {\n    // 不正なパーセントエンコードはそのまま比較する\n  }",
+    "expectedKillers": ["S16"],
+    "class": "primary"
+  },
+  {
+    "id": "M-SV01",
+    "file": "src/server.ts",
+    "operator": "filter-removal",
+    "change": "/api/config の enabled filter を削除",
+    "beforeString": "    events: db.events\n      .filter((e) => e.enabled)\n      .map((e) => ({ id: e.id, name: e.name, trigger: e.trigger })),",
+    "afterString": "    events: db.events\n      .map((e) => ({ id: e.id, name: e.name, trigger: e.trigger })),",
+    "expectedKillers": ["S12"],
+    "class": "primary"
+  },
+  {
+    "id": "M-SV02",
+    "file": "src/server.ts",
+    "operator": "guard-removal",
+    "change": "無効イベントの受信破棄を削除",
+    "beforeString": "    // 無効イベントは計測停止(受信しても記録しない)。テスト発火のみ動作確認のため通す\n    if (!event.enabled && !isTest) {\n      res.status(202).json({ ok: false, reason: \"event disabled\" });\n      return;\n    }",
+    "afterString": "    // 無効イベントは計測停止(受信しても記録しない)。テスト発火のみ動作確認のため通す\n    if (false && !event.enabled && !isTest) {\n      res.status(202).json({ ok: false, reason: \"event disabled\" });\n      return;\n    }",
+    "expectedKillers": ["S12"],
+    "class": "primary"
+  },
+  {
+    "id": "M-SV03",
+    "file": "src/server.ts",
+    "operator": "wrong-branch",
+    "change": "無効イベントでも count7d を計算する",
+    "beforeString": "    count7d: e.enabled ? count7d(e.id) : 0, // 無効時は0件表示(spec)",
+    "afterString": "    count7d: count7d(e.id), // 無効時は0件表示(spec)",
+    "expectedKillers": ["S12"],
+    "class": "primary"
+  },
+  {
+    "id": "M-SV04",
+    "file": "src/server.ts",
+    "operator": "config-change",
+    "change": "sendBeacon 用 text/plain JSON パースを無効化",
+    "beforeString": "  express.json({ type: [\"application/json\", \"text/plain\"] })",
+    "afterString": "  express.json({ type: [\"application/json\"] })",
+    "expectedKillers": ["S01"],
+    "class": "primary"
+  },
+  {
+    "id": "M-SV05",
+    "file": "src/server.ts",
+    "operator": "negation",
+    "change": "vid/sid 検証を常に失敗させる",
+    "beforeString": "  const vidOk = isAnonIdOk(vid, VID_RE);\n  const sidOk = isAnonIdOk(sid, SID_RE);",
+    "afterString": "  const vidOk = false;\n  const sidOk = false;",
+    "expectedKillers": ["S01", "S18"],
+    "class": "primary"
+  },
+  {
+    "id": "M-CS01",
+    "file": "src/tracker/tracker.ts",
+    "operator": "branch-removal",
+    "change": "sendBeacon 失敗時の fetch フォールバックを削除（対照群）",
+    "beforeString": "    if (!(navigator.sendBeacon && navigator.sendBeacon(endpoint, payload))) {\n      fetch(endpoint, { body: payload, keepalive: true, method: \"POST\" }).catch(\n        () => {}\n      );\n    }",
+    "afterString": "    if (!(navigator.sendBeacon && navigator.sendBeacon(endpoint, payload))) {\n      // fetch fallback removed by control-survived mutant\n    }",
+    "expectedKillers": [],
+    "class": "control-survived",
+    "rationale": "README: 実装済みだがE2E未検証（sendBeacon 失敗時の fetch フォールバック）"
+  },
+  {
+    "id": "M-CS02",
+    "file": "src/tracker/tracker.ts",
+    "operator": "call-removal",
+    "change": "replaceState フックを削除（対照群）",
+    "beforeString": "    patch(\"pushState\");\n    patch(\"replaceState\");\n    window.addEventListener(\"popstate\", onHistoryChange);",
+    "afterString": "    patch(\"pushState\");\n    window.addEventListener(\"popstate\", onHistoryChange);",
+    "expectedKillers": [],
+    "class": "control-survived",
+    "rationale": "README: 実装済みだがE2E未検証（replaceState 単体）。主経路は pushState"
+  },
+  {
+    "id": "M-CS03",
+    "file": "src/server.ts",
+    "operator": "guard-removal",
+    "change": "collect の ws 不一致チェックを削除（対照群）",
+    "beforeString": "  if (\n    ws !== db.workspace.id ||\n    (type !== \"event\" && type !== \"pageview\") ||",
+    "afterString": "  if (\n    false ||\n    (type !== \"event\" && type !== \"pageview\") ||",
+    "expectedKillers": [],
+    "class": "control-survived",
+    "rationale": "全 E2E シナリオは正しい ws-001 のみを送るため到達しない経路"
+  }
+]

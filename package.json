@@ -21,7 +21,8 @@
     "e2e:mobile": "E2E_MOBILE=1 tsx scripts/e2e/run.ts",
     "e2e:video": "RECORD_VIDEO=all tsx scripts/e2e/run.ts",
     "e2e:video:fail": "RECORD_VIDEO=on-failure tsx scripts/e2e/run.ts",
-    "e2e:bench": "tsx scripts/e2e/bench/run-bench.ts"
+    "e2e:bench": "tsx scripts/e2e/bench/run-bench.ts",
+    "mutation": "tsx scripts/mutation/run.ts"
   },
   "dependencies": {
     "esbuild": "^0.24.2",
