@@ -18,7 +18,11 @@ export async function testTagLoadAndPageview(ctx: E2eContext): Promise<void> {
     1,
     "pageview ビーコンを受信"
   );
-  await expectTrackerLogContains(ctx.trackerLogs, "初期化完了", "tracker 初期化ログ");
+  await expectTrackerLogContains(
+    ctx.trackerLogs,
+    "初期化完了",
+    "tracker 初期化ログ"
+  );
   const hit = await waitForNewHit(
     ctx.tracking,
     { eventId: null, sinceMs, type: "pageview" },

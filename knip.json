@@ -2,7 +2,8 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/tracker/tracker.ts",
-    "scripts/e2e/harness/session.regression-check.ts"
+    "scripts/e2e/harness/session.regression-check.ts",
+    "scripts/e2e/bench/suite-worker.ts"
   ],
   "project": ["src/**/*.ts", "scripts/**/*.ts"],
   "ignoreBinaries": ["mise"],

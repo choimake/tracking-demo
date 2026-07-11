@@ -44,21 +44,72 @@ const log = (...args: unknown[]) => console.info("[tracker]", ...args);
   const wsId = selfUrl.searchParams.get("id");
   const { origin } = selfUrl;
   if (!wsId) {
-    console.warn("[tracker] ワークスペースIDがありません(tracker.js?id=ws-xxx)");
+    console.warn(
+      "[tracker] ワークスペースIDがありません(tracker.js?id=ws-xxx)"
+    );
     return;
   }
   // ガードは有効なタグとして初期化が確定した時点で立てる。
   // 壊れたタグ(id なし等)が先に読まれても、あとから正しいタグが動けるようにする
   w.__trackerLoaded = true;
 
+  // ---- first-party Cookie による匿名識別 ----
+  // why: vid(client_id) は匿名の再訪識別子であり、ログイン紐づけの user_id ではない。
+  // why: sid(session_id) は 30 分スライディングのセッション区切りであり、client_id の寿命とは別概念。
+  // 計測サーバーは Set-Cookie しない。サイト(:3200)文脈の document.cookie で first-party として扱う。
+  const VID_COOKIE = "_td_vid";
+  const SID_COOKIE = "_td_sid";
+  const VID_MAX_AGE_SEC = 2 * 365 * 24 * 60 * 60; // 2年(ローリング延長)
+  const SID_MAX_AGE_SEC = 30 * 60; // 30分(スライディング延長)
+  const VID_RE = /^v_[0-9a-f-]{36}$/;
+  const SID_RE = /^s_[0-9a-f-]{36}$/;
+
+  function readCookie(name: string): string | null {
+    const prefix = `${name}=`;
+    for (const part of document.cookie.split(";")) {
+      const trimmed = part.trim();
+      if (trimmed.startsWith(prefix)) {
+        return decodeURIComponent(trimmed.slice(prefix.length));
+      }
+    }
+    return null;
+  }
+
+  function writeCookie(name: string, value: string, maxAgeSec: number): void {
+    document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSec}; SameSite=Lax`;
+  }
+
+  function ensureClientId(): string {
+    let vid = readCookie(VID_COOKIE);
+    if (!vid || !VID_RE.test(vid)) {
+      vid = `v_${crypto.randomUUID()}`;
+    }
+    // ヒット送信のたびに Max-Age を延長(ローリング)
+    writeCookie(VID_COOKIE, vid, VID_MAX_AGE_SEC);
+    return vid;
+  }
+
+  function ensureSessionId(): string {
+    let sid = readCookie(SID_COOKIE);
+    // 欠落・期限切れ(ブラウザが Cookie を落とす)・形式不正時のみ再発行
+    if (!sid || !SID_RE.test(sid)) {
+      sid = `s_${crypto.randomUUID()}`;
+    }
+    // ヒット送信のたびに 30 分へ延長(スライディング)
+    writeCookie(SID_COOKIE, sid, SID_MAX_AGE_SEC);
+    return sid;
+  }
+
   // ---- 送信 ----
   function send(eventId: string | null, type: "event" | "pageview"): void {
     const payload = JSON.stringify({
       eventId,
+      sid: ensureSessionId(),
       ts: new Date().toISOString(),
       type,
       ua: navigator.userAgent,
       url: location.href,
+      vid: ensureClientId(),
       ws: wsId,
     });
     const endpoint = origin + "/api/collect";
@@ -239,7 +290,11 @@ const log = (...args: unknown[]) => console.info("[tracker]", ...args);
     // キューに溜まっている。差し替え前に再生しないと消失する(dataLayer 方式の要)
     let replayedPageview = false;
     for (const item of dl) {
-      if (item && typeof item === "object" && item.event === "tracker.pageview") {
+      if (
+        item &&
+        typeof item === "object" &&
+        item.event === "tracker.pageview"
+      ) {
         replayedPageview = true;
       }
       processDataLayerItem(item);
@@ -276,5 +331,7 @@ const log = (...args: unknown[]) => console.info("[tracker]", ...args);
         onPageview();
       }
     })
-    .catch((error) => console.warn("[tracker] 設定の取得に失敗しました", error));
+    .catch((error) =>
+      console.warn("[tracker] 設定の取得に失敗しました", error)
+    );
 })();

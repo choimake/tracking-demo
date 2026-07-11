@@ -23,7 +23,9 @@ export async function testDuplicateTagGuard(ctx: E2eContext): Promise<void> {
   const trackerLogsCountBefore = trackerLogs.length;
   await page.addScriptTag({ url: `${TRACKING_ORIGIN}/tracker.js?id=ws-001` });
   await sleep(BEACON_SETTLE_MS);
-  if (!trackerLogs.slice(trackerLogsCountBefore).some((l) => l.includes("二重"))) {
+  if (
+    !trackerLogs.slice(trackerLogsCountBefore).some((l) => l.includes("二重"))
+  ) {
     throw new Error("二重読み込みの警告が出ていない");
   }
   if ((await tracking.getPageviewCountSince(sinceMs)) !== pageviewCountBefore) {

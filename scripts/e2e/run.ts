@@ -86,9 +86,7 @@ async function main(): Promise<void> {
               try {
                 await session.context.close();
               } catch (error) {
-                console.error(
-                  `  context.close failed: ${String(error)}`
-                );
+                console.error(`  context.close failed: ${String(error)}`);
               }
               // シナリオが既に scenarioVideoPath へ動画を確定済みなら外側 finalize しない
               const alreadyPromoted = await fs
@@ -137,18 +135,15 @@ async function main(): Promise<void> {
 
           try {
             for (const scenario of e2eScenarios) {
-              await runner.runE2eCase(
-                `[${deviceLabel}] ${scenario.name}`,
-                () => scenario.run(ctx)
+              await runner.runE2eCase(`[${deviceLabel}] ${scenario.name}`, () =>
+                scenario.run(ctx)
               );
             }
           } finally {
             try {
               await session.context.close();
             } catch (error) {
-              console.error(
-                `  context.close failed: ${String(error)}`
-              );
+              console.error(`  context.close failed: ${String(error)}`);
             }
           }
         }

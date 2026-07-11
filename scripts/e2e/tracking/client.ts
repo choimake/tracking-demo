@@ -17,6 +17,10 @@ export interface HitRecord {
   ts: string;
   test: boolean;
   ua: string;
+  /** 匿名再訪識別子(client_id 相当)。欠落時は空文字 */
+  vid: string;
+  /** セッション識別子(session_id 相当)。欠落時は空文字 */
+  sid: string;
   workspaceId: string;
 }
 

@@ -112,11 +112,13 @@ function seed(): DbShape {
         hits.push({
           eventId,
           id: newId("hit"),
+          sid: "",
           test: false,
           ts: ts.toISOString(),
           type: "event",
           ua: "seed",
           url: "http://localhost:3200/",
+          vid: "",
           workspaceId: "ws-001",
         });
       }
@@ -165,6 +167,12 @@ function repair(data: DbShape): DbShape {
     }
     if (typeof h.ua !== "string") {
       h.ua = "";
+    }
+    if (typeof h.vid !== "string") {
+      h.vid = "";
+    }
+    if (typeof h.sid !== "string") {
+      h.sid = "";
     }
   }
   return data;

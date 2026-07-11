@@ -15,11 +15,10 @@ type AwaitedReturn<T> = T extends (...args: never[]) => Promise<infer R>
 type SessionFromCreate = AwaitedReturn<typeof createE2eSession>;
 type SessionFromPage = AwaitedReturn<typeof createE2ePage>;
 
-type AssertEqual<A, B> = (<T>() => T extends A ? 1 : 2) extends <
-  T,
->() => T extends B ? 1 : 2
-  ? true
-  : false;
+type AssertEqual<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
 
 type _SessionEqualsPage = AssertEqual<SessionFromCreate, SessionFromPage>;
 type _SessionEqualsInterface = AssertEqual<SessionFromCreate, E2eSession>;

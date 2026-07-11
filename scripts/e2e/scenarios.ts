@@ -1,5 +1,6 @@
 import type { E2eContext } from "./harness/types.js";
 import { testClickTrigger } from "./tests/click-trigger.js";
+import { testCookieIdentity } from "./tests/cookie-identity.js";
 import { testDataLayerManualPageview } from "./tests/datalayer-manual.js";
 import { testDataLayerQueueReplay } from "./tests/datalayer-queue.js";
 import { testDisabledEventStopsTracking } from "./tests/disabled-event.js";
@@ -76,5 +77,9 @@ export const e2eScenarios: E2eScenario[] = [
   {
     name: "モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない",
     run: testExitIntentMobile,
+  },
+  {
+    name: "first-party Cookie 匿名識別: vid/sid の発行・MPA/SPA継続・Max-Age再延長(sid/vid)・区切り・リセット・Cookie無効相当",
+    run: testCookieIdentity,
   },
 ];

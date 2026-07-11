@@ -7,11 +7,8 @@ import type {
 
 import { TrackingClient } from "../tracking/client.js";
 import { EVENT_ID_EXIT_INTENT } from "../tracking/seed-events.js";
-import {
-  MOBILE_VIEWPORT,
-  TIME_ON_PAGE_TRIGGER_SECONDS,
-  type BrowserName,
-} from "./config.js";
+import { MOBILE_VIEWPORT, TIME_ON_PAGE_TRIGGER_SECONDS } from "./config.js";
+import type { BrowserName } from "./config.js";
 import type { E2eFixtures } from "./types.js";
 
 const TIME_ON_PAGE_TEST_EVENT_NAME = "E2E滞在2秒";

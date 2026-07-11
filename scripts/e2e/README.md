@@ -7,13 +7,13 @@
 
 計測 E2E の真実のソースは **Hit（`data/db.json` のヒット1件）** である。件数 API は便利な集計だが、最終判定はヒット単位で行う。
 
-| 観点         | 見るもの                                               | 主な手段                                                                |
-| ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------- |
-| どのイベント | `eventId` / `type`（event or pageview）                | `waitForNewHit` + `expectHitPayload`                                    |
-| いつ         | `ts` が Act 前後の窓（`sinceMs`〜`untilMs`）に入るか   | `expectHitPayload` の ts 窓                                             |
-| 何回         | 件数の +N / ちょうど N                                 | `expectEventCountIncreasedBy` / `expectExactPageviewCountAfterDelay` 等 |
-| payload      | `url`・`workspaceId` など                              | `expectHitPayload`                                                      |
-| ブラウザ     | `ua` にエンジン別トークン（Chrome / Firefox / Safari） | `UA_TOKEN[browserName]`                                                 |
+| 観点         | 見るもの                                               | 主な手段                                                                                  |
+| ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| どのイベント | `eventId` / `type`（event or pageview）                | `waitForNewHit` + `expectHitPayload`                                                      |
+| いつ         | `ts` が Act 前後の窓（`sinceMs`〜`untilMs`）に入るか   | `expectHitPayload` の ts 窓                                                               |
+| 何回         | 件数の +N / ちょうど N                                 | `expectEventCountIncreasedBy` / `expectExactPageviewCountAfterDelay` 等                   |
+| payload      | `url`・`workspaceId`・`vid`・`sid` など                | `expectHitPayload`（末尾で常に `expectAnonIdsPresent`。`vid`/`sid` 完全一致はオプション） |
+| ブラウザ     | `ua` にエンジン別トークン（Chrome / Firefox / Safari） | `UA_TOKEN[browserName]`                                                                   |
 
 発火系シナリオの基本パターン: **sinceMs → Act → 件数 +1 → waitForNewHit → expectHitPayload**。
 
@@ -29,12 +29,12 @@ npm run e2e  # 3エンジンを直列実行。結果ラベルは PASS [chromium]
 
 動画録画とモバイルコンテキスト実行は **ローカルデバッグ用**。CI ワークフローには載せない。
 
-| 環境変数 / npm script | 効果 |
-| --------------------- | ---- |
-| `RECORD_VIDEO=all` / `npm run e2e:video` | 全シナリオの動画を残す |
-| `RECORD_VIDEO=on-failure` / `npm run e2e:video:fail` | FAIL 時のみ動画を残す（PASS は削除） |
-| `E2E_MOBILE=1` / `npm run e2e:mobile` | 既存 17 シナリオをモバイルコンテキストで実行。ラベルは `[chromium:mobile] ...` |
-| `E2E_BROWSERS=chromium`（カンマ区切り可） | 実行ブラウザを絞る（未設定時は chromium,firefox,webkit） |
+| 環境変数 / npm script                                | 効果                                                                           |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `RECORD_VIDEO=all` / `npm run e2e:video`             | 全シナリオの動画を残す                                                         |
+| `RECORD_VIDEO=on-failure` / `npm run e2e:video:fail` | FAIL 時のみ動画を残す（PASS は削除）                                           |
+| `E2E_MOBILE=1` / `npm run e2e:mobile`                | 既存 18 シナリオをモバイルコンテキストで実行。ラベルは `[chromium:mobile] ...` |
+| `E2E_BROWSERS=chromium`（カンマ区切り可）            | 実行ブラウザを絞る（未設定時は chromium,firefox,webkit）                       |
 
 - 出力先: `test-results/videos/{browserName}/{scenario-slug}.webm`
 - FAIL 時はコンソールに動画の絶対パスを出す
@@ -98,25 +98,26 @@ run.ts
 
 ### `tests/` — シナリオ本体
 
-| ファイル                 | 検証内容                                                                           |
-| ------------------------ | ---------------------------------------------------------------------------------- |
-| `tag-load.ts`            | タグ読み込み + 初回ページビュー（クロスオリジン）                                  |
-| `url-reach.ts`           | URL 到達トリガー（MPA 遷移）                                                       |
-| `click-trigger.ts`       | クリックトリガー                                                                   |
-| `scroll-trigger.ts`      | スクロール率 50%                                                                   |
-| `time-on-page.ts`        | ページ滞在時間（検証用 2 秒イベント）                                              |
-| `exit-intent.ts`         | 離脱インテント                                                                     |
-| `spa-history.ts`         | SPA: pushState 遷移                                                                |
-| `gtm-dedup.ts`           | GTM 併用時の二重計上防止                                                           |
-| `datalayer-manual.ts`    | 手動 `tdDataLayer.push`                                                            |
-| `datalayer-queue.ts`     | ロード前キュー再生                                                                 |
-| `double-tag-guard.ts`    | タグ二重設置ガード                                                                 |
-| `disabled-event.ts`      | 無効イベントの計測停止                                                             |
-| `spa-popstate.ts`        | SPA popstate(戻る): リロードなし・pageview再送・購入イベントは戻るだけでは増えない |
-| `time-on-page-cancel.ts` | 滞在タイマー破棄: 閾値未満の滞在を繰り返しても発火しない                           |
-| `fire-semantics.ts`      | 発火回数: クリックは複数回(fire)・スクロールは1PVにつき1回(fireOnce)               |
-| `url-normalize.ts`       | URL正規化: 大文字小文字・末尾スラッシュ・日本語パス                                |
-| `exit-intent-mobile.ts`  | モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない          |
+| ファイル                 | 検証内容                                                                                                                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tag-load.ts`            | タグ読み込み + 初回ページビュー（クロスオリジン）                                                                                                                                                                                                |
+| `url-reach.ts`           | URL 到達トリガー（MPA 遷移）                                                                                                                                                                                                                     |
+| `click-trigger.ts`       | クリックトリガー                                                                                                                                                                                                                                 |
+| `scroll-trigger.ts`      | スクロール率 50%                                                                                                                                                                                                                                 |
+| `time-on-page.ts`        | ページ滞在時間（検証用 2 秒イベント）                                                                                                                                                                                                            |
+| `exit-intent.ts`         | 離脱インテント                                                                                                                                                                                                                                   |
+| `spa-history.ts`         | SPA: pushState 遷移                                                                                                                                                                                                                              |
+| `gtm-dedup.ts`           | GTM 併用時の二重計上防止                                                                                                                                                                                                                         |
+| `datalayer-manual.ts`    | 手動 `tdDataLayer.push`                                                                                                                                                                                                                          |
+| `datalayer-queue.ts`     | ロード前キュー再生                                                                                                                                                                                                                               |
+| `double-tag-guard.ts`    | タグ二重設置ガード                                                                                                                                                                                                                               |
+| `disabled-event.ts`      | 無効イベントの計測停止                                                                                                                                                                                                                           |
+| `spa-popstate.ts`        | SPA popstate(戻る): リロードなし・pageview再送・購入イベントは戻るだけでは増えない                                                                                                                                                               |
+| `time-on-page-cancel.ts` | 滞在タイマー破棄: 閾値未満の滞在を繰り返しても発火しない                                                                                                                                                                                         |
+| `fire-semantics.ts`      | 発火回数: クリックは複数回(fire)・スクロールは1PVにつき1回(fireOnce)                                                                                                                                                                             |
+| `url-normalize.ts`       | URL正規化: 大文字小文字・末尾スラッシュ・日本語パス                                                                                                                                                                                              |
+| `exit-intent-mobile.ts`  | モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない                                                                                                                                                                        |
+| `cookie-identity.ts`     | first-party Cookie: (a)〜(g) 発行・継続・再延長・区切り・リセット。(h) Cookie無効相当(**独立 BrowserContext** + 共有 page の Cookie 非汚染 assert)。expires は browserName 別: chromium/firefox=uncapped\|約400日、webkit=それに加え ITP 相当7日 |
 
 ### `browser/` — ページ操作
 
@@ -126,7 +127,7 @@ run.ts
 ### `tracking/` — サーバー検証
 
 - `client.ts` — 管理 API 呼び出し、`data/db.json` 直読み（`getHitsMatching` / `getPageviewHitsSince`）
-- `assertions.ts` — `quiesceBeacons`, `expectEventCountIncreasedBy`, `waitForNewHit`, `expectHitPayload` 等
+- `assertions.ts` — `quiesceBeacons`, `expectEventCountIncreasedBy`, `waitForNewHit`, `expectHitPayload`（末尾で `expectAnonIdsPresent`）, `expectAnonIdsPresent`, `ANON_VID_RE` / `ANON_SID_RE` 等
 - `seed-events.ts` — `EVENT_ID_PURCHASE` 等の定数
 
 テストからは `import { EVENT_ID_CART, quiesceBeacons } from '../tracking/index.js'` で使う。
@@ -135,12 +136,12 @@ run.ts
 
 普段あまり触らない。ランナー・型・定数・セッション管理。
 
-| ファイル     | 内容                                                       |
-| ------------ | ---------------------------------------------------------- |
-| `runner.ts`  | `[TEST]` ログ、PASS/FAIL 集計（`runE2eCase` は成否 boolean を返す） |
-| `session.ts` | `createE2eSession`, `createE2ePage`, `setupE2eFixtures`, `teardownE2eFixtures` |
+| ファイル     | 内容                                                                               |
+| ------------ | ---------------------------------------------------------------------------------- |
+| `runner.ts`  | `[TEST]` ログ、PASS/FAIL 集計（`runE2eCase` は成否 boolean を返す）                |
+| `session.ts` | `createE2eSession`, `createE2ePage`, `setupE2eFixtures`, `teardownE2eFixtures`     |
 | `config.ts`  | `TRACKING_ORIGIN`, `UA_TOKEN`, `parseRecordVideoMode`, `isE2eMobile`, 各種 ms 定数 |
-| `types.ts`   | `E2eContext`（`browserName` 付き）                         |
+| `types.ts`   | `E2eContext`（`browserName` 付き）                                                 |
 
 ## 新しいテストを追加する手順
 
@@ -205,6 +206,14 @@ export async function testMyScenario(ctx: E2eContext): Promise<void> {
   `pushState` 自体をパッチして `onHistoryChange` を呼ぶため、`popstate` を手動発火すると二重処理になる
 - `exit-intent-mobile.ts` の `isMobile` は Playwright の制約で **Firefox 未サポート**（コンテキスト生成が
   例外になる）。Firefox 実行時は `isMobile` を付けず `hasTouch` / `viewport` のみで代替している
+- `cookie-identity.ts` の (h) Cookie 無効相当は `createE2eSession` で**独立 BrowserContext**を開き、
+  その context にだけ `addInitScript` で `document.cookie` を無効化する（共有 `ctx.page` を汚染しない）。
+  (h) 前後で共有 context の `_td_vid`/`_td_sid` と `document.cookie` 可読性を assert し、汚染回帰を検知する。
+  Max-Age / expires 検証の許容キャップは browserName で分岐する:
+  chromium / firefox は uncapped または約400日のみ（ITP 7日は許容しない＝誤キャップ回帰検知）、
+  webkit は上記に加え Safari ITP 相当7日も許容する
+- 匿名 ID 形式の正規表現は `tracking/assertions.ts` の `ANON_VID_RE` / `ANON_SID_RE` に一本化している
+  （`cookie-identity.ts` もこれを import する）
 
 ## スコープ外（未検証・非対応）
 

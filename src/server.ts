@@ -59,11 +59,21 @@ app.options("/api/collect", (_req, res) => {
 });
 
 const UA_MAX_LENGTH = 512;
+// vid/sid: 空文字は管理画面テスト発火などブラウザ外送信で許容。非空は形式固定
+const VID_RE = /^v_[0-9a-f-]{36}$/;
+const SID_RE = /^s_[0-9a-f-]{36}$/;
+
+function isAnonIdOk(value: unknown, re: RegExp): boolean {
+  if (value === undefined || value === "") {
+    return true;
+  }
+  return typeof value === "string" && re.test(value);
+}
 
 app.post("/api/collect", (req, res) => {
   allowCors(res);
   const body = (req.body ?? {}) as Record<string, unknown>;
-  const { ws, eventId, type, url, test, ua } = body;
+  const { ws, eventId, type, url, test, ua, vid, sid } = body;
   const isTest = test === true;
   const urlOk =
     url === undefined || (typeof url === "string" && url.length <= 2000);
@@ -71,12 +81,16 @@ app.post("/api/collect", (req, res) => {
     eventId === undefined || eventId === null || typeof eventId === "string";
   const uaOk =
     ua === undefined || (typeof ua === "string" && ua.length <= UA_MAX_LENGTH);
+  const vidOk = isAnonIdOk(vid, VID_RE);
+  const sidOk = isAnonIdOk(sid, SID_RE);
   if (
     ws !== db.workspace.id ||
     (type !== "event" && type !== "pageview") ||
     !urlOk ||
     !eventIdOk ||
-    !uaOk
+    !uaOk ||
+    !vidOk ||
+    !sidOk
   ) {
     res.status(400).json({ error: "invalid payload" });
     return;
@@ -96,11 +110,13 @@ app.post("/api/collect", (req, res) => {
   const hit: Hit = {
     eventId: type === "event" ? (eventId as string) : null,
     id: newId("hit"),
+    sid: typeof sid === "string" ? sid : "",
     test: isTest,
     ts: new Date().toISOString(),
     type,
     ua: typeof ua === "string" ? ua : "",
     url: typeof url === "string" ? url : "",
+    vid: typeof vid === "string" ? vid : "",
     workspaceId: db.workspace.id,
   };
   db.hits.push(hit);

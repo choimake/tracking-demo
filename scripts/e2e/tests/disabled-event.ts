@@ -47,7 +47,9 @@ export async function testDisabledEventStopsTracking(
     const trackerLogsCountBefore = trackerLogs.length;
     await sleep(DISABLED_EVENT_BROWSER_CHECK_DELAY_MS);
     if (
-      trackerLogs.slice(trackerLogsCountBefore).some((l) => l.includes("E2E滞在2秒"))
+      trackerLogs
+        .slice(trackerLogsCountBefore)
+        .some((l) => l.includes("E2E滞在2秒"))
     ) {
       throw new Error("無効化したイベントがブラウザ側で発火した");
     }

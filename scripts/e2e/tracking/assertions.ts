@@ -123,7 +123,8 @@ export async function expectTrackerLogContains(
 ): Promise<void> {
   await waitForCondition(
     label,
-    async () => trackerLogs.slice(sinceIndex).some((l) => l.includes(substring)),
+    async () =>
+      trackerLogs.slice(sinceIndex).some((l) => l.includes(substring)),
     timeoutMs
   );
 }
@@ -160,8 +161,28 @@ export interface ExpectedHitPayload {
   urlIncludes?: string;
   workspaceId?: string;
   uaIncludes?: string;
+  /** 指定時は hit.vid と完全一致 */
+  vid?: string;
+  /** 指定時は hit.sid と完全一致 */
+  sid?: string;
   sinceMs?: number;
   untilMs?: number;
+}
+
+/** 匿名 vid (`v_` + UUID) の形式。tracker / server と同じ */
+export const ANON_VID_RE = /^v_[0-9a-f-]{36}$/;
+/** 匿名 sid (`s_` + UUID) の形式。tracker / server と同じ */
+export const ANON_SID_RE = /^s_[0-9a-f-]{36}$/;
+
+/** ヒットに形式付きの非空 vid/sid が付いていることを検証する(送信欠落のサイレント回帰防止) */
+export function expectAnonIdsPresent(hit: HitRecord): void {
+  if (!ANON_VID_RE.test(hit.vid)) {
+    throw new Error(`hit.vid の形式が不正または空: ${hit.vid}`);
+  }
+  if (!ANON_SID_RE.test(hit.sid)) {
+    throw new Error(`hit.sid の形式が不正または空: ${hit.sid}`);
+  }
+  console.log("  ✓ hit.vid / hit.sid 形式OK");
 }
 
 /** ヒット1件の payload / ts 窓 / ua トークンを検証する */
@@ -201,6 +222,12 @@ export function expectHitPayload(
       `hit.ua に "${expected.uaIncludes}" が含まれない: ${hit.ua}`
     );
   }
+  if (expected.vid !== undefined && hit.vid !== expected.vid) {
+    throw new Error(`hit.vid が不一致: got=${hit.vid} want=${expected.vid}`);
+  }
+  if (expected.sid !== undefined && hit.sid !== expected.sid) {
+    throw new Error(`hit.sid が不一致: got=${hit.sid} want=${expected.sid}`);
+  }
   const hitMs = new Date(hit.ts).getTime();
   if (expected.sinceMs !== undefined && hitMs < expected.sinceMs) {
     throw new Error(
@@ -212,5 +239,7 @@ export function expectHitPayload(
       `hit.ts が untilMs より後: ts=${hit.ts} untilMs=${expected.untilMs}`
     );
   }
+  // ブラウザ由来ヒットは常に形式付きの非空 vid/sid を持つ(送信欠落のサイレント回帰防止)
+  expectAnonIdsPresent(hit);
   console.log("  ✓ hit payload 検証OK");
 }

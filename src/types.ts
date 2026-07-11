@@ -36,6 +36,16 @@ export interface Hit {
   ts: string;
   /** ブラウザの User-Agent 文字列(欠落時は空文字) */
   ua: string;
+  /**
+   * 匿名の再訪識別子(GA4 client_id 相当)。Cookie `_td_vid`。
+   * user_id ではない。管理画面テスト発火などブラウザ外は空文字
+   */
+  vid: string;
+  /**
+   * セッション識別子(GA4 session_id 相当)。Cookie `_td_sid`。
+   * 30分無操作で切れる。管理画面テスト発火などブラウザ外は空文字
+   */
+  sid: string;
   /** テスト発火によるヒット。計測件数には含めない */
   test: boolean;
 }
