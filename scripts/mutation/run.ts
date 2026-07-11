@@ -11,15 +11,16 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
 import { chromium } from "playwright";
 
-import { e2eScenarios } from "../e2e/scenarios.js";
+import type { SuiteWorkerResult } from "../e2e/bench/serial-runner.js";
 import {
   startStack,
   stackEnvRecord,
   type StackEnv,
 } from "../e2e/bench/stack.js";
-import type { SuiteWorkerResult } from "../e2e/bench/serial-runner.js";
+import { e2eScenarios } from "../e2e/scenarios.js";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -28,10 +29,7 @@ const ROOT = path.resolve(
 const CATALOG_PATH = path.join(ROOT, "docs/mutation-catalog.json");
 const RESULTS_PATH = path.join(ROOT, "docs/mutation-results.json");
 const REPORT_PATH = path.join(ROOT, "docs/mutation-report.md");
-const WORKER_SCRIPT = path.join(
-  ROOT,
-  "scripts/e2e/bench/suite-worker.ts"
-);
+const WORKER_SCRIPT = path.join(ROOT, "scripts/e2e/bench/suite-worker.ts");
 
 const E2E_TIMEOUT_MS = 180_000;
 const MAX_RETRIES = 2; // timeout/error の追加試行回数（合計3回）
@@ -108,6 +106,40 @@ function gitSha(): string {
   }
 }
 
+/** resume: 既存 results から finalResult 済みを results へ取り込み、doneIds を返す */
+function loadResumedMutants(
+  catalogSha256: string,
+  results: ResultsFile
+): Set<string> {
+  const doneIds = new Set<string>();
+  if (!fs.existsSync(RESULTS_PATH)) {
+    return doneIds;
+  }
+  try {
+    const prev = JSON.parse(
+      fs.readFileSync(RESULTS_PATH, "utf8")
+    ) as ResultsFile;
+    if (
+      prev.catalogSha256 !== catalogSha256 ||
+      prev.baselineResult !== "green"
+    ) {
+      return doneIds;
+    }
+    for (const m of prev.mutants) {
+      if (!m.finalResult) {
+        continue;
+      }
+      results.mutants.push(m);
+      doneIds.add(m.mutantId);
+    }
+    results.baselineResult = "green";
+    console.log(`resume: ${doneIds.size} mutants already done`);
+  } catch {
+    // 壊れた JSON は無視して新規
+  }
+  return doneIds;
+}
+
 /** src/ 配下に未コミット変更がないこと（docs/scripts の新規追加は許容） */
 function assertCleanTree(): void {
   const out = execFileSync("git", ["status", "--porcelain", "--", "src/"], {
@@ -115,9 +147,7 @@ function assertCleanTree(): void {
     encoding: "utf8",
   }).trim();
   if (out) {
-    throw new Error(
-      `src/ が dirty です。盲目的に revert しません:\n${out}`
-    );
+    throw new Error(`src/ が dirty です。盲目的に revert しません:\n${out}`);
   }
 }
 
@@ -130,7 +160,9 @@ function scenarioIdByName(name: string): string | null {
 }
 
 function loadCatalog(): CatalogMutant[] {
-  const raw = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8")) as CatalogMutant[];
+  const raw = JSON.parse(
+    fs.readFileSync(CATALOG_PATH, "utf8")
+  ) as CatalogMutant[];
   if (raw.length !== 32) {
     throw new Error(`カタログ件数は32であるべき: got ${raw.length}`);
   }
@@ -150,7 +182,9 @@ function loadCatalog(): CatalogMutant[] {
     const sid = `S${String(i).padStart(2, "0")}`;
     const covered = primary.some((m) => m.expectedKillers.includes(sid));
     if (!covered) {
-      throw new Error(`シナリオ ${sid} を expectedKillers に持つ primary がない`);
+      throw new Error(
+        `シナリオ ${sid} を expectedKillers に持つ primary がない`
+      );
     }
   }
   for (const m of raw) {
@@ -307,7 +341,10 @@ function classifyAttempt(
     result?: SuiteWorkerResult;
     errorExcerpt?: string;
   }
-): Omit<AttemptRecord, "attemptNumber" | "startedAt" | "endedAt" | "durationMs"> {
+): Omit<
+  AttemptRecord,
+  "attemptNumber" | "startedAt" | "endedAt" | "durationMs"
+> {
   if (suite.kind === "timeout") {
     return {
       result: "timeout",
@@ -470,9 +507,7 @@ function buildReport(data: ResultsFile): string {
   lines.push(`| Playwright | ${data.playwrightVersion} |`);
   lines.push(`| Chromium | ${data.chromiumVersion} |`);
   lines.push(`| baseline | ${data.baselineResult} |`);
-  lines.push(
-    `| 所要時間 | ${(data.totalDurationMs / 1000).toFixed(1)}s |`
-  );
+  lines.push(`| 所要時間 | ${(data.totalDurationMs / 1000).toFixed(1)}s |`);
   lines.push("");
   lines.push("## 3. 全mutant結果表");
   lines.push("");
@@ -555,7 +590,9 @@ function buildReport(data: ResultsFile): string {
   );
   lines.push("");
   for (const m of survived) {
-    lines.push(`- ${m.mutantId}: ${m.operator} が survived（ギャップまたは等価の可能性）`);
+    lines.push(
+      `- ${m.mutantId}: ${m.operator} が survived（ギャップまたは等価の可能性）`
+    );
   }
   for (const m of control) {
     if (m.finalResult === "killed" || m.unexpectedKill) {
@@ -564,7 +601,10 @@ function buildReport(data: ResultsFile): string {
       );
     }
   }
-  if (survived.length === 0 && control.every((m) => m.finalResult === "survived")) {
+  if (
+    survived.length === 0 &&
+    control.every((m) => m.finalResult === "survived")
+  ) {
     lines.push("- 特記なし（primary はすべて killed、対照群は survived）");
   }
   lines.push("");
@@ -627,26 +667,9 @@ async function main(): Promise<void> {
 
   // resume: 既存 results があれば finalResult 済みをスキップ
   // フィルタ時は resume/既存 results マージをスキップ
-  const doneIds = new Set<string>();
-  if (!filterMode && fs.existsSync(RESULTS_PATH)) {
-    try {
-      const prev = JSON.parse(
-        fs.readFileSync(RESULTS_PATH, "utf8")
-      ) as ResultsFile;
-      if (prev.catalogSha256 === catalogSha256 && prev.baselineResult === "green") {
-        for (const m of prev.mutants) {
-          if (m.finalResult) {
-            results.mutants.push(m);
-            doneIds.add(m.mutantId);
-          }
-        }
-        results.baselineResult = "green";
-        console.log(`resume: ${doneIds.size} mutants already done`);
-      }
-    } catch {
-      // 壊れた JSON は無視して新規
-    }
-  }
+  const doneIds = filterMode
+    ? new Set<string>()
+    : loadResumedMutants(catalogSha256, results);
 
   if (results.baselineResult !== "green") {
     console.log("== mutation: baseline ==");
@@ -663,7 +686,10 @@ async function main(): Promise<void> {
           baselineOk = true;
           break;
         }
-        console.error(`baseline attempt ${i} failed`, suite.errorExcerpt ?? suite.result?.status);
+        console.error(
+          `baseline attempt ${i} failed`,
+          suite.errorExcerpt ?? suite.result?.status
+        );
       } finally {
         await stack.stop();
       }

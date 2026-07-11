@@ -16,6 +16,7 @@
     "restriction": "off"
   },
   "rules": {
-    "func-style": "off"
+    "func-style": "off",
+    "max-depth": ["error", { "max": 4 }]
   }
 }
