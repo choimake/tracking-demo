@@ -3,13 +3,15 @@ import {
   clickSpaOrderComplete,
   setNoReloadMarker,
   getNoReloadMarker,
+  spaReplaceStateSamePath,
 } from "../browser/index.js";
-import { UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
+import { BEACON_SETTLE_MS, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
   quiesceBeacons,
   expectEventCountIncreasedBy,
+  expectExactPageviewCountAfterDelay,
   expectPageviewCountSince,
   waitForNewHit,
   expectHitPayload,
@@ -74,4 +76,17 @@ export async function testSpaHistoryChange(ctx: E2eContext): Promise<void> {
     urlIncludes: "/order/complete",
     workspaceId: WORKSPACE_ID,
   });
+
+  // 同一パス replaceState: 早期 return があれば追加 PV なし、削除変異なら +1
+  const samePathSinceMs = Date.now();
+  await spaReplaceStateSamePath(ctx.page);
+  await expectExactPageviewCountAfterDelay(
+    ctx.tracking,
+    samePathSinceMs,
+    0,
+    BEACON_SETTLE_MS,
+    (actualCount) =>
+      `同一パス replaceState で pageview が ${actualCount} 件(期待 0 件)`
+  );
+  console.log("  ✓ 同一パス replaceState では追加 pageview なし");
 }

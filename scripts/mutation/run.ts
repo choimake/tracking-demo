@@ -166,6 +166,36 @@ function loadCatalog(): CatalogMutant[] {
   return raw;
 }
 
+/** `MUTATION_IDS=M-TR05,M-TR06` があればその ID のみ。未設定時は null(全件) */
+function parseMutationIdsFilter(): string[] | null {
+  const raw = process.env.MUTATION_IDS?.trim();
+  if (!raw) {
+    return null;
+  }
+  const ids = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (ids.length === 0) {
+    throw new Error("MUTATION_IDS が空です");
+  }
+  return ids;
+}
+
+function persistResults(data: ResultsFile, filterMode: boolean): void {
+  if (filterMode) {
+    return;
+  }
+  writeResultsAtomic(data);
+}
+
+function persistReport(data: ResultsFile, filterMode: boolean): void {
+  if (filterMode) {
+    return;
+  }
+  fs.writeFileSync(REPORT_PATH, buildReport(data), "utf8");
+}
+
 function applyMutant(m: CatalogMutant): void {
   const abs = path.join(ROOT, m.file);
   const src = fs.readFileSync(abs, "utf8");
@@ -545,6 +575,8 @@ async function main(): Promise<void> {
   const startedAt = new Date().toISOString();
   const t0 = Date.now();
   const runId = `mutation-${startedAt.replace(/[:.]/g, "-")}`;
+  const filterIds = parseMutationIdsFilter();
+  const filterMode = filterIds !== null;
 
   console.log("== mutation: clean check ==");
   assertCleanTree();
@@ -553,6 +585,21 @@ async function main(): Promise<void> {
   const catalog = loadCatalog();
   const catalogSha256 = sha256File(CATALOG_PATH);
   console.log(`catalog sha256=${catalogSha256} count=${catalog.length}`);
+
+  let mutantsToRun = catalog;
+  if (filterMode) {
+    const idSet = new Set(filterIds);
+    const unknown = filterIds!.filter(
+      (id) => !catalog.some((m) => m.id === id)
+    );
+    if (unknown.length > 0) {
+      throw new Error(`未知の MUTATION_IDS: ${unknown.join(",")}`);
+    }
+    mutantsToRun = catalog.filter((m) => idSet.has(m.id));
+    console.log(
+      `MUTATION_IDS filter: ${mutantsToRun.map((m) => m.id).join(",")} (${mutantsToRun.length}件) — results/report は上書きしない`
+    );
+  }
 
   const require = createRequire(import.meta.url);
   const playwrightPkg = require("playwright/package.json") as {
@@ -579,8 +626,9 @@ async function main(): Promise<void> {
   };
 
   // resume: 既存 results があれば finalResult 済みをスキップ
+  // フィルタ時は resume/既存 results マージをスキップ
   const doneIds = new Set<string>();
-  if (fs.existsSync(RESULTS_PATH)) {
+  if (!filterMode && fs.existsSync(RESULTS_PATH)) {
     try {
       const prev = JSON.parse(
         fs.readFileSync(RESULTS_PATH, "utf8")
@@ -624,15 +672,15 @@ async function main(): Promise<void> {
       results.baselineResult = "aborted";
       results.endedAt = new Date().toISOString();
       results.totalDurationMs = Date.now() - t0;
-      writeResultsAtomic(results);
-      fs.writeFileSync(REPORT_PATH, buildReport(results), "utf8");
+      persistResults(results, filterMode);
+      persistReport(results, filterMode);
       throw new Error("baseline が2回失敗したため中止（エスカレーション）");
     }
     results.baselineResult = "green";
-    writeResultsAtomic(results);
+    persistResults(results, filterMode);
   }
 
-  for (const m of catalog) {
+  for (const m of mutantsToRun) {
     if (doneIds.has(m.id)) {
       console.log(`skip ${m.id} (resume)`);
       continue;
@@ -712,16 +760,17 @@ async function main(): Promise<void> {
       exclusionReason,
     };
     results.mutants.push(record);
+    console.log(`  finalResult: ${finalResult}`);
     results.endedAt = new Date().toISOString();
     results.totalDurationMs = Date.now() - t0;
-    writeResultsAtomic(results);
+    persistResults(results, filterMode);
     assertCleanTree();
   }
 
   results.endedAt = new Date().toISOString();
   results.totalDurationMs = Date.now() - t0;
-  writeResultsAtomic(results);
-  fs.writeFileSync(REPORT_PATH, buildReport(results), "utf8");
+  persistResults(results, filterMode);
+  persistReport(results, filterMode);
 
   // bench dir cleanup
   const benchDir = path.join(ROOT, "data", `bench-${runId}`);
@@ -743,6 +792,26 @@ async function main(): Promise<void> {
   }
 
   assertCleanTree();
+
+  if (filterMode) {
+    console.log("\n== MUTATION_IDS filter summary ==");
+    const ran = results.mutants.filter((m) =>
+      mutantsToRun.some((c) => c.id === m.mutantId)
+    );
+    for (const m of ran) {
+      console.log(`  ${m.mutantId}: finalResult=${m.finalResult}`);
+    }
+    const notKilled = ran.filter((m) => m.finalResult !== "killed");
+    if (notKilled.length > 0) {
+      console.error(
+        `filter run: ${notKilled.length}/${ran.length} not killed → exit 1`
+      );
+      process.exit(1);
+    }
+    console.log(`filter run: all ${ran.length} killed`);
+    return;
+  }
+
   console.log(`\n== done == kill report → ${REPORT_PATH}`);
 }
 

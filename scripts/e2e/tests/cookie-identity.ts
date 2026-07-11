@@ -5,6 +5,7 @@ import {
   getNoReloadMarker,
   gotoDemoPage,
   setNoReloadMarker,
+  setTdSidCookie,
 } from "../browser/index.js";
 import { DEMO_SITE_ORIGIN, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { BrowserName } from "../harness/config.js";
@@ -456,6 +457,47 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   });
   console.log("  ✓ _td_vid 削除後は新しい vid(client_id リセット)");
 
+  // (g2) 形式不正 _td_sid → 次 PV で再発行(ANON_SID_RE に合い、不正値ではない)
+  const INVALID_SID = "not-a-valid-sid";
+  await setTdSidCookie(ctx.page, INVALID_SID);
+  sinceMs = Date.now();
+  await gotoDemoPage(ctx.page, "/");
+  await expectPageviewCountSince(
+    ctx.tracking,
+    sinceMs,
+    1,
+    "形式不正 sid 後の pageview を受信"
+  );
+  const afterInvalidSid = await waitForNewHit(
+    ctx.tracking,
+    { eventId: null, sinceMs, type: "pageview" },
+    "形式不正 sid 後 pageview ヒット取得"
+  );
+  if (afterInvalidSid.vid !== afterVidClear.vid) {
+    throw new Error(
+      `形式不正 sid 後に vid が変わった: got=${afterInvalidSid.vid} want=${afterVidClear.vid}`
+    );
+  }
+  if (afterInvalidSid.sid === INVALID_SID) {
+    throw new Error(
+      `形式不正 sid が再発行されず残った: ${afterInvalidSid.sid}`
+    );
+  }
+  if (!ANON_SID_RE.test(afterInvalidSid.sid)) {
+    throw new Error(
+      `形式不正 sid 再発行後の sid 形式が不正: ${afterInvalidSid.sid}`
+    );
+  }
+  expectHitPayload(afterInvalidSid, {
+    eventId: null,
+    sid: afterInvalidSid.sid,
+    sinceMs,
+    type: "pageview",
+    vid: afterVidClear.vid,
+    workspaceId: WORKSPACE_ID,
+  });
+  console.log("  ✓ 形式不正 _td_sid は次 PV で再発行される");
+
   // (h) Cookie 無効化相当: 独立 BrowserContext で document.cookie を読み書き不能にし、
   // ビーコンは届くが遷移をまたいだ再訪識別は成立しないことを確認する
   // (共有 ctx.page を汚染しない)
@@ -465,15 +507,15 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
       `(h) 開始前に共有 context の _td_vid/_td_sid がない: vid=${sharedCookiesBeforeH.vid} sid=${sharedCookiesBeforeH.sid}`
     );
   }
-  // (g) 後の新しい vid/sid が残っていること(独立 context 汚染検知の基準)
-  if (sharedCookiesBeforeH.vid !== afterVidClear.vid) {
+  // (g2) 後の vid/sid が残っていること(独立 context 汚染検知の基準)
+  if (sharedCookiesBeforeH.vid !== afterInvalidSid.vid) {
     throw new Error(
-      `(h) 開始前の共有 _td_vid が (g) 後と不一致: cookie=${sharedCookiesBeforeH.vid} hit=${afterVidClear.vid}`
+      `(h) 開始前の共有 _td_vid が (g2) 後と不一致: cookie=${sharedCookiesBeforeH.vid} hit=${afterInvalidSid.vid}`
     );
   }
-  if (sharedCookiesBeforeH.sid !== afterVidClear.sid) {
+  if (sharedCookiesBeforeH.sid !== afterInvalidSid.sid) {
     throw new Error(
-      `(h) 開始前の共有 _td_sid が (g) 後と不一致: cookie=${sharedCookiesBeforeH.sid} hit=${afterVidClear.sid}`
+      `(h) 開始前の共有 _td_sid が (g2) 後と不一致: cookie=${sharedCookiesBeforeH.sid} hit=${afterInvalidSid.sid}`
     );
   }
 

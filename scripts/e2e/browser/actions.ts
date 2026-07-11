@@ -23,11 +23,122 @@ export async function clickAddToCart(page: Page): Promise<void> {
   await page.getByRole("button", { name: "カートに入れる" }).first().click();
 }
 
+/**
+ * `.add-to-cart` ボタン内の子要素をクリックする(closest vs matches 殺傷用)。
+ * closest('.add-to-cart') なら発火、matches なら未発火。
+ */
+export async function clickAddToCartChild(page: Page): Promise<void> {
+  await page
+    .getByRole("button", { name: "カートに入れる" })
+    .first()
+    .locator("span")
+    .click();
+}
+
 /** ページ最下部までスクロールし、スクロール率トリガーを発火させる */
 export async function scrollToBottom(page: Page): Promise<void> {
   await page.evaluate(() =>
     window.scrollTo(0, document.documentElement.scrollHeight)
   );
+}
+
+/**
+ * スクロール率をちょうど percent% にする(境界変異 `>=`→`>` 殺傷用)。
+ * 整数条件 `scrollY * 100 === total * percent` を満たす高さへ調整し、
+ * tracker と同式 `(scrollY/total)*100` の実測値を Node 側へ返して === 検証する。
+ * page.evaluate に渡す関数は tsx の __name 変換を避けるため文字列で実行する。
+ */
+export async function scrollToExactPercent(
+  page: Page,
+  percent: number
+): Promise<number> {
+  if (!Number.isInteger(percent) || percent < 0 || percent > 100) {
+    throw new Error(
+      `scrollToExactPercent: percent は 0〜100 の整数である必要: ${percent}`
+    );
+  }
+  const measured = await page.evaluate(`((targetPercent) => {
+    const SPACER_ATTR = "data-e2e-scroll-spacer";
+
+    const getTotal = () =>
+      document.documentElement.scrollHeight - window.innerHeight;
+
+    const measure = (scrollY, total) =>
+      total > 0 ? (scrollY / total) * 100 : NaN;
+
+    const ensureSpacer = () => {
+      let spacer = document.querySelector("[" + SPACER_ATTR + "]");
+      if (!spacer) {
+        spacer = document.createElement("div");
+        spacer.setAttribute(SPACER_ATTR, "1");
+        spacer.style.height = "0px";
+        document.body.appendChild(spacer);
+      }
+      return spacer;
+    };
+
+    const growSpacer = (px) => {
+      const spacer = ensureSpacer();
+      const current = Number.parseFloat(spacer.style.height) || 0;
+      spacer.style.height = current + px + "px";
+    };
+
+    while (getTotal() <= 0) {
+      growSpacer(window.innerHeight + 200);
+    }
+
+    // 探索中はスクロールしない(閾値を超えて誤発火させない)。高さだけ調整する
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const total = getTotal();
+      // 整数条件: scrollY * 100 === total * targetPercent
+      if ((total * targetPercent) % 100 !== 0) {
+        growSpacer(1);
+        continue;
+      }
+      const targetY = (total * targetPercent) / 100;
+      if (!Number.isInteger(targetY)) {
+        growSpacer(1);
+        continue;
+      }
+
+      window.scrollTo(0, targetY);
+      const totalAfter =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const scrollY =
+        window.scrollY || document.documentElement.scrollTop;
+      const actual = measure(scrollY, totalAfter);
+      if (
+        totalAfter === total &&
+        scrollY === targetY &&
+        actual === targetPercent
+      ) {
+        return actual;
+      }
+      growSpacer(2);
+    }
+
+    const total = getTotal();
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    const actual = measure(scrollY, total);
+    throw new Error(
+      "scrollToExactPercent: ちょうど " +
+        targetPercent +
+        "% にできなかった (actual=" +
+        actual +
+        ", total=" +
+        total +
+        ", scrollY=" +
+        scrollY +
+        ")"
+    );
+  })(${JSON.stringify(percent)})`);
+
+  if (measured !== percent) {
+    throw new Error(
+      `scrollToExactPercent: Node 側検証失敗 measured=${measured} want=${percent}`
+    );
+  }
+  return measured;
 }
 
 /** ページ先頭までスクロールする(再スクロールでの再発火なしを検証するため) */
@@ -43,6 +154,26 @@ export async function simulateExitIntent(page: Page): Promise<void> {
       bubbles: true,
       cancelable: true,
       clientY: -5,
+      relatedTarget: null,
+      view: window,
+    });
+    Object.defineProperty(event, "relatedTarget", {
+      get: function () { return null; },
+    });
+    document.dispatchEvent(event);
+  })()`);
+}
+
+/**
+ * 離脱インテントにならない mouseout を合成する(clientY > 0 ガード殺傷用)。
+ * relatedTarget は null、clientY は正(ビューポート内)。
+ */
+export async function simulateNonExitMouseout(page: Page): Promise<void> {
+  await page.evaluate(`(() => {
+    const event = new MouseEvent("mouseout", {
+      bubbles: true,
+      cancelable: true,
+      clientY: 10,
       relatedTarget: null,
       view: window,
     });
@@ -69,6 +200,33 @@ export async function spaPushState(page: Page, path: string): Promise<void> {
   await page.evaluate((p) => {
     history.pushState({}, "", p);
   }, path);
+}
+
+/**
+ * 現在の pathname で history.replaceState する(同一パス早期 return 殺傷用)。
+ * 正規実装では追加 pageview なし。早期 return 削除変異では +1 になる。
+ */
+export async function spaReplaceStateSamePath(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    history.replaceState({}, "", location.pathname);
+  });
+}
+
+/**
+ * document.cookie で `_td_sid` をセットする(形式不正 sid の再発行検証用)。
+ * テスト本体への evaluate 直書きを避ける。
+ */
+export async function setTdSidCookie(
+  page: Page,
+  sid: string,
+  maxAgeSec = 30 * 60
+): Promise<void> {
+  await page.evaluate(
+    ({ maxAge, value }) => {
+      document.cookie = `_td_sid=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+    },
+    { maxAge: maxAgeSec, value: sid }
+  );
 }
 
 /** spa.html の「dataLayer で手動ページビュー送信」ボタンをクリック */

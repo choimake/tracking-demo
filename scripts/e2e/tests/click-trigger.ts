@@ -1,4 +1,4 @@
-import { gotoDemoPage, clickAddToCart } from "../browser/index.js";
+import { gotoDemoPage, clickAddToCartChild } from "../browser/index.js";
 import { UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
@@ -9,13 +9,14 @@ import {
   expectHitPayload,
 } from "../tracking/index.js";
 
-/** クリックトリガー(CSSセレクタ) */
+/** クリックトリガー(CSSセレクタ・子要素クリックで closest 委譲を検証) */
 export async function testClickTrigger(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const cartCountBefore = await ctx.tracking.getEventCount7d(EVENT_ID_CART);
   const sinceMs = Date.now();
   await gotoDemoPage(ctx.page, "/products");
-  await clickAddToCart(ctx.page);
+  // closest('.add-to-cart') なら発火、matches 変異なら未発火
+  await clickAddToCartChild(ctx.page);
   await expectEventCountIncreasedBy(
     ctx.tracking,
     EVENT_ID_CART,

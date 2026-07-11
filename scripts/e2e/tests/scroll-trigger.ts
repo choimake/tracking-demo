@@ -1,4 +1,4 @@
-import { gotoDemoPage, scrollToBottom } from "../browser/index.js";
+import { gotoDemoPage, scrollToExactPercent } from "../browser/index.js";
 import { UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
@@ -9,14 +9,20 @@ import {
   expectHitPayload,
 } from "../tracking/index.js";
 
-/** スクロール率トリガー(50%) */
+/** スクロール率トリガー(ちょうど50%境界) */
 export async function testScrollTrigger(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const scrollCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_SCROLL_50);
   const sinceMs = Date.now();
   await gotoDemoPage(ctx.page, "/products");
-  await scrollToBottom(ctx.page);
+  // 境界殺傷: `>= 50` は発火、`> 50` 変異は未発火
+  // scrollToExactPercent は tracker 同式の実測値がちょうど 50 であることを返す
+  const measured = await scrollToExactPercent(ctx.page, 50);
+  if (measured !== 50) {
+    throw new Error(`スクロール率がちょうど50%ではない: measured=${measured}`);
+  }
+  console.log("  ✓ スクロール率ちょうど50%(tracker同式)を確認");
   await expectEventCountIncreasedBy(
     ctx.tracking,
     EVENT_ID_SCROLL_50,
