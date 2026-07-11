@@ -94,6 +94,7 @@ E2E の構成・各ファイルの役割は [`scripts/e2e/README.md`](scripts/e2
 動画録画(`RECORD_VIDEO`)とモバイル実行(`E2E_MOBILE`)はローカル専用で、CI では使いません。
 ブラウザ並列ベンチの計測結果ナレッジは [`docs/report.md`](docs/report.md) を参照してください。
 E2E-oracle ミューテーションテストの手法は [`docs/mutation-testing.md`](docs/mutation-testing.md)、直近の実行結果は [`docs/mutation-report.md`](docs/mutation-report.md) を参照してください。
+Git worktree を使った並列開発フローは [`docs/development-flow.md`](docs/development-flow.md) を参照してください。
 
 Chromium / Firefox / WebKit の3エンジンを直列 headless 実行し、以下の18項目を実機検証します
 (`scripts/e2e/tests/` の各シナリオと1対1で対応します)。
