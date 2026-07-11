@@ -7,7 +7,11 @@ import type {
 
 import { TrackingClient } from "../tracking/client.js";
 import { EVENT_ID_EXIT_INTENT } from "../tracking/seed-events.js";
-import { MOBILE_VIEWPORT, TIME_ON_PAGE_TRIGGER_SECONDS } from "./config.js";
+import {
+  E2E_CORRELATION_UA_PREFIX,
+  MOBILE_VIEWPORT,
+  TIME_ON_PAGE_TRIGGER_SECONDS,
+} from "./config.js";
 import type { BrowserName } from "./config.js";
 import type { E2eFixtures } from "./types.js";
 
@@ -29,6 +33,10 @@ export interface CreateE2eSessionOptions {
   recordVideoDir?: string;
   /** Firefox の isMobile 未サポート回避に必要 */
   browserName?: BrowserName;
+  /** tracker が送る User-Agent に埋め込む E2E 相関 ID */
+  correlationId?: string;
+  /** correlationId 指定時に相関トークンを付ける元の User-Agent */
+  userAgent?: string;
 }
 
 /** BrowserContext を開き、[tracker] ログ収集付きの page を返す */
@@ -37,6 +45,13 @@ export async function createE2eSession(
   options: CreateE2eSessionOptions = {}
 ): Promise<E2eSession> {
   const contextOptions: BrowserContextOptions = {};
+
+  if (options.correlationId) {
+    if (!options.userAgent) {
+      throw new Error("correlationId 指定時は userAgent が必要です");
+    }
+    contextOptions.userAgent = `${options.userAgent} ${E2E_CORRELATION_UA_PREFIX}${options.correlationId}`;
+  }
 
   if (options.mobile) {
     contextOptions.viewport = MOBILE_VIEWPORT;
@@ -59,7 +74,12 @@ export async function createE2eSession(
       trackerLogs.push(msg.text());
     }
   });
-  return { context, page, trackerLogs, tracking: new TrackingClient() };
+  return {
+    context,
+    page,
+    trackerLogs,
+    tracking: new TrackingClient(options.correlationId),
+  };
 }
 
 /** シナリオ用に context / page を1組開き、[tracker] ログの収集を開始する */

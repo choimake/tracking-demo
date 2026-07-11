@@ -53,7 +53,7 @@ export async function testDisabledEventStopsTracking(
     ) {
       throw new Error("無効化したイベントがブラウザ側で発火した");
     }
-    if ((await tracking.getEventCount7d(timeOnPageEventId)) !== 0) {
+    if ((await tracking.getEventCount7dFromApi(timeOnPageEventId)) !== 0) {
       throw new Error("無効イベントの件数が0件表示でない");
     }
     console.log("  ✓ 配信除外で発火せず・0件表示");

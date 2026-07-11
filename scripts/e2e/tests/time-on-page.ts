@@ -18,7 +18,7 @@ export async function testTimeOnPageTrigger(ctx: E2eContext): Promise<void> {
   const timeOnPageCountBefore = await ctx.tracking.getEventCount7d(
     ctx.fixtures.timeOnPageEventId
   );
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/");
   await expectEventCountIncreasedBy(
     ctx.tracking,
@@ -30,16 +30,18 @@ export async function testTimeOnPageTrigger(ctx: E2eContext): Promise<void> {
   );
   const hit = await waitForNewHit(
     ctx.tracking,
-    { eventId: ctx.fixtures.timeOnPageEventId, sinceMs, type: "event" },
+    {
+      afterHitId: hitCursor,
+      eventId: ctx.fixtures.timeOnPageEventId,
+      type: "event",
+    },
     "滞在2秒ヒット取得",
     TIME_ON_PAGE_WAIT_TIMEOUT_MS
   );
   expectHitPayload(hit, {
     eventId: ctx.fixtures.timeOnPageEventId,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/",
     workspaceId: WORKSPACE_ID,
   });

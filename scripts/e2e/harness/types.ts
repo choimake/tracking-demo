@@ -18,6 +18,10 @@ export interface E2eFixtures {
 export interface E2eContext {
   browser: Browser;
   browserName: BrowserName;
+  /** run・browser・scenario を一意に識別する E2E 相関 ID */
+  correlationId: string;
+  /** 相関トークンを付ける前のブラウザ User-Agent */
+  userAgent: string;
   page: Page;
   /** ページの console から収集した "[tracker]" 始まりのログ */
   trackerLogs: string[];

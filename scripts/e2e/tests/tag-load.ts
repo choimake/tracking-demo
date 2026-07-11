@@ -2,7 +2,7 @@ import { gotoDemoPage } from "../browser/index.js";
 import { UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
-  expectPageviewCountSince,
+  expectPageviewCountAfter,
   expectTrackerLogContains,
   waitForNewHit,
   expectHitPayload,
@@ -10,11 +10,11 @@ import {
 
 /** タグ読み込み + ページビュー送信(dataLayer方式・非同期・クロスオリジン) */
 export async function testTagLoadAndPageview(ctx: E2eContext): Promise<void> {
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     1,
     "pageview ビーコンを受信"
   );
@@ -25,15 +25,13 @@ export async function testTagLoadAndPageview(ctx: E2eContext): Promise<void> {
   );
   const hit = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs, type: "pageview" },
+    { afterHitId: hitCursor, eventId: null, type: "pageview" },
     "pageview ヒット取得"
   );
   expectHitPayload(hit, {
     eventId: null,
-    sinceMs,
     type: "pageview",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/",
     workspaceId: WORKSPACE_ID,
   });

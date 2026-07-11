@@ -13,7 +13,7 @@ import {
 export async function testClickTrigger(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const cartCountBefore = await ctx.tracking.getEventCount7d(EVENT_ID_CART);
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/products");
   // closest('.add-to-cart') なら発火、matches 変異なら未発火
   await clickAddToCartChild(ctx.page);
@@ -26,15 +26,13 @@ export async function testClickTrigger(ctx: E2eContext): Promise<void> {
   );
   const hit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_CART, sinceMs, type: "event" },
+    { afterHitId: hitCursor, eventId: EVENT_ID_CART, type: "event" },
     "カート追加ヒット取得"
   );
   expectHitPayload(hit, {
     eventId: EVENT_ID_CART,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/products",
     workspaceId: WORKSPACE_ID,
   });

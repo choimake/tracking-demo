@@ -21,7 +21,7 @@ export async function testUrlNormalize(ctx: E2eContext): Promise<void> {
   // 既存 ev_purchase (url:/order/complete) に対し /Order/Complete/ へ SPA 遷移
   const purchaseCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const sinceMs = Date.now();
+  const caseCursor = await ctx.tracking.captureHitCursor();
   await spaPushState(ctx.page, "/Order/Complete/");
   await expectEventCountIncreasedBy(
     ctx.tracking,
@@ -32,15 +32,13 @@ export async function testUrlNormalize(ctx: E2eContext): Promise<void> {
   );
   const caseHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_PURCHASE, sinceMs, type: "event" },
+    { afterHitId: caseCursor, eventId: EVENT_ID_PURCHASE, type: "event" },
     "URL正規化(大文字小文字/末尾スラッシュ)ヒット取得"
   );
   expectHitPayload(caseHit, {
     eventId: EVENT_ID_PURCHASE,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/Order/Complete/",
     workspaceId: WORKSPACE_ID,
   });
@@ -52,7 +50,7 @@ export async function testUrlNormalize(ctx: E2eContext): Promise<void> {
   const { japaneseUrlEventId } = ctx.fixtures;
   const jpEncodedPath = encodeURI("/注文/完了");
   const jpCountBefore = await ctx.tracking.getEventCount7d(japaneseUrlEventId);
-  const jpSinceMs = Date.now();
+  const jpCursor = await ctx.tracking.captureHitCursor();
   await spaPushState(ctx.page, jpEncodedPath);
   await expectEventCountIncreasedBy(
     ctx.tracking,
@@ -63,15 +61,13 @@ export async function testUrlNormalize(ctx: E2eContext): Promise<void> {
   );
   const jpHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: japaneseUrlEventId, sinceMs: jpSinceMs, type: "event" },
+    { afterHitId: jpCursor, eventId: japaneseUrlEventId, type: "event" },
     "日本語パスヒット取得"
   );
   expectHitPayload(jpHit, {
     eventId: japaneseUrlEventId,
-    sinceMs: jpSinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: jpEncodedPath,
     workspaceId: WORKSPACE_ID,
   });

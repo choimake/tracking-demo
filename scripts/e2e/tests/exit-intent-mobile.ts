@@ -34,8 +34,10 @@ export async function testExitIntentMobile(ctx: E2eContext): Promise<void> {
   // (createE2eSession 内で browserName に応じて isMobile を分岐)
   const { page, context } = await createE2eSession(ctx.browser, {
     browserName: ctx.browserName,
+    correlationId: ctx.correlationId,
     mobile: true,
     recordVideoDir: ctx.recordVideoDir,
+    userAgent: ctx.userAgent,
   });
   let ok = false;
   try {

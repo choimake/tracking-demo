@@ -67,6 +67,9 @@ export const UA_TOKEN: Record<BrowserName, string> = {
   webkit: "Safari",
 };
 
+/** User-Agent に付ける E2E 相関トークンの接頭辞 */
+export const E2E_CORRELATION_UA_PREFIX = "td-e2e/";
+
 /** seed / デモのワークスペース ID */
 export const WORKSPACE_ID = "ws-001";
 

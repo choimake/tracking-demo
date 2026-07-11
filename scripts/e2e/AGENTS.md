@@ -19,7 +19,7 @@
 
 | 場所           | 責務     | 書くこと                                                        |
 | -------------- | -------- | --------------------------------------------------------------- |
-| `tests/`       | 検証意図 | sinceMs・Act 呼び出し・件数/Hit の期待                          |
+| `tests/`       | 検証意図 | Hit カーソル・Act 呼び出し・件数/Hit の期待                     |
 | `browser/`     | Act      | Playwright の locator / `getByRole` / ページ操作                |
 | `tracking/`    | Assert   | 件数待ち・`waitForNewHit`・`expectHitPayload`・匿名 ID 正規表現 |
 | `harness/`     | 裏方     | ランナー・セッション・定数（`config.ts`）・型                   |
@@ -38,10 +38,10 @@
 発火系シナリオの基本順:
 
 1. 直前シナリオの遅延ビーコンが件数に食い込む恐れがあるときは、Act 前に `quiesceBeacons` を呼ぶ
-2. `sinceMs = Date.now()`
+2. `hitCursor = await tracking.captureHitCursor()`
 3. Act
 4. 件数 +1（例: `expectEventCountIncreasedBy`）
-5. `waitForNewHit`
+5. `waitForNewHit`。`afterHitId` に `hitCursor` を指定する
 6. `expectHitPayload`
 
 ### 操作の置き場所

@@ -11,13 +11,35 @@
 
 | 観点         | 見るもの                                               | 主な手段                                                                                  |
 | ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| どの実行     | `ua` 末尾の run・browser・scenario 相関 ID             | シナリオ専用 `TrackingClient`                                                             |
+| どの Act     | Act 前の Hit ID より後に追記されたか                   | `captureHitCursor` + `afterHitId`                                                         |
 | どのイベント | `eventId` / `type`（event or pageview）                | `waitForNewHit` + `expectHitPayload`                                                      |
-| いつ         | `ts` が Act 前後の窓（`sinceMs`〜`untilMs`）に入るか   | `expectHitPayload` の ts 窓                                                               |
-| 何回         | 件数の +N / ちょうど N                                 | `expectEventCountIncreasedBy` / `expectExactPageviewCountAfterDelay` 等                   |
-| payload      | `url`・`workspaceId`・`vid`・`sid` など                | `expectHitPayload`（末尾で常に `expectAnonIdsPresent`。`vid`/`sid` 完全一致はオプション） |
+| 何回         | 相関 ID と Hit カーソルで隔離した件数                  | `expectEventCountIncreasedBy` / `expectExactPageviewCountAfterDelay`                      |
+| payload      | `url`・`workspaceId`・`vid`・`sid`                     | `expectHitPayload`（末尾で常に `expectAnonIdsPresent`。`vid`/`sid` 完全一致はオプション） |
 | ブラウザ     | `ua` にエンジン別トークン（Chrome / Firefox / Safari） | `UA_TOKEN[browserName]`                                                                   |
 
-発火系シナリオの基本パターン: **sinceMs → Act → 件数 +1 → waitForNewHit → expectHitPayload**。
+発火系シナリオの基本パターン: **Hit カーソル取得 → Act → 相関済み件数 +1 → waitForNewHit → expectHitPayload**。
+
+## Hit 相関方式
+
+通常 run は、`run ID / browser / scenario` から相関 ID を作る。Playwright は相関 ID をシナリオ専用 BrowserContext の User-Agent 末尾へ付ける。`TrackingClient` は run 専用 DB を読むとき、User-Agent 末尾が完全一致する Hit だけを取得・集計する。同一シナリオ内では、Act 前に DB 末尾の Hit ID を取得する。Act 後はその Hit ID より後だけを対象にする。この方式は Hit の `ts` とテスト実行環境の時計を相関条件に使わない。
+
+相関 ID は Cookie の `vid` / `sid` を使わない。Cookie 無効、ID 再発行、複数タブでも BrowserContext の User-Agent は変わらないためである。既存 User-Agent は保持する。そのため、ブラウザエンジンの検証も継続する。独立 BrowserContext を作る Cookie 無効とモバイルのケースは、外側シナリオの相関 ID を明示的に継承する。
+
+次の案は採用しなかった。
+
+- `vid` / `sid`: Cookie の継続と再発行を検証するシナリオで循環した oracle になる。
+- 時刻窓: 時計差、遅延ビーコン、未来時刻の固定除外窓に依存する。
+- 専用 HTTP ヘッダー: CORS と収集サーバーの Hit 型を変更する。本番の入力面を増やす。
+- URL のクエリ: 遷移時に保持されず、計測対象 URL の検証を汚す。
+
+公開タグと収集サーバーは変更しない。相関情報は E2E の BrowserContext と DB 読み取り境界だけで扱う。run の cleanup は `stack.ts` が所有する専用 DB だけを削除する。共有 DB を使う構成へ変更する場合も、相関 ID を cleanup 条件に含める必要がある。
+
+Node レベルの相関回帰チェックは次のコマンドで実行する。
+
+```bash
+npx tsx scripts/e2e/tracking/correlation.regression-check.ts
+```
 
 ## 実行
 
@@ -137,7 +159,7 @@ launch.ts
 
 ### `tracking/` — サーバー検証
 
-- `client.ts` — 管理 API 呼び出し、run 専用 DB 直読み（`getHitsMatching` / `getPageviewHitsSince`）
+- `client.ts` — 管理 API 呼び出し、相関 ID と Hit カーソルによる run 専用 DB 直読み
 - `assertions.ts` — `quiesceBeacons`, `expectEventCountIncreasedBy`, `waitForNewHit`, `expectHitPayload`（末尾で `expectAnonIdsPresent`）, `expectAnonIdsPresent`, `ANON_VID_RE` / `ANON_SID_RE` 等
 - `seed-events.ts` — `EVENT_ID_PURCHASE` 等の定数
 
@@ -179,7 +201,7 @@ import { gotoDemoPage } from "../browser/index.js";
 export async function testMyScenario(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const cartCountBefore = await ctx.tracking.getEventCount7d(EVENT_ID_CART);
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
 
   await gotoDemoPage(ctx.page, "/products");
   // ... Act ...
@@ -193,7 +215,7 @@ export async function testMyScenario(ctx: E2eContext): Promise<void> {
   );
   const hit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_CART, sinceMs, type: "event" },
+    { afterHitId: hitCursor, eventId: EVENT_ID_CART, type: "event" },
     "カート追加ヒット取得"
   );
   expectHitPayload(hit, {
@@ -202,8 +224,6 @@ export async function testMyScenario(ctx: E2eContext): Promise<void> {
     urlIncludes: "/products",
     workspaceId: WORKSPACE_ID,
     uaIncludes: UA_TOKEN[ctx.browserName],
-    sinceMs,
-    untilMs: Date.now(),
   });
 }
 ```

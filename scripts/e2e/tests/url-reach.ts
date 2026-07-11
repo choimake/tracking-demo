@@ -14,7 +14,7 @@ export async function testUrlReachTrigger(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const purchaseCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/order/complete");
   await expectEventCountIncreasedBy(
     ctx.tracking,
@@ -25,15 +25,13 @@ export async function testUrlReachTrigger(ctx: E2eContext): Promise<void> {
   );
   const hit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_PURCHASE, sinceMs, type: "event" },
+    { afterHitId: hitCursor, eventId: EVENT_ID_PURCHASE, type: "event" },
     "購入完了ヒット取得"
   );
   expectHitPayload(hit, {
     eventId: EVENT_ID_PURCHASE,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/order/complete",
     workspaceId: WORKSPACE_ID,
   });

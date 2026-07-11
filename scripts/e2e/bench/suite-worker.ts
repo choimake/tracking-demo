@@ -6,7 +6,7 @@ import type { BrowserName } from "../harness/config.js";
 import {
   setupE2eFixtures,
   teardownE2eFixtures,
-  createE2ePage,
+  createE2eSession,
 } from "../harness/session.js";
 import type { E2eContext } from "../harness/types.js";
 import { e2eScenarios } from "../scenarios.js";
@@ -45,24 +45,33 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
   let browserStatus: "pass" | "fail" = "pass";
 
   const browser = await BROWSERS[browserName].launch();
-  let context: Awaited<ReturnType<typeof createE2ePage>>["context"] | undefined;
   try {
-    const session = await createE2ePage(browser);
-    context = session.context;
-    const ctx: E2eContext = {
-      browser,
-      browserName,
-      fixtures,
-      mobile: false,
-      trackerLogs: session.trackerLogs,
-      page: session.page,
-      tracking: session.tracking,
-    };
+    const probePage = await browser.newPage();
+    const userAgent = await probePage.evaluate(() => navigator.userAgent);
+    await probePage.context().close();
+    const benchRunId = `bench-${process.pid}`;
 
-    for (const scenario of e2eScenarios) {
+    for (const [scenarioIndex, scenario] of e2eScenarios.entries()) {
       const caseStart = nowMs();
       const name = `[${browserName}] ${scenario.name}`;
       process.stderr.write(`[BENCH] ${name}\n`);
+      const correlationId = `${benchRunId}/${browserName}/${scenarioIndex}`;
+      const session = await createE2eSession(browser, {
+        browserName,
+        correlationId,
+        userAgent,
+      });
+      const ctx: E2eContext = {
+        browser,
+        browserName,
+        correlationId,
+        fixtures,
+        mobile: false,
+        page: session.page,
+        trackerLogs: session.trackerLogs,
+        tracking: session.tracking,
+        userAgent,
+      };
       try {
         await scenario.run(ctx);
         cases.push({
@@ -81,14 +90,13 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
           error: (error as Error).message,
         });
         process.stderr.write(`  FAIL ${(error as Error).message}\n`);
+      } finally {
+        await session.context.close().catch((error) => {
+          process.stderr.write(`  context.close failed: ${String(error)}\n`);
+        });
       }
     }
   } finally {
-    if (context) {
-      await context.close().catch((error) => {
-        process.stderr.write(`  context.close failed: ${String(error)}\n`);
-      });
-    }
     await browser.close().catch(() => {});
     await teardownE2eFixtures(tracking, fixtures);
   }

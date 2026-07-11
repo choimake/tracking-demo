@@ -22,7 +22,7 @@ export async function testSpaPopstate(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const purchaseCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const sinceMs = Date.now();
+  const purchaseCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/spa");
   await setNoReloadMarker(ctx.page);
   await clickSpaOrderComplete(ctx.page);
@@ -35,33 +35,33 @@ export async function testSpaPopstate(ctx: E2eContext): Promise<void> {
   );
   const purchaseHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_PURCHASE, sinceMs, type: "event" },
+    {
+      afterHitId: purchaseCursor,
+      eventId: EVENT_ID_PURCHASE,
+      type: "event",
+    },
     "SPA購入完了ヒット取得"
   );
   expectHitPayload(purchaseHit, {
     eventId: EVENT_ID_PURCHASE,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/order/complete",
     workspaceId: WORKSPACE_ID,
   });
 
   // 「戻る」操作: リロードを伴わない popstate 経由の疑似遷移になっているか
-  const backSinceMs = Date.now();
+  const backCursor = await ctx.tracking.captureHitCursor();
   await ctx.page.goBack();
   const backHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs: backSinceMs, type: "pageview" },
+    { afterHitId: backCursor, eventId: null, type: "pageview" },
     "戻る操作(popstate)でのpageview再送ヒット取得"
   );
   expectHitPayload(backHit, {
     eventId: null,
-    sinceMs: backSinceMs,
     type: "pageview",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/spa",
     workspaceId: WORKSPACE_ID,
   });

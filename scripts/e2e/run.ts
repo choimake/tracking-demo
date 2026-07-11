@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 // launch.ts が起動した run 専用スタックに対して実ブラウザ検証を行う子プロセス。
 // Chromium / Firefox / WebKit を直列実行する。
 // シナリオごとに BrowserContext を開閉し、Cookie 等のブラウザ状態を隔離する
@@ -104,18 +105,35 @@ async function runBrowserScenarios(options: {
     await fs.mkdir(videoDir, { recursive: true });
   }
 
-  for (const scenario of e2eScenarios) {
+  const probePage = await browser.newPage();
+  const userAgent = await probePage.evaluate(() => navigator.userAgent);
+  await probePage.context().close();
+  const runId = process.env.E2E_RUN_ID;
+  if (!runId) {
+    throw new Error("E2E_RUN_ID がありません");
+  }
+
+  for (const [scenarioIndex, scenario] of e2eScenarios.entries()) {
+    const scenarioHash = crypto
+      .createHash("sha256")
+      .update(scenario.name)
+      .digest("hex")
+      .slice(0, 12);
+    const correlationId = `${runId}/${browserName}/${scenarioIndex}-${scenarioHash}`;
     const videoPath = videoDir
       ? path.join(videoDir, `${toScenarioSlug(scenario.name)}.webm`)
       : undefined;
     const session = await createE2eSession(browser, {
       browserName,
+      correlationId,
       mobile,
       recordVideoDir: videoDir,
+      userAgent,
     });
     const ctx: E2eContext = {
       browser,
       browserName,
+      correlationId,
       fixtures,
       mobile,
       page: session.page,
@@ -123,6 +141,7 @@ async function runBrowserScenarios(options: {
       scenarioVideoPath: videoPath,
       trackerLogs: session.trackerLogs,
       tracking: session.tracking,
+      userAgent,
     };
 
     // run 前は false 相当。想定外例外でも context を閉じる

@@ -35,7 +35,7 @@ export async function quiesceBeacons(tracking: TrackingClient): Promise<void> {
     (await tracking.getEventSummaries()).reduce(
       (total, e) => total + e.count7d,
       0
-    ) + (await tracking.getPageviewCountSince(0));
+    ) + (await tracking.getPageviewCountAfter());
   const deadline = Date.now() + QUIESCE_MAX_WAIT_MS;
   let previousSum = await sumCounts();
   let stableSince = Date.now();
@@ -67,17 +67,16 @@ export async function expectEventCountIncreasedBy(
   );
 }
 
-export async function expectPageviewCountSince(
+export async function expectPageviewCountAfter(
   tracking: TrackingClient,
-  pageviewSinceMs: number,
+  afterHitId: string | undefined,
   minCount: number,
   label: string,
   timeoutMs = DEFAULT_WAIT_TIMEOUT_MS
 ): Promise<void> {
   await waitForCondition(
     label,
-    async () =>
-      (await tracking.getPageviewCountSince(pageviewSinceMs)) >= minCount,
+    async () => (await tracking.getPageviewCountAfter(afterHitId)) >= minCount,
     timeoutMs
   );
 }
@@ -85,13 +84,13 @@ export async function expectPageviewCountSince(
 /** 猶予(delayMs)を空けてから pageview 件数がちょうど expectedCount 件であることを確認する */
 export async function expectExactPageviewCountAfterDelay(
   tracking: TrackingClient,
-  pageviewSinceMs: number,
+  afterHitId: string | undefined,
   expectedCount: number,
   delayMs: number,
   mismatchMessage: (actualCount: number) => string
 ): Promise<void> {
   await sleep(delayMs);
-  const actualCount = await tracking.getPageviewCountSince(pageviewSinceMs);
+  const actualCount = await tracking.getPageviewCountAfter(afterHitId);
   if (actualCount !== expectedCount) {
     throw new Error(mismatchMessage(actualCount));
   }
@@ -128,12 +127,12 @@ export async function expectTrackerLogContains(
 }
 
 /**
- * sinceMs 以降に着弾したヒットを待つ。件数アサーションのあとに呼び、
+ * cursor 以降に着弾した相関 ID 一致ヒットを待つ。件数アサーションのあとに呼び、
  * ヒット単位の payload / ts / ua 検証に使う
  */
 export async function waitForNewHit(
   tracking: TrackingClient,
-  filter: HitFilter & { sinceMs: number },
+  filter: HitFilter,
   label: string,
   timeoutMs = DEFAULT_WAIT_TIMEOUT_MS
 ): Promise<HitRecord> {
@@ -163,8 +162,6 @@ export interface ExpectedHitPayload {
   vid?: string;
   /** 指定時は hit.sid と完全一致 */
   sid?: string;
-  sinceMs?: number;
-  untilMs?: number;
 }
 
 /** 匿名 vid (`v_` + UUID) の形式。tracker / server と同じ */
@@ -183,7 +180,7 @@ export function expectAnonIdsPresent(hit: HitRecord): void {
   console.log("  ✓ hit.vid / hit.sid 形式OK");
 }
 
-/** ヒット1件の payload / ts 窓 / ua トークンを検証する */
+/** ヒット1件の payload / ua トークンを検証する */
 export function expectHitPayload(
   hit: HitRecord,
   expected: ExpectedHitPayload
@@ -225,17 +222,6 @@ export function expectHitPayload(
   }
   if (expected.sid !== undefined && hit.sid !== expected.sid) {
     throw new Error(`hit.sid が不一致: got=${hit.sid} want=${expected.sid}`);
-  }
-  const hitMs = new Date(hit.ts).getTime();
-  if (expected.sinceMs !== undefined && hitMs < expected.sinceMs) {
-    throw new Error(
-      `hit.ts が sinceMs より前: ts=${hit.ts} sinceMs=${expected.sinceMs}`
-    );
-  }
-  if (expected.untilMs !== undefined && hitMs > expected.untilMs) {
-    throw new Error(
-      `hit.ts が untilMs より後: ts=${hit.ts} untilMs=${expected.untilMs}`
-    );
   }
   // ブラウザ由来ヒットは常に形式付きの非空 vid/sid を持つ(送信欠落のサイレント回帰防止)
   expectAnonIdsPresent(hit);

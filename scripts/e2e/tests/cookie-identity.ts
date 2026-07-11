@@ -17,7 +17,7 @@ import {
   EVENT_ID_PURCHASE,
   expectAnonIdsPresent,
   expectEventCountIncreasedBy,
-  expectPageviewCountSince,
+  expectPageviewCountAfter,
   expectHitPayload,
   quiesceBeacons,
   waitForNewHit,
@@ -116,18 +116,18 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   await ctx.page.context().clearCookies();
 
   // (a) 初回 PV で Cookie 発行、ヒットに非空 vid/sid、属性を検証
-  let sinceMs = Date.now();
+  let hitCursor = await ctx.tracking.captureHitCursor();
   const issuedAtSec = Date.now() / 1000;
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     1,
     "初回 pageview ビーコンを受信"
   );
   const firstHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs, type: "pageview" },
+    { afterHitId: hitCursor, eventId: null, type: "pageview" },
     "初回 pageview ヒット取得"
   );
   if (!ANON_VID_RE.test(firstHit.vid)) {
@@ -139,10 +139,8 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   expectHitPayload(firstHit, {
     eventId: null,
     sid: firstHit.sid,
-    sinceMs,
     type: "pageview",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/",
     vid: firstHit.vid,
     workspaceId: WORKSPACE_ID,
@@ -182,26 +180,24 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   const stableSid = firstHit.sid;
 
   // (b) MPA 遷移後も同一 vid・同一 sid(セッション継続)
-  sinceMs = Date.now();
+  hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/products");
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     1,
     "MPA 遷移後の pageview を受信"
   );
   const mpaHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs, type: "pageview" },
+    { afterHitId: hitCursor, eventId: null, type: "pageview" },
     "MPA 遷移 pageview ヒット取得"
   );
   expectHitPayload(mpaHit, {
     eventId: null,
     sid: stableSid,
-    sinceMs,
     type: "pageview",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/products",
     vid: stableVid,
     workspaceId: WORKSPACE_ID,
@@ -211,7 +207,7 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   // (c) SPA pushState 遷移後も同一 vid・同一 sid(リロードなし)
   const purchaseCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  sinceMs = Date.now();
+  hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/spa");
   await setNoReloadMarker(ctx.page);
   await clickSpaOrderComplete(ctx.page);
@@ -222,9 +218,9 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
     1,
     "SPA 遷移で購入完了イベント +1"
   );
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     2,
     "SPA 遷移で pageview を受信(初回PV + 遷移PV)"
   );
@@ -234,16 +230,14 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   }
   const spaHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_PURCHASE, sinceMs, type: "event" },
+    { afterHitId: hitCursor, eventId: EVENT_ID_PURCHASE, type: "event" },
     "SPA 遷移 購入ヒット取得"
   );
   expectHitPayload(spaHit, {
     eventId: EVENT_ID_PURCHASE,
     sid: stableSid,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/order/complete",
     vid: stableVid,
     workspaceId: WORKSPACE_ID,
@@ -273,24 +267,23 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
     ctx.browserName
   );
 
-  sinceMs = Date.now();
+  hitCursor = await ctx.tracking.captureHitCursor();
   const renewedAtSec = Date.now() / 1000;
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     1,
     "Max-Age 再延長用の pageview を受信"
   );
   const renewHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs, type: "pageview" },
+    { afterHitId: hitCursor, eventId: null, type: "pageview" },
     "Max-Age 再延長用 pageview ヒット取得"
   );
   expectHitPayload(renewHit, {
     eventId: null,
     sid: stableSid,
-    sinceMs,
     type: "pageview",
     vid: stableVid,
     workspaceId: WORKSPACE_ID,
@@ -332,24 +325,23 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
     ctx.browserName
   );
 
-  sinceMs = Date.now();
+  hitCursor = await ctx.tracking.captureHitCursor();
   const vidRenewedAtSec = Date.now() / 1000;
   await gotoDemoPage(ctx.page, "/products");
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     1,
     "vid Max-Age 再延長用の pageview を受信"
   );
   const vidRenewHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs, type: "pageview" },
+    { afterHitId: hitCursor, eventId: null, type: "pageview" },
     "vid Max-Age 再延長用 pageview ヒット取得"
   );
   expectHitPayload(vidRenewHit, {
     eventId: null,
     sid: stableSid,
-    sinceMs,
     type: "pageview",
     vid: stableVid,
     workspaceId: WORKSPACE_ID,
@@ -381,17 +373,17 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   await ctx.page.evaluate(() => {
     document.cookie = "_td_sid=; Path=/; Max-Age=0; SameSite=Lax";
   });
-  sinceMs = Date.now();
+  hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     1,
     "sid 削除後の pageview を受信"
   );
   const afterSidClear = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs, type: "pageview" },
+    { afterHitId: hitCursor, eventId: null, type: "pageview" },
     "sid 削除後 pageview ヒット取得"
   );
   if (afterSidClear.vid !== stableVid) {
@@ -408,7 +400,6 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   expectHitPayload(afterSidClear, {
     eventId: null,
     sid: afterSidClear.sid,
-    sinceMs,
     type: "pageview",
     vid: stableVid,
     workspaceId: WORKSPACE_ID,
@@ -422,17 +413,17 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
     document.cookie = "_td_vid=; Path=/; Max-Age=0; SameSite=Lax";
     document.cookie = "_td_sid=; Path=/; Max-Age=0; SameSite=Lax";
   });
-  sinceMs = Date.now();
+  hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/products");
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     1,
     "vid 削除後の pageview を受信"
   );
   const afterVidClear = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs, type: "pageview" },
+    { afterHitId: hitCursor, eventId: null, type: "pageview" },
     "vid 削除後 pageview ヒット取得"
   );
   if (afterVidClear.vid === stableVid) {
@@ -450,7 +441,6 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   expectHitPayload(afterVidClear, {
     eventId: null,
     sid: afterVidClear.sid,
-    sinceMs,
     type: "pageview",
     vid: afterVidClear.vid,
     workspaceId: WORKSPACE_ID,
@@ -460,17 +450,17 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   // (g2) 形式不正 _td_sid → 次 PV で再発行(ANON_SID_RE に合い、不正値ではない)
   const INVALID_SID = "not-a-valid-sid";
   await setTdSidCookie(ctx.page, INVALID_SID);
-  sinceMs = Date.now();
+  hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/");
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     1,
     "形式不正 sid 後の pageview を受信"
   );
   const afterInvalidSid = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs, type: "pageview" },
+    { afterHitId: hitCursor, eventId: null, type: "pageview" },
     "形式不正 sid 後 pageview ヒット取得"
   );
   if (afterInvalidSid.vid !== afterVidClear.vid) {
@@ -491,7 +481,6 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   expectHitPayload(afterInvalidSid, {
     eventId: null,
     sid: afterInvalidSid.sid,
-    sinceMs,
     type: "pageview",
     vid: afterVidClear.vid,
     workspaceId: WORKSPACE_ID,
@@ -520,7 +509,11 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
   }
 
   const { page: disabledPage, context: disabledContext } =
-    await createE2eSession(ctx.browser);
+    await createE2eSession(ctx.browser, {
+      browserName: ctx.browserName,
+      correlationId: ctx.correlationId,
+      userAgent: ctx.userAgent,
+    });
   try {
     await disabledContext.addInitScript(() => {
       Object.defineProperty(Document.prototype, "cookie", {
@@ -535,32 +528,32 @@ export async function testCookieIdentity(ctx: E2eContext): Promise<void> {
     });
     await disabledContext.clearCookies();
 
-    sinceMs = Date.now();
+    hitCursor = await ctx.tracking.captureHitCursor();
     await gotoDemoPage(disabledPage, "/");
-    await expectPageviewCountSince(
+    await expectPageviewCountAfter(
       ctx.tracking,
-      sinceMs,
+      hitCursor,
       1,
       "Cookie 無効相当の初回 pageview を受信"
     );
     const disabledHit1 = await waitForNewHit(
       ctx.tracking,
-      { eventId: null, sinceMs, type: "pageview" },
+      { afterHitId: hitCursor, eventId: null, type: "pageview" },
       "Cookie 無効相当の初回ヒット取得"
     );
     expectAnonIdsPresent(disabledHit1);
 
-    sinceMs = Date.now();
+    hitCursor = await ctx.tracking.captureHitCursor();
     await gotoDemoPage(disabledPage, "/products");
-    await expectPageviewCountSince(
+    await expectPageviewCountAfter(
       ctx.tracking,
-      sinceMs,
+      hitCursor,
       1,
       "Cookie 無効相当の2回目 pageview を受信"
     );
     const disabledHit2 = await waitForNewHit(
       ctx.tracking,
-      { eventId: null, sinceMs, type: "pageview" },
+      { afterHitId: hitCursor, eventId: null, type: "pageview" },
       "Cookie 無効相当の2回目ヒット取得"
     );
     expectAnonIdsPresent(disabledHit2);

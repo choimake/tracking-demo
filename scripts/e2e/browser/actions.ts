@@ -9,7 +9,7 @@ import {
 /** demo-site のページへ遷移する(path は先頭スラッシュ付き。例: '/', '/products') */
 export async function gotoDemoPage(page: Page, path: string): Promise<void> {
   // Firefox では networkidle がハングしやすい。
-  // 「初期化完了」ではなく pageview 送信後まで待ち、直後の sinceMs 計測に初期PVが食い込まないようにする
+  // 「初期化完了」ではなく pageview 送信後まで待ち、Act 前の Hit カーソルを確定できるようにする。
   const pageviewDone = page.waitForEvent("console", {
     predicate: (m) => m.text().includes("[tracker] ページビュー:"),
     timeout: DEFAULT_WAIT_TIMEOUT_MS,

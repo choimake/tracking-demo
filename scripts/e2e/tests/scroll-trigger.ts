@@ -14,7 +14,7 @@ export async function testScrollTrigger(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const scrollCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_SCROLL_50);
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/products");
   // 境界殺傷: `>= 50` は発火、`> 50` 変異は未発火
   // scrollToExactPercent は tracker 同式の実測値がちょうど 50 であることを返す
@@ -32,15 +32,13 @@ export async function testScrollTrigger(ctx: E2eContext): Promise<void> {
   );
   const hit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_SCROLL_50, sinceMs, type: "event" },
+    { afterHitId: hitCursor, eventId: EVENT_ID_SCROLL_50, type: "event" },
     "スクロール50%ヒット取得"
   );
   expectHitPayload(hit, {
     eventId: EVENT_ID_SCROLL_50,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/products",
     workspaceId: WORKSPACE_ID,
   });

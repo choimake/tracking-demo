@@ -12,7 +12,7 @@ import {
   quiesceBeacons,
   expectEventCountIncreasedBy,
   expectExactPageviewCountAfterDelay,
-  expectPageviewCountSince,
+  expectPageviewCountAfter,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -22,7 +22,7 @@ export async function testSpaHistoryChange(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const purchaseCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/spa");
   await setNoReloadMarker(ctx.page);
   await clickSpaOrderComplete(ctx.page);
@@ -33,9 +33,9 @@ export async function testSpaHistoryChange(ctx: E2eContext): Promise<void> {
     1,
     "SPA遷移で購入完了イベント +1"
   );
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     2,
     "SPA遷移でページビューも送信(初回PV + 遷移PV = 2件)"
   );
@@ -47,20 +47,18 @@ export async function testSpaHistoryChange(ctx: E2eContext): Promise<void> {
 
   const purchaseHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_PURCHASE, sinceMs, type: "event" },
+    { afterHitId: hitCursor, eventId: EVENT_ID_PURCHASE, type: "event" },
     "SPA購入完了ヒット取得"
   );
   expectHitPayload(purchaseHit, {
     eventId: EVENT_ID_PURCHASE,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/order/complete",
     workspaceId: WORKSPACE_ID,
   });
 
-  const pageviewHits = await ctx.tracking.getPageviewHitsSince(sinceMs);
+  const pageviewHits = await ctx.tracking.getPageviewHitsAfter(hitCursor);
   if (pageviewHits.length < 2) {
     throw new Error(
       `pageview ヒットが ${pageviewHits.length} 件(期待 2 件以上)`
@@ -69,20 +67,18 @@ export async function testSpaHistoryChange(ctx: E2eContext): Promise<void> {
   const lastPv = pageviewHits.at(-1)!;
   expectHitPayload(lastPv, {
     eventId: null,
-    sinceMs,
     type: "pageview",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/order/complete",
     workspaceId: WORKSPACE_ID,
   });
 
   // 同一パス replaceState: 早期 return があれば追加 PV なし、削除変異なら +1
-  const samePathSinceMs = Date.now();
+  const samePathCursor = await ctx.tracking.captureHitCursor();
   await spaReplaceStateSamePath(ctx.page);
   await expectExactPageviewCountAfterDelay(
     ctx.tracking,
-    samePathSinceMs,
+    samePathCursor,
     0,
     BEACON_SETTLE_MS,
     (actualCount) =>

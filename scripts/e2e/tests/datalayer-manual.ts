@@ -8,7 +8,7 @@ import {
 import type { E2eContext } from "../harness/types.js";
 import {
   quiesceBeacons,
-  expectPageviewCountSince,
+  expectPageviewCountAfter,
   waitForNewHit,
   expectHitPayload,
 } from "../tracking/index.js";
@@ -20,25 +20,23 @@ export async function testDataLayerManualPageview(
   await quiesceBeacons(ctx.tracking);
   await gotoDemoPage(ctx.page, "/spa");
   await sleep(MANUAL_PUSH_GAP_MS);
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
   await clickManualPageview(ctx.page);
-  await expectPageviewCountSince(
+  await expectPageviewCountAfter(
     ctx.tracking,
-    sinceMs,
+    hitCursor,
     1,
     "手動ページビューを受信"
   );
   const hit = await waitForNewHit(
     ctx.tracking,
-    { eventId: null, sinceMs, type: "pageview" },
+    { afterHitId: hitCursor, eventId: null, type: "pageview" },
     "手動 pageview ヒット取得"
   );
   expectHitPayload(hit, {
     eventId: null,
-    sinceMs,
     type: "pageview",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/spa",
     workspaceId: WORKSPACE_ID,
   });

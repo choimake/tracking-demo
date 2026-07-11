@@ -63,6 +63,7 @@ async function main(): Promise<void> {
       env: {
         ...process.env,
         ...stackEnvRecord(stack.env),
+        E2E_RUN_ID: stack.runId,
         E2E_SUITE_CHILD: "1",
       },
       stdio: "inherit",

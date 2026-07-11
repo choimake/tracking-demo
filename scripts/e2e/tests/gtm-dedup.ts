@@ -24,13 +24,14 @@ export async function testGtmHistoryChangeDedup(
   await quiesceBeacons(tracking);
   const purchaseCountBeforeInitial =
     await tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const beforeSpaGotoMs = Date.now();
+  const initialCursor = await tracking.captureHitCursor();
   await gotoDemoPage(page, "/spa");
-  // 初期PVの sendBeacon 着弾前に sinceMs を取ると、遅延着弾が窓に入り二重に見える
+  // 初期PVの着弾を待ってから、遷移用の Hit カーソルを取得する。
   await waitForCondition(
     "SPA 初期 pageview 着弾",
-    async () => (await tracking.getPageviewCountSince(beforeSpaGotoMs)) >= 1
+    async () => (await tracking.getPageviewCountAfter(initialCursor)) >= 1
   );
+  const transitionCursor = await tracking.captureHitCursor();
 
   // GTM の History Change トリガー設置を模す: pushState 直後(同一tick)に
   // tdDataLayer.push({event:'tracker.pageview'}) を発火する。
@@ -38,7 +39,6 @@ export async function testGtmHistoryChangeDedup(
   // pageview・URL到達CV(ev_purchase)がそれぞれちょうど+1件であること(二重計上なし)。
   // pushState と push は同一tickで実行する必要があるため、browser/actions を
   // 個別に呼ぶのではなく1回の evaluate にまとめている。
-  const pageviewSinceAutoAndManualPushMs = Date.now();
   await page.evaluate(() => {
     history.pushState({}, "", "/order/complete");
     (
@@ -50,16 +50,14 @@ export async function testGtmHistoryChangeDedup(
   await waitForCondition(
     "自動検知+手動pushの同一遷移: pageview 1件・購入完了 +1件(二重計上なし)",
     async () =>
-      (await tracking.getPageviewCountSince(
-        pageviewSinceAutoAndManualPushMs
-      )) === 1 &&
+      (await tracking.getPageviewCountAfter(transitionCursor)) === 1 &&
       (await tracking.getEventCount7d(EVENT_ID_PURCHASE)) ===
         purchaseCountBeforeInitial + 1
   );
 
   await expectExactPageviewCountAfterDelay(
     tracking,
-    pageviewSinceAutoAndManualPushMs,
+    transitionCursor,
     1,
     BEACON_SETTLE_MS,
     (actualCount) =>
@@ -77,18 +75,16 @@ export async function testGtmHistoryChangeDedup(
   const pvHit = await waitForNewHit(
     tracking,
     {
+      afterHitId: transitionCursor,
       eventId: null,
-      sinceMs: pageviewSinceAutoAndManualPushMs,
       type: "pageview",
     },
     "GTM dedup pageview ヒット取得"
   );
   expectHitPayload(pvHit, {
     eventId: null,
-    sinceMs: pageviewSinceAutoAndManualPushMs,
     type: "pageview",
     uaIncludes: UA_TOKEN[browserName],
-    untilMs: Date.now(),
     urlIncludes: "/order/complete",
     workspaceId: WORKSPACE_ID,
   });
@@ -96,28 +92,25 @@ export async function testGtmHistoryChangeDedup(
   await sleep(DEDUP_WINDOW_EXCEEDED_WAIT_MS);
   const purchaseCountBeforeManualResend =
     await tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const pageviewSinceManualResendMs = Date.now();
+  const resendCursor = await tracking.captureHitCursor();
   await pushTdDataLayerPageview(page);
   await waitForCondition(
     "1000ms超の手動再送: 新しいpageview 1件・購入完了 +1件として処理される",
     async () =>
-      (await tracking.getPageviewCountSince(pageviewSinceManualResendMs)) ===
-        1 &&
+      (await tracking.getPageviewCountAfter(resendCursor)) === 1 &&
       (await tracking.getEventCount7d(EVENT_ID_PURCHASE)) ===
         purchaseCountBeforeManualResend + 1
   );
 
   const resendHit = await waitForNewHit(
     tracking,
-    { eventId: null, sinceMs: pageviewSinceManualResendMs, type: "pageview" },
+    { afterHitId: resendCursor, eventId: null, type: "pageview" },
     "手動再送 pageview ヒット取得"
   );
   expectHitPayload(resendHit, {
     eventId: null,
-    sinceMs: pageviewSinceManualResendMs,
     type: "pageview",
     uaIncludes: UA_TOKEN[browserName],
-    untilMs: Date.now(),
     workspaceId: WORKSPACE_ID,
   });
 }

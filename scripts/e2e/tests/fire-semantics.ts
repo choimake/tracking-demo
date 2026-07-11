@@ -28,7 +28,7 @@ export async function testFireSemantics(ctx: E2eContext): Promise<void> {
   const cartCountBefore = await ctx.tracking.getEventCount7d(EVENT_ID_CART);
   const scrollCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_SCROLL_50);
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
   await gotoDemoPage(ctx.page, "/products");
 
   // --- クリック: 2回押して +2(fire、1PV内で複数回発火を許容) ---
@@ -46,18 +46,16 @@ export async function testFireSemantics(ctx: E2eContext): Promise<void> {
   let cartHits: HitRecord[] = [];
   await waitForCondition("カート追加ヒットが2件着弾", async () => {
     cartHits = await ctx.tracking.getHitsMatching({
+      afterHitId: hitCursor,
       eventId: EVENT_ID_CART,
-      sinceMs,
       type: "event",
     });
     return cartHits.length >= 2;
   });
   expectHitPayload(cartHits.at(-1)!, {
     eventId: EVENT_ID_CART,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/products",
     workspaceId: WORKSPACE_ID,
   });
@@ -74,15 +72,13 @@ export async function testFireSemantics(ctx: E2eContext): Promise<void> {
   );
   const scrollHit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_SCROLL_50, sinceMs, type: "event" },
+    { afterHitId: hitCursor, eventId: EVENT_ID_SCROLL_50, type: "event" },
     "スクロール50%ヒット取得"
   );
   expectHitPayload(scrollHit, {
     eventId: EVENT_ID_SCROLL_50,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/products",
     workspaceId: WORKSPACE_ID,
   });

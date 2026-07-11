@@ -33,7 +33,7 @@ export async function testExitIntentTrigger(ctx: E2eContext): Promise<void> {
   );
   console.log("  ✓ 非離脱 mouseout(clientY>0)では件数不変");
 
-  const sinceMs = Date.now();
+  const hitCursor = await ctx.tracking.captureHitCursor();
   await simulateExitIntent(ctx.page);
   await expectEventCountIncreasedBy(
     ctx.tracking,
@@ -44,15 +44,13 @@ export async function testExitIntentTrigger(ctx: E2eContext): Promise<void> {
   );
   const hit = await waitForNewHit(
     ctx.tracking,
-    { eventId: EVENT_ID_EXIT_INTENT, sinceMs, type: "event" },
+    { afterHitId: hitCursor, eventId: EVENT_ID_EXIT_INTENT, type: "event" },
     "離脱インテントヒット取得"
   );
   expectHitPayload(hit, {
     eventId: EVENT_ID_EXIT_INTENT,
-    sinceMs,
     type: "event",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    untilMs: Date.now(),
     urlIncludes: "/",
     workspaceId: WORKSPACE_ID,
   });

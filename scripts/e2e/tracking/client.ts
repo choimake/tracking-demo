@@ -1,6 +1,10 @@
 import { readFile } from "node:fs/promises";
 
-import { TRACKING_ORIGIN, DB_PATH } from "../harness/config.js";
+import {
+  DB_PATH,
+  E2E_CORRELATION_UA_PREFIX,
+  TRACKING_ORIGIN,
+} from "../harness/config.js";
 
 export interface EventSummary {
   id: string;
@@ -27,7 +31,8 @@ export interface HitRecord {
 export interface HitFilter {
   eventId?: string | null;
   type?: string;
-  sinceMs?: number;
+  /** この Hit より後に追記された Hit だけを選ぶ。undefined は DB 先頭から選ぶ */
+  afterHitId?: string;
 }
 
 export interface CreateEventInput {
@@ -39,6 +44,8 @@ export interface CreateEventInput {
 
 /** 計測サーバー(TRACKING_ORIGIN)の管理APIへのアクセスをまとめたクライアント */
 export class TrackingClient {
+  constructor(private readonly correlationId?: string) {}
+
   async fetchTracking<T = unknown>(
     path: string,
     opts: RequestInit = {}
@@ -59,18 +66,27 @@ export class TrackingClient {
   }
 
   async getEventCount7d(eventId: string): Promise<number> {
+    if (this.correlationId) {
+      return (await this.getHitsMatching({ eventId, type: "event" })).length;
+    }
     return (
       (await this.getEventSummaries()).find((e) => e.id === eventId)?.count7d ??
       -1
     );
   }
 
-  async getPageviewCountSince(pageviewSinceMs: number): Promise<number> {
+  /** 管理 API が表示する直近7日間のイベント件数 */
+  async getEventCount7dFromApi(eventId: string): Promise<number> {
     return (
-      await this.fetchTracking<{ count: number }>(
-        `/api/tag-check?since=${pageviewSinceMs}`
-      )
-    ).count;
+      (await this.getEventSummaries()).find((e) => e.id === eventId)?.count7d ??
+      -1
+    );
+  }
+
+  /** cursor より後の相関済み pageview 件数 */
+  async getPageviewCountAfter(afterHitId?: string): Promise<number> {
+    return (await this.getHitsMatching({ afterHitId, type: "pageview" }))
+      .length;
   }
 
   // 疑似DBファイルを直接読む(受信経路を通らず記録内容そのものを確認するため)
@@ -85,29 +101,38 @@ export class TrackingClient {
     return (await this.getAllHits()).filter((h) => h.eventId === eventId);
   }
 
-  /** sinceMs 以降の pageview ヒット(テスト発火を除く) */
-  async getPageviewHitsSince(sinceMs: number): Promise<HitRecord[]> {
-    return this.getHitsMatching({ sinceMs, type: "pageview" });
+  /** cursor より後の pageview ヒット(テスト発火を除く) */
+  async getPageviewHitsAfter(afterHitId?: string): Promise<HitRecord[]> {
+    return this.getHitsMatching({ afterHitId, type: "pageview" });
+  }
+
+  /** Act 前の DB 末尾を取得する。Hit がない場合は undefined を返す */
+  async captureHitCursor(): Promise<string | undefined> {
+    return (await this.getAllHits()).at(-1)?.id;
   }
 
   async getHitsMatching(filter: HitFilter): Promise<HitRecord[]> {
-    const nowMs = Date.now();
-    return (await this.getAllHits()).filter((h) => {
+    const allHits = await this.getAllHits();
+    const cursorIndex = filter.afterHitId
+      ? allHits.findIndex((hit) => hit.id === filter.afterHitId)
+      : -1;
+    if (filter.afterHitId && cursorIndex < 0) {
+      throw new Error(`Hit cursor が DB に存在しません: ${filter.afterHitId}`);
+    }
+    const expectedUaSuffix = this.correlationId
+      ? ` ${E2E_CORRELATION_UA_PREFIX}${this.correlationId}`
+      : undefined;
+    return allHits.slice(cursorIndex + 1).filter((h) => {
       if (h.test) {
         return false;
       }
-      // seed の未来時刻ヒットが sinceMs フィルタをすり抜けないようにする
-      const hitMs = new Date(h.ts).getTime();
-      if (hitMs > nowMs + 2000) {
+      if (expectedUaSuffix && !h.ua.endsWith(expectedUaSuffix)) {
         return false;
       }
       if (filter.eventId !== undefined && h.eventId !== filter.eventId) {
         return false;
       }
       if (filter.type !== undefined && h.type !== filter.type) {
-        return false;
-      }
-      if (filter.sinceMs !== undefined && hitMs < filter.sinceMs) {
         return false;
       }
       return true;

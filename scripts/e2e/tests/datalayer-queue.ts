@@ -25,20 +25,20 @@ export async function testDataLayerQueueReplay(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const purchaseCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const delayedScriptPage = await ctx.browser.newPage();
+  const delayedScriptPage = await ctx.page.context().newPage();
   try {
     await delayTrackerScriptRoute(delayedScriptPage, TRACKER_SCRIPT_DELAY_MS);
     await preloadTdDataLayerQueue(delayedScriptPage);
-    const sinceMs = Date.now();
+    const hitCursor = await ctx.tracking.captureHitCursor();
     await gotoDemoPage(delayedScriptPage, "/order/complete");
     await waitForCondition(
       "先行 push の再生分の pageview を受信",
-      async () => (await ctx.tracking.getPageviewCountSince(sinceMs)) >= 1,
+      async () => (await ctx.tracking.getPageviewCountAfter(hitCursor)) >= 1,
       QUEUE_REPLAY_WAIT_TIMEOUT_MS
     );
     await expectExactPageviewCountAfterDelay(
       ctx.tracking,
-      sinceMs,
+      hitCursor,
       1,
       BEACON_SETTLE_MS,
       (actualCount) =>
@@ -55,32 +55,32 @@ export async function testDataLayerQueueReplay(ctx: E2eContext): Promise<void> {
 
     const pvHit = await waitForNewHit(
       ctx.tracking,
-      { eventId: null, sinceMs, type: "pageview" },
+      { afterHitId: hitCursor, eventId: null, type: "pageview" },
       "キュー再生 pageview ヒット取得",
       QUEUE_REPLAY_WAIT_TIMEOUT_MS
     );
     expectHitPayload(pvHit, {
       eventId: null,
-      sinceMs,
       type: "pageview",
       uaIncludes: UA_TOKEN[ctx.browserName],
-      untilMs: Date.now(),
       urlIncludes: "/order/complete",
       workspaceId: WORKSPACE_ID,
     });
 
     const purchaseHit = await waitForNewHit(
       ctx.tracking,
-      { eventId: EVENT_ID_PURCHASE, sinceMs, type: "event" },
+      {
+        afterHitId: hitCursor,
+        eventId: EVENT_ID_PURCHASE,
+        type: "event",
+      },
       "キュー再生 購入完了ヒット取得",
       QUEUE_REPLAY_WAIT_TIMEOUT_MS
     );
     expectHitPayload(purchaseHit, {
       eventId: EVENT_ID_PURCHASE,
-      sinceMs,
       type: "event",
       uaIncludes: UA_TOKEN[ctx.browserName],
-      untilMs: Date.now(),
       urlIncludes: "/order/complete",
       workspaceId: WORKSPACE_ID,
     });
