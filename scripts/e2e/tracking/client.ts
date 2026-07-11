@@ -42,6 +42,11 @@ export interface CreateEventInput {
   labelIds: string[];
 }
 
+export interface TagCheckResult {
+  count: number;
+  hits: HitRecord[];
+}
+
 /** 計測サーバー(TRACKING_ORIGIN)の管理APIへのアクセスをまとめたクライアント */
 export class TrackingClient {
   constructor(private readonly correlationId?: string) {}
@@ -65,6 +70,10 @@ export class TrackingClient {
       .events;
   }
 
+  /**
+   * 相関 ID がある場合は期間を限定せず、相関する全 Hit を数える。
+   * 相関 ID がない場合は管理 API が返す直近7日間の件数を返す。
+   */
   async getEventCount7d(eventId: string): Promise<number> {
     if (this.correlationId) {
       return (await this.getHitsMatching({ eventId, type: "event" })).length;
@@ -80,6 +89,13 @@ export class TrackingClient {
     return (
       (await this.getEventSummaries()).find((e) => e.id === eventId)?.count7d ??
       -1
+    );
+  }
+
+  /** 管理画面のタグ動作確認 API が返す pageview を取得する */
+  async getTagCheck(sinceMs: number): Promise<TagCheckResult> {
+    return this.fetchTracking<TagCheckResult>(
+      `/api/tag-check?since=${sinceMs}`
     );
   }
 

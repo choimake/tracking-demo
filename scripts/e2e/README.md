@@ -35,7 +35,7 @@
 
 公開タグと収集サーバーは変更しない。相関情報は E2E の BrowserContext と DB 読み取り境界だけで扱う。run の cleanup は `stack.ts` が所有する専用 DB だけを削除する。共有 DB を使う構成へ変更する場合も、相関 ID を cleanup 条件に含める必要がある。
 
-Node レベルの相関回帰チェックは次のコマンドで実行する。
+`npm run quality` は Node レベルの相関回帰チェックを自動実行する。単独で確認する場合は次のコマンドを実行する。
 
 ```bash
 npx tsx scripts/e2e/tracking/correlation.regression-check.ts

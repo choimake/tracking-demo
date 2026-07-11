@@ -8,6 +8,8 @@ import {
 } from "../harness/config.js";
 import type { HitFilter, HitRecord, TrackingClient } from "./client.js";
 
+const E2E_ASSERTIONS_STARTED_AT_MS = Date.now();
+
 /** sendBeacon は非同期なので、期待値になるまで最大 timeoutMs ポーリングする */
 export async function waitForCondition(
   label: string,
@@ -180,7 +182,7 @@ export function expectAnonIdsPresent(hit: HitRecord): void {
   console.log("  ✓ hit.vid / hit.sid 形式OK");
 }
 
-/** ヒット1件の payload / ua トークンを検証する */
+/** ヒット1件の payload / ts / ua トークンを検証する */
 export function expectHitPayload(
   hit: HitRecord,
   expected: ExpectedHitPayload
@@ -222,6 +224,22 @@ export function expectHitPayload(
   }
   if (expected.sid !== undefined && hit.sid !== expected.sid) {
     throw new Error(`hit.sid が不一致: got=${hit.sid} want=${expected.sid}`);
+  }
+  const hitTimestampMs = Date.parse(hit.ts);
+  if (
+    !Number.isFinite(hitTimestampMs) ||
+    new Date(hitTimestampMs).toISOString() !== hit.ts
+  ) {
+    throw new Error(`hit.ts が ISO 形式ではない: ${hit.ts}`);
+  }
+  const checkedAtMs = Date.now();
+  if (
+    hitTimestampMs < E2E_ASSERTIONS_STARTED_AT_MS ||
+    hitTimestampMs > checkedAtMs
+  ) {
+    throw new Error(
+      `hit.ts が E2E 実行範囲外: got=${hit.ts} range=${new Date(E2E_ASSERTIONS_STARTED_AT_MS).toISOString()}..${new Date(checkedAtMs).toISOString()}`
+    );
   }
   // ブラウザ由来ヒットは常に形式付きの非空 vid/sid を持つ(送信欠落のサイレント回帰防止)
   expectAnonIdsPresent(hit);

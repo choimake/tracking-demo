@@ -1,4 +1,3 @@
-import { runCorrelationRegressionCheck } from "./correlation.regression-check.js";
 /**
  * tracking barrel が sleep を再公開しないことの型レベル assert。
  * 実行時ブラウザは不要。`npm run typecheck` で検証される。
@@ -12,7 +11,3 @@ const _checks: [_SleepNotReexported] = [true];
 
 void _checks;
 void tracking;
-
-if (process.env.E2E_RUN_CORRELATION_REGRESSION === "1") {
-  await runCorrelationRegressionCheck();
-}

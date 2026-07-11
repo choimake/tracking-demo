@@ -14,7 +14,7 @@
     "fix": "mise exec -- ultracite fix",
     "knip": "mise exec -- knip",
     "deps": "mise exec -- depcruise --config .dependency-cruiser.cjs \"src/**/*.ts\" \"scripts/**/*.ts\"",
-    "quality": "npm run typecheck && npm run check && npm run knip && npm run deps",
+    "quality": "npm run typecheck && npm run e2e:tracking-check && npm run check && npm run knip && npm run deps",
     "secrets": "mise exec -- gitleaks detect --source . --verbose --redact",
     "secrets:staged": "mise exec -- gitleaks protect --staged --verbose --redact",
     "e2e": "tsx scripts/e2e/launch.ts",
@@ -22,6 +22,7 @@
     "e2e:video": "RECORD_VIDEO=all tsx scripts/e2e/launch.ts",
     "e2e:video:fail": "RECORD_VIDEO=on-failure tsx scripts/e2e/launch.ts",
     "e2e:stack-check": "tsx scripts/e2e/harness/stack.regression-check.ts",
+    "e2e:tracking-check": "tsx scripts/e2e/tracking/regression-check.ts",
     "e2e:bench": "tsx scripts/e2e/bench/run-bench.ts",
     "mutation": "tsx scripts/mutation/run.ts"
   },

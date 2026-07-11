@@ -35,4 +35,9 @@ export async function testTagLoadAndPageview(ctx: E2eContext): Promise<void> {
     urlIncludes: "/",
     workspaceId: WORKSPACE_ID,
   });
+  const tagCheck = await ctx.tracking.getTagCheck(Date.parse(hit.ts));
+  if (!tagCheck.hits.some((tagCheckHit) => tagCheckHit.id === hit.id)) {
+    throw new Error("/api/tag-check の応答に受信済み pageview が含まれない");
+  }
+  console.log("  ✓ /api/tag-check が受信済み pageview を返す");
 }
