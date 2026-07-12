@@ -1,5 +1,8 @@
 import type { E2eContext } from "./harness/types.js";
 import { testClickTrigger } from "./tests/click-trigger.js";
+import { testCollectHttp500 } from "./tests/collect-http-500.js";
+import { testCollectSendBeaconFallback } from "./tests/collect-sendbeacon-fallback.js";
+import { testConfigHttp500 } from "./tests/config-http-500.js";
 import { testCookieIdentity } from "./tests/cookie-identity.js";
 import { testDataLayerManualPageview } from "./tests/datalayer-manual.js";
 import { testDataLayerQueueReplay } from "./tests/datalayer-queue.js";
@@ -21,6 +24,7 @@ import { testSpaPopstate } from "./tests/spa-popstate.js";
 import { testTagLoadAndPageview } from "./tests/tag-load.js";
 import { testTimeOnPageCancel } from "./tests/time-on-page-cancel.js";
 import { testTimeOnPageTrigger } from "./tests/time-on-page.js";
+import { testTrackerScriptHttp404 } from "./tests/tracker-script-http-404.js";
 import { testUrlNormalize } from "./tests/url-normalize.js";
 import { testUrlReachTrigger } from "./tests/url-reach.js";
 
@@ -111,5 +115,21 @@ export const e2eScenarios: E2eScenario[] = [
   {
     name: "ページ離脱: 旧ページのtime-on-page timerはイベントを送信しない",
     run: testPageLeaveTimerCancel,
+  },
+  {
+    name: "Config障害: HTTP 500で初期化停止・dataLayer queue保持・retryなし",
+    run: testConfigHttp500,
+  },
+  {
+    name: "Collect障害: sendBeacon=falseでfetch fallbackを1回だけ実行",
+    run: testCollectSendBeaconFallback,
+  },
+  {
+    name: "Collect障害: fallback fetchのHTTP 500でretry・unhandled rejectionなし",
+    run: testCollectHttp500,
+  },
+  {
+    name: "Tracker script障害: HTTP 404で初期化・API要求・Hitなし",
+    run: testTrackerScriptHttp404,
   },
 ];
