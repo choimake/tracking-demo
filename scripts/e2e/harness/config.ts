@@ -1,5 +1,10 @@
 import path from "node:path";
 
+import type { BrowserName } from "./project-options.js";
+
+export { isE2eMobile, parseE2eBrowsers } from "./project-options.js";
+export type { BrowserName } from "./project-options.js";
+
 // E2E実行対象のオリジンと、待機/タイムアウトに使う定数を集約する。
 export const TRACKING_ORIGIN = `http://localhost:${process.env.PORT ?? 3100}`;
 export const DEMO_SITE_ORIGIN = `http://localhost:${process.env.SITE_PORT ?? 3200}`;
@@ -53,9 +58,6 @@ export const MOBILE_VIEWPORT = { width: 390, height: 844 };
 /** モバイルコンテキストでの離脱インテント非発火チェックの待機 */
 export const EXIT_INTENT_MOBILE_CHECK_DELAY_MS = 2000;
 
-/** e2e で直列実行する Playwright ブラウザ名 */
-export type BrowserName = "chromium" | "firefox" | "webkit";
-
 /** Hit.ua に含まれることを期待するブラウザ識別トークン */
 export const UA_TOKEN: Record<BrowserName, string> = {
   chromium: "Chrome",
@@ -79,41 +81,6 @@ export function parseRecordVideoMode(): RecordVideoMode | null {
     return value;
   }
   return null;
-}
-
-/** `E2E_MOBILE=1` 等の truthy 値でモバイルコンテキスト実行にする */
-export function isE2eMobile(): boolean {
-  const value = process.env.E2E_MOBILE?.trim().toLowerCase();
-  return value === "1" || value === "true" || value === "yes";
-}
-
-const ALL_BROWSERS: BrowserName[] = ["chromium", "firefox", "webkit"];
-
-/**
- * `E2E_BROWSERS=chromium` または `chromium,firefox` で実行ブラウザを絞る。
- * 未設定時は全ブラウザ。不正な名前は Error。
- */
-export function parseE2eBrowsers(): BrowserName[] {
-  const raw = process.env.E2E_BROWSERS?.trim();
-  if (!raw) {
-    return [...ALL_BROWSERS];
-  }
-  const names = raw.split(",").map((s) => s.trim().toLowerCase());
-  const result: BrowserName[] = [];
-  for (const name of names) {
-    if (name !== "chromium" && name !== "firefox" && name !== "webkit") {
-      throw new Error(
-        `未知の E2E_BROWSERS 値: ${name} (chromium|firefox|webkit)`
-      );
-    }
-    if (!result.includes(name)) {
-      result.push(name);
-    }
-  }
-  if (result.length === 0) {
-    throw new Error("E2E_BROWSERS が空です");
-  }
-  return result;
 }
 
 /** シナリオ名を動画ファイル名用の安全な slug に変換する */

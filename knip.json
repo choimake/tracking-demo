@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/tracker/tracker.ts",
-    "scripts/e2e/run.ts",
+    "scripts/e2e/playwright/scenarios.spec.ts",
     "scripts/e2e/harness/session.regression-check.ts",
     "scripts/e2e/tracking/sleep-export.regression-check.ts",
     "scripts/e2e/bench/suite-worker.ts"

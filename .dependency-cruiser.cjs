@@ -94,8 +94,8 @@ module.exports = {
     {
       name: "e2e-harness-leaf-not-to-tracking",
       severity: "error",
-      comment: "harness の config/runner/video は tracking に依存しない",
-      from: { path: "^scripts/e2e/harness/(config|runner|video)" },
+      comment: "harness の config/video は tracking に依存しない",
+      from: { path: "^scripts/e2e/harness/(config|video)" },
       to: { path: "^scripts/e2e/tracking" },
     },
   ],

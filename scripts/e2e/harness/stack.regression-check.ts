@@ -12,7 +12,9 @@ const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../.."
 );
-const TSX_CLI = createRequire(import.meta.url).resolve("tsx/cli");
+const PLAYWRIGHT_CLI = createRequire(import.meta.url).resolve(
+  "@playwright/test/cli"
+);
 const DATA_DIR = path.join(ROOT, "data");
 
 function stackDetails(output: string): {
@@ -36,7 +38,7 @@ function runInjectedSuiteFailure(): Promise<{
   output: string;
 }> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [TSX_CLI, "scripts/e2e/launch.ts"], {
+    const child = spawn(process.execPath, [PLAYWRIGHT_CLI, "test"], {
       cwd: ROOT,
       env: { ...process.env, E2E_SUITE_FAIL_IMMEDIATELY: "1" },
       stdio: ["ignore", "pipe", "pipe"],
@@ -58,7 +60,7 @@ function runInterruptedStartup(): Promise<{
   output: string;
 }> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [TSX_CLI, "scripts/e2e/launch.ts"], {
+    const child = spawn(process.execPath, [PLAYWRIGHT_CLI, "test"], {
       cwd: ROOT,
       env: process.env,
       stdio: ["ignore", "pipe", "pipe"],

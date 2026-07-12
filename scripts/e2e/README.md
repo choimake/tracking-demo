@@ -65,16 +65,22 @@ npm run e2e  # run 専用スタックを起動し、3エンジンを直列実行
 各 run は `data/e2e-*.tmp` を専用 DB として使う。終了時に子プロセスと専用 DB を削除する。
 強制終了等で専用 DB が残った場合、次回 E2E 起動時に更新から24時間を過ぎたファイルを回収する。
 
+Playwright Test の global setup は、run 専用スタックと検証用イベントを1回だけ準備する。全 project の終了後に global teardown が検証用イベントと専用 DB を削除する。検証用イベントの削除またはサーバープロセスの停止に失敗した場合、Playwright Test は非0で終了する。
+
+設定は `workers: 1`、`fullyParallel: false`、`retries: 0` である。ケース timeout は無効である。通常 E2E はシナリオと project を直列実行する。
+
+ルートの `playwright.config.ts` は `scripts/e2e/playwright.config.ts` を読み込む。`npm run e2e` と `npx playwright test --list` は同じ設定を使う。
+
 ### ローカル専用オプション（CI では使わない）
 
 動画録画とモバイルコンテキスト実行は **ローカルデバッグ用**。CI ワークフローには載せない。
 
-| 環境変数 / npm script                                | 効果                                                                           |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `RECORD_VIDEO=all` / `npm run e2e:video`             | 全シナリオの動画を残す                                                         |
-| `RECORD_VIDEO=on-failure` / `npm run e2e:video:fail` | FAIL 時のみ動画を残す（PASS は削除）                                           |
-| `E2E_MOBILE=1` / `npm run e2e:mobile`                | 既存 18 シナリオをモバイルコンテキストで実行。ラベルは `[chromium:mobile] ...` |
-| `E2E_BROWSERS=chromium`（カンマ区切り可）            | 実行ブラウザを絞る（未設定時は chromium,firefox,webkit）                       |
+| 環境変数 / npm script                                | 効果                                                                          |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `RECORD_VIDEO=all` / `npm run e2e:video`             | 全シナリオの動画を残す                                                        |
+| `RECORD_VIDEO=on-failure` / `npm run e2e:video:fail` | FAIL 時のみ動画を残す（PASS は削除）                                          |
+| `E2E_MOBILE=1` / `npm run e2e:mobile`                | 既存 18 シナリオをモバイルコンテキストで実行。project 名に `:mobile` を付ける |
+| `E2E_BROWSERS=chromium`（カンマ区切り可）            | Playwright project を絞る（未設定時は chromium,firefox,webkit）               |
 
 - 出力先: `test-results/videos/{browserName}/{scenario-slug}.webm`
 - FAIL 時はコンソールに動画の絶対パスを出す
@@ -87,24 +93,30 @@ npm run e2e  # run 専用スタックを起動し、3エンジンを直列実行
   E2E_MOBILE=1 E2E_BROWSERS=chromium RECORD_VIDEO=on-failure npm run e2e
   ```
 
-## 地図（覚えるのは4フォルダ）
+`E2E_BROWSERS` は Playwright の projects に対応する。`E2E_MOBILE` はシナリオ用 fixture が BrowserContext の `viewport` と `hasTouch` を設定する。Chromium と WebKit では `isMobile` も設定する。Firefox は `isMobile` をサポートしない。`RECORD_VIDEO` は既存のファイル名と失敗時保存の契約を維持するため、シナリオ用 fixture が BrowserContext の録画を管理する。
 
-| フォルダ    | 役割                                           | 触る頻度 |
-| ----------- | ---------------------------------------------- | -------- |
-| `tests/`    | **何を検証するか**（シナリオ本体）             | 高       |
-| `browser/`  | **ページをどう操作するか**（Act）              | 中       |
-| `tracking/` | **ビーコンが届いたかどう確認するか**（Assert） | 中       |
-| `harness/`  | 実行の裏方（ランナー・セットアップ・定数）     | 低       |
+## 地図（覚えるのは5フォルダ）
 
-ルートの `launch.ts`（スタック起動）、`run.ts`（テスト実行）、`scenarios.ts`（シナリオ登録）だけ別に置いている。
+| フォルダ      | 役割                                                   | 触る頻度 |
+| ------------- | ------------------------------------------------------ | -------- |
+| `tests/`      | **何を検証するか**（シナリオ本体）                     | 高       |
+| `browser/`    | **ページをどう操作するか**（Act）                      | 中       |
+| `tracking/`   | **ビーコンが届いたかどう確認するか**（Assert）         | 中       |
+| `harness/`    | 実行の裏方（スタック・セッション・定数）               | 低       |
+| `playwright/` | Playwright Test との接続（fixture・薄い test wrapper） | 低       |
+
+`scenarios.ts` は通常 E2E と mutation の suite-worker が共有するシナリオ登録である。
 
 ## ディレクトリ構成
 
 ```
 scripts/e2e/
-├── launch.ts           # run 専用スタックとテスト子プロセスの起動・停止
-├── run.ts              # 3ブラウザ直列・フィクスチャ後片付け・終了コード
+├── playwright.config.ts # 直列実行・projects・global setup の設定
 ├── scenarios.ts        # 全シナリオの登録一覧（新規追加時はここに1行）
+├── playwright/
+│   ├── global-setup.ts # run 専用スタックと全ブラウザ共通 fixture の所有
+│   ├── fixtures.ts     # 相関 ID・E2eContext・BrowserContext の生成と破棄
+│   └── scenarios.spec.ts # scenarios.ts を test() で包む薄い wrapper
 ├── tests/              # シナリオ本体（1ファイル = 1ケース）
 ├── browser/
 │   ├── actions.ts      # デモサイト操作（getByRole ベース）
@@ -116,8 +128,8 @@ scripts/e2e/
 │   └── index.ts        # barrel export
 └── harness/
     ├── stack.ts        # 動的ポート・専用 DB・health 待機・cleanup
-    ├── runner.ts       # runE2eCase / PASS・FAIL 集計
     ├── session.ts      # ページ生成・フィクスチャ setup/teardown
+    ├── project-options.ts # projects とモバイルの環境変数解析
     ├── config.ts       # オリジン URL・タイムアウト・UA_TOKEN
     └── types.ts        # E2eContext 等の型
 ```
@@ -125,12 +137,12 @@ scripts/e2e/
 ## データの流れ
 
 ```
-launch.ts
-  ├─ harness/stack.ts     … run 専用スタックの起動・停止
-  └─ run.ts
-  ├─ harness/session.ts   … フィクスチャ準備・page 生成（シナリオごと context）
-  ├─ scenarios.ts         … 何を実行するか
-  └─ tests/*.ts           … 各シナリオ
+Playwright Test
+  ├─ playwright/global-setup.ts … run 専用スタック・共有 fixture の準備と破棄
+  └─ playwright/scenarios.spec.ts
+      ├─ playwright/fixtures.ts … 相関 ID・E2eContext・シナリオごとの context
+      ├─ scenarios.ts           … 何を実行するか
+      └─ tests/*.ts             … 各シナリオ
         ├─ browser/        … デモサイト操作（Act）
         └─ tracking/       … 件数・Hit アサーション（Assert）
 ```
@@ -138,7 +150,7 @@ launch.ts
 計測 E2E は「ページを触る」と「サーバーにビーコンが届いたか読む」の二系統がある。
 フォルダ名がその二系統に対応している。
 
-依存方向の要約: `browser` ↛ `tracking` / `tests`。`tracking` → `harness/config` のみ（他 harness 禁止）。`harness/session`・`types` → `tracking` 可。`harness/config`・`runner`・`video` ↛ `tracking`。`.dependency-cruiser.cjs` で error として担保する。
+依存方向の要約: `browser` ↛ `tracking` / `tests`。`tracking` → `harness/config` のみ（他 harness 禁止）。`harness/session`・`types` → `tracking` 可。`harness/config`・`video` ↛ `tracking`。`.dependency-cruiser.cjs` で error として担保する。
 
 ## 各フォルダの詳細
 
@@ -203,15 +215,15 @@ launch.ts
 
 ### `harness/` — 実行の仕組み
 
-普段あまり触らない。ランナー・型・定数・セッション管理。
+普段あまり触らない。スタック・型・定数・セッション管理。
 
-| ファイル     | 内容                                                                               |
-| ------------ | ---------------------------------------------------------------------------------- |
-| `stack.ts`   | 動的ポート確保、run 専用 DB、サーバー起動待ち、停止、専用 DB 回収                  |
-| `runner.ts`  | `[TEST]` ログ、PASS/FAIL 集計（`runE2eCase` は成否 boolean を返す）                |
-| `session.ts` | `createE2eSession`, `createE2ePage`, `setupE2eFixtures`, `teardownE2eFixtures`     |
-| `config.ts`  | `TRACKING_ORIGIN`, `UA_TOKEN`, `parseRecordVideoMode`, `isE2eMobile`, 各種 ms 定数 |
-| `types.ts`   | `E2eContext`（`browserName` 付き）                                                 |
+| ファイル             | 内容                                                                           |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `stack.ts`           | 動的ポート確保、run 専用 DB、サーバー起動待ち、停止、専用 DB 回収              |
+| `session.ts`         | `createE2eSession`, `createE2ePage`, `setupE2eFixtures`, `teardownE2eFixtures` |
+| `project-options.ts` | `E2E_BROWSERS`、`E2E_MOBILE`、`BrowserName`                                    |
+| `config.ts`          | `TRACKING_ORIGIN`, `UA_TOKEN`, `parseRecordVideoMode`, 各種 ms 定数            |
+| `types.ts`           | `E2eContext`（`browserName` 付き）                                             |
 
 ## 新しいテストを追加する手順
 

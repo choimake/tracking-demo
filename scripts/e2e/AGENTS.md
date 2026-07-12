@@ -18,17 +18,17 @@
 
 ## フォルダ責務
 
-| 場所           | 責務     | 書くこと                                                        |
-| -------------- | -------- | --------------------------------------------------------------- |
-| `tests/`       | 検証意図 | Hit カーソル・Act 呼び出し・件数/Hit の期待                     |
-| `browser/`     | Act      | Playwright の locator / `getByRole` / ページ操作                |
-| `tracking/`    | Assert   | 件数待ち・`waitForNewHit`・`expectHitPayload`・匿名 ID 正規表現 |
-| `harness/`     | 裏方     | ランナー・セッション・定数（`config.ts`）・型                   |
-| `scenarios.ts` | 登録     | `{ name, run }` の一覧                                          |
-| `launch.ts`    | 起動     | run 専用スタック・テスト子プロセス・cleanup                     |
-| `run.ts`       | 実行     | ブラウザ直列実行・setup/teardown                                |
+| 場所                   | 責務     | 書くこと                                                        |
+| ---------------------- | -------- | --------------------------------------------------------------- |
+| `tests/`               | 検証意図 | Hit カーソル・Act 呼び出し・件数/Hit の期待                     |
+| `browser/`             | Act      | Playwright の locator / `getByRole` / ページ操作                |
+| `tracking/`            | Assert   | 件数待ち・`waitForNewHit`・`expectHitPayload`・匿名 ID 正規表現 |
+| `harness/`             | 裏方     | スタック・セッション・定数（`config.ts`）・型                   |
+| `scenarios.ts`         | 登録     | `{ name, run }` の一覧                                          |
+| `playwright.config.ts` | 設定     | projects・直列実行・global setup                                |
+| `playwright/`          | 実行     | fixture・`E2eContext`・薄い `test()` wrapper                    |
 
-依存方向: `browser` は `tracking` / `tests` に依存しない。`tracking` が依存できる `harness` は `config` のみ（他の harness は禁止）。`harness/session`・`types` から `tracking` への依存は可。`harness/config`・`runner`・`video` は `tracking` に依存しない。これらは `.dependency-cruiser.cjs` で error として担保する。
+依存方向: `browser` は `tracking` / `tests` に依存しない。`tracking` が依存できる `harness` は `config` のみ（他の harness は禁止）。`harness/session`・`types` から `tracking` への依存は可。`harness/config`・`video` は `tracking` に依存しない。これらは `.dependency-cruiser.cjs` で error として担保する。
 
 ## 必須パターン
 
@@ -68,6 +68,7 @@
 
 - E2E run ごとに動的ポートと専用 DB を使う
 - 同一 run のシナリオとブラウザマトリクスは直列実行する
+- 検証用 fixture は全 browser project で1回だけ setup し、全 project の終了後に teardown する
 - 並列ワーカーを同一 run に追加する場合、ワーカーごとに専用 DB を割り当てる
 
 ### シナリオごと context の扱い
