@@ -64,7 +64,8 @@ async function runObservationRegressionCheck(): Promise<void> {
   }
 
   const enabled = await startStack({
-    dbSaveDebounceMs: 2000,
+    // 保存前検証では、collectからreadFileまでを10秒未満で実行する。
+    dbSaveDebounceMs: 10_000,
     runId: "observation-enabled",
   });
   try {

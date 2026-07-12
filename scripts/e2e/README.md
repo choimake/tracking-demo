@@ -18,7 +18,7 @@
 | payload      | `url`・`workspaceId`・`vid`・`sid`                     | `expectHitPayload`（末尾で常に `expectAnonIdsPresent`。`vid`/`sid` 完全一致はオプション）                    |
 | ブラウザ     | `ua` にエンジン別トークン（Chrome / Firefox / Safari） | `UA_TOKEN[browserName]`                                                                                      |
 
-`expectHitCountAtMost` は現在、回帰契約のみで使用する。
+`expectHitCountAtMost` は現在、回帰契約のみで使用する。回帰契約と mutation-check の検証対象として維持する。
 
 発火系シナリオの基本パターン: **Hit カーソル取得 → Act → 相関済み件数を正確に +1 → waitForNewHit → expectHitPayload**。
 
@@ -41,6 +41,7 @@
 
 ```bash
 npm run e2e:tracking-check
+npm run e2e:observation-check
 ```
 
 ## 実行
