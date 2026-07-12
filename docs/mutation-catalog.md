@@ -6,9 +6,9 @@
 
 | class            | 件数 |
 | ---------------- | ---- |
-| primary          | 29   |
-| control-survived | 3    |
-| 合計             | 32   |
+| primary          | 40   |
+| control-survived | 1    |
+| 合計             | 41   |
 
 ## フィールド
 
@@ -16,16 +16,23 @@
 
 適用は `beforeString` → `afterString` のみ。`change` は説明用。
 
-## シナリオカバレッジ
+## Critical contractカバレッジ
 
-S01–S18 それぞれを `expectedKillers` に含む primary が最低1件あること（ランナー起動時に検証）。
+ランナーはTODO 13の各contractとmutant IDを双方向に照合します。カタログだけを変更した場合は起動時に停止します。
+
+- exact count、dedup window境界
+- Cookie名、vid/sid入れ替え、再発行条件、Max-Age再延長、Cookie利用不可時のID再利用
+- pushState、replaceState、popstateの個別hook、timer cleanup
+- sendBeacon fallback、payloadのvid/sid個別欠落
+- enabled filter、fireOnce guard、double-tag guard、Config失敗時のqueue保持
+- `known-gap-control`: E2Eで意図的に到達しない対照群
 
 ## 対照群
 
-| id     | 根拠                                                        |
-| ------ | ----------------------------------------------------------- |
-| M-CS01 | README: sendBeacon 失敗時 fetch フォールバックは E2E 未検証 |
-| M-CS02 | README: replaceState 単体は E2E 未検証                      |
-| M-CS03 | E2E は常に正しい ws を送るため到達しない                    |
+| id     | 根拠                                     |
+| ------ | ---------------------------------------- |
+| M-CS03 | E2E は常に正しい ws を送るため到達しない |
+
+`M-TR25`（replaceState）と`M-TR26`（sendBeacon fallback）は、対応E2E追加に伴いprimaryへ昇格しました。
 
 手法の読み方は [`mutation-testing.md`](mutation-testing.md) を参照。

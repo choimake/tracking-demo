@@ -14,6 +14,8 @@ export const sleep = (ms: number): Promise<void> =>
 
 /** waitForCondition のデフォルトタイムアウト */
 export const DEFAULT_WAIT_TIMEOUT_MS = 5000;
+/** Playwright Test が1シナリオの実行を待つ上限 */
+export const SCENARIO_TIMEOUT_MS = 60_000;
 /** waitForCondition のポーリング間隔 */
 export const WAIT_POLL_INTERVAL_MS = 200;
 

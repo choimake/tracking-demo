@@ -62,13 +62,37 @@ npx playwright install   # 初回のみ: chromium / firefox / webkit
 npm run e2e  # run 専用スタックを起動し、3エンジンを直列実行
 ```
 
+目的別の選択と順序検証には次の環境変数を使う。runner は実行開始時に順序、seed、scenario ID をログへ出す。
+
+```bash
+npm run e2e:cookie                                      # Cookieシナリオだけ
+E2E_SCENARIOS=scenario-1 npm run e2e                   # 単一シナリオだけ
+E2E_BROWSERS=chromium npm run e2e                      # 単一ブラウザだけ
+E2E_ORDER=reverse npm run e2e                          # 逆順
+E2E_ORDER=random E2E_SEED=20260712 npm run e2e         # seed固定ランダム順
+npm run e2e:flake                                      # Cookie×Chromiumを20回
+```
+
+`E2E_SCENARIOS` はログと `scenarios.ts` に表示する `scenario-N` または完全なシナリオ名を指定する。カンマ区切りで複数指定できる。`E2E_TAGS` もカンマ区切りで指定できる。現在のタグは `cookie` である。ランダム順は再現性を保証するため `E2E_SEED` を必須とする。失敗時はログの seed を同じコマンドへ指定する。
+
+全ケースは Playwright の default mode に登録する。1ケースが失敗しても後続ケースを実行する。全ケースが同一 run の共有 fixture と専用 DB を使うため、設定は `workers: 1`、`fullyParallel: false` とする。worker ごとの専用 DB を導入するまでは同一 run 内を並列化しない。この理由は `scheduling-reason` annotation にも記録する。
+
 `npm run e2e` は空きポートを動的に割り当てる。3100/3200 が使用中でも影響を受けない。
 各 run は `data/e2e-*.tmp` を専用 DB として使う。終了時に子プロセスと専用 DB を削除する。
 強制終了等で専用 DB が残った場合、次回 E2E 起動時に更新から24時間を過ぎたファイルを回収する。
 
 Playwright Test の global setup は、run 専用スタックと検証用イベントを1回だけ準備する。全 project の終了後に global teardown が検証用イベントと専用 DB を削除する。検証用イベントの削除またはサーバープロセスの停止に失敗した場合、Playwright Test は非0で終了する。
 
-設定は `workers: 1`、`fullyParallel: false`、`retries: 0` である。ケース timeout は無効である。通常 E2E はシナリオと project を直列実行する。
+設定は `workers: 1`、`fullyParallel: false`、`retries: 0` である。ケース timeout は60秒である。timeout 後も後続ケースと global teardown を実行する。通常 E2E はシナリオと project を直列実行する。
+
+成功時は診断 artifact を残さない。失敗時はシナリオが作成した全 BrowserContext と全 page を対象に、Playwright のケース出力へ次の artifact を保存する。
+
+- ブラウザ名、バージョン、User-Agent、相関 ID
+- console、page error、要求 URL・HTTP method・status・resource type
+- 相関 ID に一致する Hit
+- スクリーンショット、Playwright trace、stack log
+
+CI は GitHub annotation と JUnit XML でケース件数と失敗ケースを表示する。CI が失敗した場合は `test-results/` を artifact として保存する。
 
 ルートの `playwright.config.ts` は `scripts/e2e/playwright.config.ts` を読み込む。`npm run e2e` と `npx playwright test --list` は同じ設定を使う。
 
@@ -158,36 +182,36 @@ Playwright Test
 
 ### `tests/` — シナリオ本体
 
-| ファイル                         | 検証内容                                                                                                                                                                                                                                             |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tag-load.ts`                    | タグ読み込み + 初回ページビュー（クロスオリジン）                                                                                                                                                                                                    |
-| `url-reach.ts`                   | URL 到達トリガー（MPA 遷移）                                                                                                                                                                                                                         |
-| `click-trigger.ts`               | クリックトリガー                                                                                                                                                                                                                                     |
-| `scroll-trigger.ts`              | スクロール率 50%                                                                                                                                                                                                                                     |
-| `time-on-page.ts`                | ページ滞在時間（検証用 2 秒イベント）                                                                                                                                                                                                                |
-| `exit-intent.ts`                 | 離脱インテント                                                                                                                                                                                                                                       |
-| `spa-history.ts`                 | SPA: pushState 遷移                                                                                                                                                                                                                                  |
-| `gtm-dedup.ts`                   | GTM 併用時の二重計上防止                                                                                                                                                                                                                             |
-| `datalayer-manual.ts`            | 手動 `tdDataLayer.push`                                                                                                                                                                                                                              |
-| `datalayer-queue.ts`             | ロード前キュー再生                                                                                                                                                                                                                                   |
-| `double-tag-guard.ts`            | タグ二重設置ガード                                                                                                                                                                                                                                   |
-| `disabled-event.ts`              | 無効イベントの計測停止                                                                                                                                                                                                                               |
-| `spa-popstate.ts`                | SPA popstate(戻る): リロードなし・pageview再送・購入イベントは戻るだけでは増えない                                                                                                                                                                   |
-| `time-on-page-cancel.ts`         | 滞在タイマー破棄: 閾値未満の滞在を繰り返しても発火しない                                                                                                                                                                                             |
-| `fire-semantics.ts`              | 発火回数: クリックは複数回(fire)・スクロールは1PVにつき1回(fireOnce)                                                                                                                                                                                 |
-| `url-normalize.ts`               | URL正規化: 大文字小文字・末尾スラッシュ・日本語パス                                                                                                                                                                                                  |
-| `exit-intent-mobile.ts`          | モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない                                                                                                                                                                            |
-| `hash-navigation.ts`             | 非対応contract: hash navigationでは新しいpageviewを発火しない                                                                                                                                                                                        |
-| `query-only.ts`                  | 非対応contract: query-only遷移ではpageviewを再評価しない                                                                                                                                                                                             |
-| `cookie-identity.ts`             | first-party Cookie: (a)〜(g) 発行・継続・再延長・区切り・リセット。(h) Cookie無効相当(**独立 BrowserContext** + シナリオ page の Cookie 非汚染 assert)。expires は browserName 別: chromium/firefox=uncapped\|約400日、webkit=それに加え ITP 相当7日 |
-| `replace-state.ts`               | `replaceState` のパス変更で、リロードせずにpageviewを再送する                                                                                                                                                                                        |
-| `reload-pageview.ts`             | reload後に新しいドキュメントからpageviewを再送する                                                                                                                                                                                                   |
-| `history-traversal.ts`           | back 2回とforward 2回を直列反復し、各移動先のpageviewを再送する                                                                                                                                                                                      |
-| `page-leave-timer.ts`            | 計測ページから離脱した後に、旧ドキュメントの滞在タイマーがイベントを送信しない                                                                                                                                                                       |
-| `config-http-500.ts`             | Config HTTP 500: 初期化停止、retryなし、dataLayer queue保持、失敗ログ、page errorなし                                                                                                                                                                |
-| `collect-sendbeacon-fallback.ts` | `sendBeacon=false`: fetch fallback 1回、pageview Hit 1件、page errorなし                                                                                                                                                                             |
-| `collect-http-500.ts`            | fallback fetch HTTP 500: retryなし、Hitなし、unhandled rejection/page errorなし                                                                                                                                                                      |
-| `tracker-script-http-404.ts`     | tracker.js HTTP 404: 初期化・Config/Collect要求・Hit・tracker由来ログ・page errorなし                                                                                                                                                                |
+| ファイル                         | 検証内容                                                                                                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tag-load.ts`                    | タグ読み込み + 初回ページビュー（クロスオリジン）                                                                                                                        |
+| `url-reach.ts`                   | URL 到達トリガー（MPA 遷移）                                                                                                                                             |
+| `click-trigger.ts`               | クリックトリガー                                                                                                                                                         |
+| `scroll-trigger.ts`              | スクロール率 50%                                                                                                                                                         |
+| `time-on-page.ts`                | ページ滞在時間（検証用 2 秒イベント）                                                                                                                                    |
+| `exit-intent.ts`                 | 離脱インテント                                                                                                                                                           |
+| `spa-history.ts`                 | SPA: pushState 遷移                                                                                                                                                      |
+| `gtm-dedup.ts`                   | GTM 併用時の二重計上防止                                                                                                                                                 |
+| `datalayer-manual.ts`            | 手動 `tdDataLayer.push`                                                                                                                                                  |
+| `datalayer-queue.ts`             | ロード前キュー再生                                                                                                                                                       |
+| `double-tag-guard.ts`            | タグ二重設置ガード                                                                                                                                                       |
+| `disabled-event.ts`              | 無効イベントの計測停止                                                                                                                                                   |
+| `spa-popstate.ts`                | SPA popstate(戻る): リロードなし・pageview再送・購入イベントは戻るだけでは増えない                                                                                       |
+| `time-on-page-cancel.ts`         | 滞在タイマー破棄: 閾値未満の滞在を繰り返しても発火しない                                                                                                                 |
+| `fire-semantics.ts`              | 発火回数: クリックは複数回(fire)・スクロールは1PVにつき1回(fireOnce)                                                                                                     |
+| `url-normalize.ts`               | URL正規化: 大文字小文字・末尾スラッシュ・日本語パス                                                                                                                      |
+| `exit-intent-mobile.ts`          | モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない                                                                                                |
+| `hash-navigation.ts`             | 非対応contract: hash navigationでは新しいpageviewを発火しない                                                                                                            |
+| `query-only.ts`                  | 非対応contract: query-only遷移ではpageviewを再評価しない                                                                                                                 |
+| `cookie-*.ts`                    | first-party Cookie: 発行、属性、MPA/SPA継続、期限再延長、sid/vidリセット、不正値・同名Path衝突からの回復、利用不可、複数タブ初期化後の共有IDへの収束を独立シナリオで検証 |
+| `replace-state.ts`               | `replaceState` のパス変更で、リロードせずにpageviewを再送する                                                                                                            |
+| `reload-pageview.ts`             | reload後に新しいドキュメントからpageviewを再送する                                                                                                                       |
+| `history-traversal.ts`           | back 2回とforward 2回を直列反復し、各移動先のpageviewを再送する                                                                                                          |
+| `page-leave-timer.ts`            | 計測ページから離脱した後に、旧ドキュメントの滞在タイマーがイベントを送信しない                                                                                           |
+| `config-http-500.ts`             | Config HTTP 500: 初期化停止、retryなし、dataLayer queue保持、失敗ログ、page errorなし                                                                                    |
+| `collect-sendbeacon-fallback.ts` | `sendBeacon=false`: fetch fallback 1回、pageview Hit 1件、page errorなし                                                                                                 |
+| `collect-http-500.ts`            | fallback fetch HTTP 500: retryなし、Hitなし、unhandled rejection/page errorなし                                                                                          |
+| `tracker-script-http-404.ts`     | tracker.js HTTP 404: 初期化・Config/Collect要求・Hit・tracker由来ログ・page errorなし                                                                                    |
 
 件数保証は次の4区分で表す。複合シナリオは区間ごとの保証を併記する。
 
@@ -212,7 +236,7 @@ Playwright Test
 | `exit-intent-mobile.ts`          | 離脱イベントを観測期間中0件                                                     |
 | `hash-navigation.ts`             | hash変更後のpageviewを観測期間中0件                                             |
 | `query-only.ts`                  | query-only遷移後のpageviewを観測期間中0件                                       |
-| `cookie-identity.ts`             | 各Actのpageviewを最低1件。SPA区間は最低2件。購入完了イベントを正確に1件         |
+| `cookie-*.ts`                    | 各Actのpageviewを最低1件。SPA購入完了イベントを正確に1件                        |
 | `replace-state.ts`               | パス変更後のpageviewを正確に1件                                                 |
 | `reload-pageview.ts`             | reload後のpageviewを正確に1件                                                   |
 | `history-traversal.ts`           | back/forward各操作のpageviewを正確に1件。4操作の合計を正確に4件                 |
@@ -308,14 +332,16 @@ export async function testMyScenario(ctx: E2eContext): Promise<void> {
   `pushState` 自体をパッチして `onHistoryChange` を呼ぶため、`popstate` を手動発火すると二重処理になる
 - `exit-intent-mobile.ts` の `isMobile` は Playwright の制約で **Firefox 未サポート**（コンテキスト生成が
   例外になる）。Firefox 実行時は `isMobile` を付けず `hasTouch` / `viewport` のみで代替している
-- `cookie-identity.ts` の (h) Cookie 無効相当は `createE2eSession` で**独立 BrowserContext**を開き、
+- `cookie-unavailable.ts` の Cookie 無効相当は `createE2eSession` で**独立 BrowserContext**を開き、
   その context にだけ `addInitScript` で `document.cookie` を無効化する（シナリオ `ctx.page` を汚染しない）。
   (h) 前後でシナリオ context の `_td_vid`/`_td_sid` と `document.cookie` 可読性を assert し、汚染回帰を検知する。
   Max-Age / expires 検証の許容キャップは browserName で分岐する:
   chromium / firefox は uncapped または約400日のみ（ITP 7日は許容しない＝誤キャップ回帰検知）、
   webkit は上記に加え Safari ITP 相当7日も許容する
 - 匿名 ID 形式の正規表現は `tracking/assertions.ts` の `ANON_VID_RE` / `ANON_SID_RE` に一本化している
-  （`cookie-identity.ts` もこれを import する）
+  （Cookieシナリオもこれを import する）
+- Cookie属性E2EはHTTPデモの`Path=/`、`SameSite=Lax`、`Secure=false`を検証する。実装は`Domain`を指定しない。Playwrightの`cookies()`が返す`domain`値だけではDomain属性の有無を証明できないため、現行localhost構成ではhost-onlyの送出境界を未検証とする。HTTPSの`Secure=true`と送出境界は将来のHTTPSスタックへ移管している
+- 複数タブはCookieがない同一BrowserContextで2ページのnavigationを`Promise.all`で開始する。この操作はCookie readの真の同時実行を保証しない。排他制御がないため初期化競合時の初回Hitは複数IDになり得る。テストは競合後の共有Cookieと次のHitが同じvid/sidへ収束することを要求する
 - Browser LifecycleシナリオはChromium、Firefox、WebKitで同じcontractを検証する。条件付きskipはない
 - `history-traversal.ts` はブラウザによる履歴移動要求の集約を避けるため、各back/forward操作の完了を待ってから
   次の操作を開始する。待機を挟まずに同時発行する高速操作は保証しない

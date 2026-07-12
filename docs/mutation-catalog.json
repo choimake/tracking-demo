@@ -176,7 +176,7 @@
     "change": "vid Cookie の書き込み（Max-Age 延長）を削除",
     "beforeString": "    // ヒット送信のたびに Max-Age を延長(ローリング)\n    writeCookie(VID_COOKIE, vid, VID_MAX_AGE_SEC);\n    return vid;",
     "afterString": "    // ヒット送信のたびに Max-Age を延長(ローリング)\n    return vid;",
-    "expectedKillers": ["S18"],
+    "expectedKillers": ["S22"],
     "class": "primary"
   },
   {
@@ -186,7 +186,7 @@
     "change": "sid 形式不正時の再発行を削除",
     "beforeString": "    // 欠落・期限切れ(ブラウザが Cookie を落とす)・形式不正時のみ再発行\n    if (!sid || !SID_RE.test(sid)) {\n      sid = `s_${crypto.randomUUID()}`;\n    }",
     "afterString": "    // 欠落・期限切れ(ブラウザが Cookie を落とす)・形式不正時のみ再発行\n    if (!sid) {\n      sid = `s_${crypto.randomUUID()}`;\n    }",
-    "expectedKillers": ["S18"],
+    "expectedKillers": ["S25"],
     "class": "primary"
   },
   {
@@ -290,26 +290,114 @@
     "class": "primary"
   },
   {
-    "id": "M-CS01",
+    "id": "M-TR26",
     "file": "src/tracker/tracker.ts",
     "operator": "branch-removal",
-    "change": "sendBeacon 失敗時の fetch フォールバックを削除（対照群）",
+    "change": "sendBeacon 失敗時の fetch フォールバックを削除",
     "beforeString": "    if (!(navigator.sendBeacon && navigator.sendBeacon(endpoint, payload))) {\n      fetch(endpoint, { body: payload, keepalive: true, method: \"POST\" }).catch(\n        () => {}\n      );\n    }",
     "afterString": "    if (!(navigator.sendBeacon && navigator.sendBeacon(endpoint, payload))) {\n      // fetch fallback removed by control-survived mutant\n    }",
-    "expectedKillers": [],
-    "class": "control-survived",
-    "rationale": "README: 実装済みだがE2E未検証（sendBeacon 失敗時の fetch フォールバック）"
+    "expectedKillers": ["S33"],
+    "class": "primary"
   },
   {
-    "id": "M-CS02",
+    "id": "M-TR25",
     "file": "src/tracker/tracker.ts",
     "operator": "call-removal",
-    "change": "replaceState フックを削除（対照群）",
+    "change": "replaceState フックを削除",
     "beforeString": "    patch(\"pushState\");\n    patch(\"replaceState\");\n    window.addEventListener(\"popstate\", onHistoryChange);",
     "afterString": "    patch(\"pushState\");\n    window.addEventListener(\"popstate\", onHistoryChange);",
-    "expectedKillers": [],
-    "class": "control-survived",
-    "rationale": "README: 実装済みだがE2E未検証（replaceState 単体）。主経路は pushState"
+    "expectedKillers": ["S28"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR22",
+    "file": "src/tracker/tracker.ts",
+    "operator": "identifier-swap",
+    "change": "vidとsidのCookie名を入れ替える",
+    "beforeString": "  const VID_COOKIE = \"_td_vid\";\n  const SID_COOKIE = \"_td_sid\";",
+    "afterString": "  const VID_COOKIE = \"_td_sid\";\n  const SID_COOKIE = \"_td_vid\";",
+    "expectedKillers": ["S20"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR23",
+    "file": "src/tracker/tracker.ts",
+    "operator": "condition-negation",
+    "change": "vidの再発行条件を反転する",
+    "beforeString": "    if (!vid || !VID_RE.test(vid)) {\n      vid = `v_${crypto.randomUUID()}`;\n    }",
+    "afterString": "    if (vid && VID_RE.test(vid)) {\n      vid = `v_${crypto.randomUUID()}`;\n    }",
+    "expectedKillers": ["S20", "S21", "S25"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR24",
+    "file": "src/tracker/tracker.ts",
+    "operator": "state-retention",
+    "change": "Cookie利用不可でも同じvidを再利用する",
+    "beforeString": "  function ensureClientId(): string {\n    let vid = readCookie(VID_COOKIE);\n    if (!vid || !VID_RE.test(vid)) {\n      vid = `v_${crypto.randomUUID()}`;\n    }\n    // ヒット送信のたびに Max-Age を延長(ローリング)\n    writeCookie(VID_COOKIE, vid, VID_MAX_AGE_SEC);\n    return vid;\n  }",
+    "afterString": "  let retainedVid: string | null = null;\n  function ensureClientId(): string {\n    let vid = readCookie(VID_COOKIE) ?? retainedVid;\n    if (!vid || !VID_RE.test(vid)) {\n      vid = `v_${crypto.randomUUID()}`;\n    }\n    retainedVid = vid;\n    writeCookie(VID_COOKIE, vid, VID_MAX_AGE_SEC);\n    return vid;\n  }",
+    "expectedKillers": ["S26"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR27",
+    "file": "src/tracker/tracker.ts",
+    "operator": "failure-state-corruption",
+    "change": "Config取得失敗時にdataLayer queueを破棄する",
+    "beforeString": "    .catch((error) =>\n      console.warn(\"[tracker] 設定の取得に失敗しました\", error)\n    );",
+    "afterString": "    .catch((error) => {\n      w.tdDataLayer = [];\n      console.warn(\"[tracker] 設定の取得に失敗しました\", error);\n    });",
+    "expectedKillers": ["S32"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR28",
+    "file": "src/tracker/tracker.ts",
+    "operator": "call-removal",
+    "change": "pushStateフックだけを削除する",
+    "beforeString": "    patch(\"pushState\");\n    patch(\"replaceState\");\n    window.addEventListener(\"popstate\", onHistoryChange);",
+    "afterString": "    patch(\"replaceState\");\n    window.addEventListener(\"popstate\", onHistoryChange);",
+    "expectedKillers": ["S07"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR29",
+    "file": "src/tracker/tracker.ts",
+    "operator": "field-removal",
+    "change": "payloadからvidだけを削除する",
+    "beforeString": "      vid: ensureClientId(),\n      ws: wsId,",
+    "afterString": "      ws: wsId,",
+    "expectedKillers": ["S20"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR30",
+    "file": "src/tracker/tracker.ts",
+    "operator": "field-removal",
+    "change": "payloadからsidだけを削除する",
+    "beforeString": "      eventId,\n      sid: ensureSessionId(),\n      ts:",
+    "afterString": "      eventId,\n      ts:",
+    "expectedKillers": ["S20"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR31",
+    "file": "src/tracker/tracker.ts",
+    "operator": "value-swap",
+    "change": "payloadのvidとsidを入れ替える",
+    "beforeString": "      sid: ensureSessionId(),\n      ts: new Date().toISOString(),\n      type,\n      ua: navigator.userAgent,\n      url: location.href,\n      vid: ensureClientId(),",
+    "afterString": "      sid: ensureClientId(),\n      ts: new Date().toISOString(),\n      type,\n      ua: navigator.userAgent,\n      url: location.href,\n      vid: ensureSessionId(),",
+    "expectedKillers": ["S20"],
+    "class": "primary"
+  },
+  {
+    "id": "M-TR32",
+    "file": "src/tracker/tracker.ts",
+    "operator": "duplicate-call",
+    "change": "初期pageviewを2回送りexact count契約を壊す",
+    "beforeString": "      if (!replayedPageview) {\n        onPageview();\n      }",
+    "afterString": "      if (!replayedPageview) {\n        onPageview();\n        onPageview();\n      }",
+    "expectedKillers": ["S01", "S29"],
+    "class": "primary"
   },
   {
     "id": "M-CS03",

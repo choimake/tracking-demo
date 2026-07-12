@@ -3,7 +3,14 @@ import { testClickTrigger } from "./tests/click-trigger.js";
 import { testCollectHttp500 } from "./tests/collect-http-500.js";
 import { testCollectSendBeaconFallback } from "./tests/collect-sendbeacon-fallback.js";
 import { testConfigHttp500 } from "./tests/config-http-500.js";
-import { testCookieIdentity } from "./tests/cookie-identity.js";
+import { testCookieClientReset } from "./tests/cookie-client-reset.js";
+import { testCookieInvalidValues } from "./tests/cookie-invalid-values.js";
+import { testCookieIssuance } from "./tests/cookie-issuance.js";
+import { testCookieMultitab } from "./tests/cookie-multitab.js";
+import { testCookieNavigationContinuity } from "./tests/cookie-navigation-continuity.js";
+import { testCookieRollingExpiration } from "./tests/cookie-rolling-expiration.js";
+import { testCookieSessionReset } from "./tests/cookie-session-reset.js";
+import { testCookieUnavailable } from "./tests/cookie-unavailable.js";
 import { testDataLayerManualPageview } from "./tests/datalayer-manual.js";
 import { testDataLayerQueueReplay } from "./tests/datalayer-queue.js";
 import { testDisabledEventStopsTracking } from "./tests/disabled-event.js";
@@ -29,12 +36,14 @@ import { testUrlNormalize } from "./tests/url-normalize.js";
 import { testUrlReachTrigger } from "./tests/url-reach.js";
 
 export interface E2eScenario {
+  id: string;
   name: string;
   run: (ctx: E2eContext) => Promise<void>;
+  tags?: readonly string[];
 }
 
 /** 実行する全シナリオの登録一覧。新規テスト追加時はここに1行足す */
-export const e2eScenarios: E2eScenario[] = [
+const registeredScenarios: Omit<E2eScenario, "id">[] = [
   {
     name: "タグ読み込み + ページビュー送信(dataLayer方式・非同期・クロスオリジン)",
     run: testTagLoadAndPageview,
@@ -97,8 +106,44 @@ export const e2eScenarios: E2eScenario[] = [
     run: testQueryOnlyUnsupported,
   },
   {
-    name: "first-party Cookie 匿名識別: vid/sid の発行・MPA/SPA継続・Max-Age再延長(sid/vid)・区切り・リセット・Cookie無効相当",
-    run: testCookieIdentity,
+    name: "Cookie発行: 初回発行・形式・Hit一致・属性",
+    run: testCookieIssuance,
+    tags: ["cookie"],
+  },
+  {
+    name: "Cookie継続: MPA/SPA遷移でvid/sidを維持",
+    run: testCookieNavigationContinuity,
+    tags: ["cookie"],
+  },
+  {
+    name: "Cookie期限: sid/vidのMax-AgeをHitごとに再延長",
+    run: testCookieRollingExpiration,
+    tags: ["cookie"],
+  },
+  {
+    name: "Cookieセッションリセット: sid削除後にsidを再発行",
+    run: testCookieSessionReset,
+    tags: ["cookie"],
+  },
+  {
+    name: "Cookieクライアントリセット: vid/sid削除後に両方を再発行",
+    run: testCookieClientReset,
+    tags: ["cookie"],
+  },
+  {
+    name: "Cookie不正値: malformed vid/sidから回復",
+    run: testCookieInvalidValues,
+    tags: ["cookie"],
+  },
+  {
+    name: "Cookie利用不可: Hit送信とcontext非汚染",
+    run: testCookieUnavailable,
+    tags: ["cookie"],
+  },
+  {
+    name: "Cookie複数タブ: 初期化競合後に共有vid/sidへ収束",
+    run: testCookieMultitab,
+    tags: ["cookie"],
   },
   {
     name: "replaceStateパス変更: リロードなしでpageviewを正確に1件送信",
@@ -133,3 +178,8 @@ export const e2eScenarios: E2eScenario[] = [
     run: testTrackerScriptHttp404,
   },
 ];
+
+/** IDは登録順から生成する。既存項目の順序変更ではなく末尾追加を原則とする。 */
+export const e2eScenarios: E2eScenario[] = registeredScenarios.map(
+  (scenario, index) => ({ ...scenario, id: `scenario-${index + 1}` })
+);

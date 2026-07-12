@@ -1,0 +1,29 @@
+name: e2e
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  browser:
+    name: browser e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run e2e
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-diagnostics
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: warn

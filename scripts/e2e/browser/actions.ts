@@ -266,21 +266,56 @@ export async function spaReplaceStateSamePath(page: Page): Promise<void> {
   });
 }
 
-/**
- * document.cookie で `_td_sid` をセットする(形式不正 sid の再発行検証用)。
- * テスト本体への evaluate 直書きを避ける。
- */
-export async function setTdSidCookie(
+/** document.cookie で匿名識別 Cookie をセットする。 */
+export async function setTdCookie(
   page: Page,
-  sid: string,
-  maxAgeSec = 30 * 60
+  name: "_td_vid" | "_td_sid",
+  value: string,
+  maxAge = 60
 ): Promise<void> {
   await page.evaluate(
-    ({ maxAge, value }) => {
-      document.cookie = `_td_sid=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+    ({ cookieName, cookieValue, seconds }) => {
+      document.cookie = `${cookieName}=${encodeURIComponent(cookieValue)}; Path=/; Max-Age=${seconds}; SameSite=Lax`;
     },
-    { maxAge: maxAgeSec, value: sid }
+    { cookieName: name, cookieValue: value, seconds: maxAge }
   );
+}
+
+/** エンコードせずに匿名識別 Cookie をセットする。壊れたpercent encodingの検証専用。 */
+export async function setRawTdCookie(
+  page: Page,
+  name: "_td_vid" | "_td_sid",
+  value: string,
+  path = "/"
+): Promise<void> {
+  await page.evaluate(
+    ({ cookieName, cookiePath, cookieValue }) => {
+      document.cookie = `${cookieName}=${cookieValue}; Path=${cookiePath}; Max-Age=60; SameSite=Lax`;
+    },
+    { cookieName: name, cookiePath: path, cookieValue: value }
+  );
+}
+
+/** document.cookie から指定した匿名識別 Cookie を削除する。 */
+export async function deleteTdCookies(
+  page: Page,
+  names: ("_td_vid" | "_td_sid")[]
+): Promise<void> {
+  await page.evaluate((cookieNames) => {
+    for (const name of cookieNames) {
+      document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
+    }
+  }, names);
+}
+
+/** 同じ BrowserContext にタブを追加する。 */
+export async function openSiblingTab(page: Page): Promise<Page> {
+  return page.context().newPage();
+}
+
+/** 現在のページから document.cookie を直接読み取る。 */
+export async function readDocumentCookie(page: Page): Promise<string> {
+  return page.evaluate(() => document.cookie);
 }
 
 /** spa.html の「dataLayer で手動ページビュー送信」ボタンをクリック */

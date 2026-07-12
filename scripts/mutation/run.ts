@@ -24,13 +24,81 @@ const ROOT = path.resolve(
   "../.."
 );
 const CATALOG_PATH = path.join(ROOT, "docs/mutation-catalog.json");
+const MUTANT_CONTRACTS = {
+  "exact-count": ["M-TR32"],
+  "dedup-window-boundary": ["M-TR11", "M-TR12", "M-TR13"],
+  "cookie-name": ["M-TR22"],
+  "vid-sid-swap": ["M-TR31"],
+  "reissue-condition": ["M-TR19", "M-TR23"],
+  "max-age-renewal": ["M-TR18"],
+  "cookie-unavailable-id-reuse": ["M-TR24"],
+  "push-state-hook": ["M-TR28"],
+  "replace-state-hook": ["M-TR25"],
+  "pop-state-hook": ["M-TR10"],
+  "timer-cleanup": ["M-TR15"],
+  "send-beacon-fallback": ["M-TR26"],
+  "payload-vid": ["M-TR29"],
+  "payload-sid": ["M-TR30"],
+  "enabled-filter": ["M-SV01", "M-SV02", "M-SV03"],
+  "fire-once-guard": ["M-TR03"],
+  "double-tag-guard": ["M-TR01"],
+  "config-failure-queue": ["M-TR27"],
+  "other-primary": [
+    "M-TR02",
+    "M-TR04",
+    "M-TR05",
+    "M-TR06",
+    "M-TR07",
+    "M-TR08",
+    "M-TR09",
+    "M-TR14",
+    "M-TR16",
+    "M-TR17",
+    "M-TR20",
+    "M-TR21",
+    "M-TG01",
+    "M-TG02",
+    "M-TG03",
+    "M-SV04",
+    "M-SV05",
+  ],
+  "known-gap-control": ["M-CS03"],
+} as const;
+const SCENARIO_SEMANTICS = {
+  S01: "タグ読み込み + ページビュー送信(dataLayer方式・非同期・クロスオリジン)",
+  S02: "URL到達トリガー(MPA遷移)",
+  S03: "クリックトリガー(CSSセレクタ)",
+  S04: "スクロール率トリガー(50%)",
+  S05: "ページ滞在時間トリガー(2秒)",
+  S06: "離脱インテントトリガー",
+  S07: "SPA対応: History Change でページビュー再評価 + URL到達発火",
+  S08: "GTM History Change併用(自動検知+手動push): 二重計上なし・1000ms超の再送は許容",
+  S09: 'dataLayer 連携: tdDataLayer.push({event:"tracker.pageview"})',
+  S10: "dataLayer キュー再生: ロード前の push を処理し、かつ二重計上しない",
+  S11: "タグ二重設置ガード: 2つ目の読み込みは無視される",
+  S12: "無効イベントは計測停止(配信除外・受信破棄・0件表示)",
+  S13: "SPA popstate(戻る): リロードなし・戻り先pageview再送・購入イベントは戻るだけでは増えない",
+  S14: "滞在タイマー破棄: 閾値未満の滞在を繰り返すtime_on_pageイベントは発火しない",
+  S15: "発火回数の意味論: クリックは複数回発火(fire)・スクロール率は1PVにつき1回のみ(fireOnce)",
+  S16: "URL正規化: 大文字小文字・末尾スラッシュ・日本語パス(パーセントエンコード)の一致",
+  S17: "モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない",
+  S18: "非対応contract: hash navigationでは新しいpageviewを発火しない",
+  S20: "Cookie発行: 初回発行・形式・Hit一致・属性",
+  S21: "Cookie継続: MPA/SPA遷移でvid/sidを維持",
+  S22: "Cookie期限: sid/vidのMax-AgeをHitごとに再延長",
+  S25: "Cookie不正値: malformed vid/sidから回復",
+  S26: "Cookie利用不可: Hit送信とcontext非汚染",
+  S28: "replaceStateパス変更: リロードなしでpageviewを正確に1件送信",
+  S29: "reload: 再読み込み後のpageviewを正確に1件送信",
+  S32: "Config障害: HTTP 500で初期化停止・dataLayer queue保持・retryなし",
+  S33: "Collect障害: sendBeacon=falseでfetch fallbackを1回だけ実行",
+} as const;
 const RESULTS_PATH = path.join(ROOT, "docs/mutation-results.json");
 const REPORT_PATH = path.join(ROOT, "docs/mutation-report.md");
 const WORKER_SCRIPT = path.join(ROOT, "scripts/e2e/bench/suite-worker.ts");
 
 const E2E_TIMEOUT_MS = 180_000;
 const MAX_RETRIES = 2; // timeout/error の追加試行回数（合計3回）
-const PRIMARY_TOTAL = 29;
 
 type MutantClass = "primary" | "control-survived" | "infra";
 type AttemptResult = "killed" | "survived" | "timeout" | "error";
@@ -71,6 +139,7 @@ interface MutantResult {
   unexpectedFailedScenarioIds: string[];
   excludedFromKillRate: boolean;
   exclusionReason: string | null;
+  survivorReason: string | null;
 }
 
 interface ResultsFile {
@@ -184,14 +253,36 @@ function loadCatalog(): CatalogMutant[] {
   const raw = JSON.parse(
     fs.readFileSync(CATALOG_PATH, "utf8")
   ) as CatalogMutant[];
-  if (raw.length !== 32) {
-    throw new Error(`カタログ件数は32であるべき: got ${raw.length}`);
-  }
   const primary = raw.filter((m) => m.class === "primary");
-  const control = raw.filter((m) => m.class === "control-survived");
-  if (primary.length !== 29 || control.length !== 3) {
+  const referencedScenarioIds = new Set(raw.flatMap((m) => m.expectedKillers));
+  const semanticScenarioIds = new Set(Object.keys(SCENARIO_SEMANTICS));
+  const missingSemantics = [...referencedScenarioIds].filter(
+    (id) => !semanticScenarioIds.has(id)
+  );
+  if (missingSemantics.length > 0) {
     throw new Error(
-      `内訳不正: primary=${primary.length} control=${control.length}`
+      `expectedKillersのscenario意味対応が未登録: ${missingSemantics.join(",")}`
+    );
+  }
+  for (const [scenarioId, expectedName] of Object.entries(SCENARIO_SEMANTICS)) {
+    const index = Number(scenarioId.slice(1)) - 1;
+    if (e2eScenarios[index]?.name !== expectedName) {
+      throw new Error(
+        `${scenarioId}: scenario意味対応が不一致: expected=${expectedName} actual=${e2eScenarios[index]?.name ?? "なし"}`
+      );
+    }
+  }
+  const ids = raw.map((m) => m.id);
+  if (new Set(ids).size !== ids.length)
+    throw new Error("mutant ID が重複しています");
+  const contractedIds = Object.values(MUTANT_CONTRACTS).flat();
+  const missingFromCatalog = contractedIds.filter((id) => !ids.includes(id));
+  const missingFromContracts = ids.filter(
+    (id) => !contractedIds.includes(id as never)
+  );
+  if (missingFromCatalog.length || missingFromContracts.length) {
+    throw new Error(
+      `カタログとcontract一覧が不一致: catalog不足=${missingFromCatalog.join(",") || "なし"} contract不足=${missingFromContracts.join(",") || "なし"}`
     );
   }
   for (const m of primary) {
@@ -199,16 +290,28 @@ function loadCatalog(): CatalogMutant[] {
       throw new Error(`${m.id}: primary の expectedKillers が空`);
     }
   }
-  for (let i = 1; i <= 18; i++) {
-    const sid = `S${String(i).padStart(2, "0")}`;
-    const covered = primary.some((m) => m.expectedKillers.includes(sid));
-    if (!covered) {
-      throw new Error(
-        `シナリオ ${sid} を expectedKillers に持つ primary がない`
-      );
+  for (const [contract, mutantIds] of Object.entries(MUTANT_CONTRACTS)) {
+    if (
+      contract !== "known-gap-control" &&
+      !mutantIds.some((id) => primary.some((m) => m.id === id))
+    ) {
+      throw new Error(`${contract}: primary mutant がない`);
     }
   }
   for (const m of raw) {
+    if (m.class === "control-survived" && !m.rationale?.trim()) {
+      throw new Error(`${m.id}: control-survived の rationale が空`);
+    }
+    for (const killer of m.expectedKillers) {
+      const index = Number(killer.slice(1));
+      if (
+        !/^S\d{2}$/.test(killer) ||
+        index < 1 ||
+        index > e2eScenarios.length
+      ) {
+        throw new Error(`${m.id}: 存在しない expectedKiller ${killer}`);
+      }
+    }
     const abs = path.join(ROOT, m.file);
     const src = fs.readFileSync(abs, "utf8");
     const count = src.split(m.beforeString).length - 1;
@@ -509,7 +612,7 @@ function buildReport(data: ResultsFile): string {
   const primary = data.mutants.filter((m) => m.class === "primary");
   const killed = primary.filter((m) => m.finalResult === "killed").length;
   const excluded = primary.filter((m) => m.excludedFromKillRate).length;
-  const denom = PRIMARY_TOTAL - excluded;
+  const denom = primary.length - excluded;
   const rate = denom > 0 ? ((killed / denom) * 100).toFixed(1) : "n/a";
   const survived = primary.filter((m) => m.finalResult === "survived");
   const control = data.mutants.filter((m) => m.class === "control-survived");
@@ -524,7 +627,7 @@ function buildReport(data: ResultsFile): string {
   lines.push("## 1. 結論");
   lines.push("");
   lines.push(
-    `kill rate は ${killed}/${denom} （${rate}%）でした。これはキュレーションカタログ（primary ${PRIMARY_TOTAL}件中、除外${excluded}件）に対する E2E oracle（Chromium・18シナリオ）の検出力の一指標であり、網羅的な変異テスト（Stryker等）の結果とは異なるため、この母集団を超えて一般化はできません。survived は${survived.length}件（意図的対照群${control.length}件の結果は別掲、テストギャップ候補${gap}件、unexpected-kill ${unexpected.length}件）です。`
+    `kill rate は ${killed}/${denom} （${rate}%）でした。これはキュレーションカタログ（primary ${primary.length}件中、除外${excluded}件）に対する E2E oracle（Chromium・${e2eScenarios.length}シナリオ）の検出力の一指標です。網羅的な変異テスト（Stryker等）の結果とは異なるため、この母集団を超えて一般化できません。survived は${survived.length}件（意図的対照群${control.length}件の結果は別掲、テストギャップ候補${gap}件、unexpected-kill ${unexpected.length}件）です。`
   );
   lines.push("");
   lines.push("## 2. 実行条件");
@@ -573,7 +676,7 @@ function buildReport(data: ResultsFile): string {
   lines.push("");
   for (const m of control) {
     lines.push(
-      `- **${m.mutantId}**: finalResult=${m.finalResult}${m.finalResult === "killed" || m.unexpectedKill ? " ⚠️ 想定と反する" : "（想定どおり survived なら健全）"}`
+      `- **${m.mutantId}**: finalResult=${m.finalResult} — ${m.survivorReason ?? "理由未登録"}${m.finalResult === "killed" || m.unexpectedKill ? " ⚠️ 想定と反する" : ""}`
     );
   }
   lines.push("");
@@ -656,6 +759,10 @@ async function main(): Promise<void> {
   const catalog = loadCatalog();
   const catalogSha256 = sha256File(CATALOG_PATH);
   console.log(`catalog sha256=${catalogSha256} count=${catalog.length}`);
+  if (process.env.MUTATION_VALIDATE_ONLY === "1") {
+    console.log("catalog validation passed");
+    return;
+  }
 
   let mutantsToRun = catalog;
   if (filterMode) {
@@ -815,6 +922,10 @@ async function main(): Promise<void> {
         : [],
       excludedFromKillRate,
       exclusionReason,
+      survivorReason:
+        finalResult === "survived"
+          ? (m.rationale ?? "expectedKillersが検出しないギャップまたは等価変異")
+          : null,
     };
     results.mutants.push(record);
     console.log(`  finalResult: ${finalResult}`);

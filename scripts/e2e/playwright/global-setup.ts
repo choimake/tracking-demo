@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+
 import { stackEnvRecord, startStack } from "../harness/stack.js";
 
 const FIXTURES_ENV = "E2E_FIXTURES";
@@ -14,7 +17,14 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.once("SIGINT", onSigint);
   process.once("SIGTERM", onSigterm);
   console.log("[E2E stack] starting");
-  const stack = await startStack().finally(() => {
+  const stackLogPath = path.resolve(
+    "test-results",
+    `e2e-stack-${Date.now()}-${process.pid}.log`
+  );
+  await fs.mkdir(path.dirname(stackLogPath), { recursive: true });
+  await fs.writeFile(stackLogPath, "");
+  process.env.E2E_STACK_LOG_PATH = stackLogPath;
+  const stack = await startStack({ logPath: stackLogPath }).finally(() => {
     process.off("SIGINT", onSigint);
     process.off("SIGTERM", onSigterm);
   });
@@ -69,6 +79,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       if (errors.length > 0) {
         throw new AggregateError(errors, "E2E global teardownに失敗しました");
       }
+      await fs.rm(stackLogPath, { force: true });
     };
   } catch (setupError) {
     let stopError: unknown;

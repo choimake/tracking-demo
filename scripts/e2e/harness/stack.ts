@@ -46,6 +46,8 @@ export interface StartStackOptions {
   observationEnabled?: boolean;
   /** 観測APIの保存前回帰テストでのみ上書きする。 */
   dbSaveDebounceMs?: number;
+  /** 指定時はサーバーの標準出力と標準エラーを診断ログへ複製する。 */
+  logPath?: string;
 }
 
 export interface StackHandle {
@@ -233,12 +235,17 @@ async function startStackAttempt(
   });
 
   let output = "";
+  const appendLog = (chunk: Buffer): void => {
+    if (options.logPath) fs.appendFileSync(options.logPath, chunk);
+  };
   child.stdout?.on("data", (chunk: Buffer) => {
     output = appendOutput(output, chunk);
+    appendLog(chunk);
     if (options.forwardOutput) process.stdout.write(chunk);
   });
   child.stderr?.on("data", (chunk: Buffer) => {
     output = appendOutput(output, chunk);
+    appendLog(chunk);
     if (options.forwardOutput) process.stderr.write(chunk);
   });
 

@@ -66,13 +66,20 @@ const log = (...args: unknown[]) => console.info("[tracker]", ...args);
 
   function readCookie(name: string): string | null {
     const prefix = `${name}=`;
+    let matched: string | null = null;
     for (const part of document.cookie.split(";")) {
       const trimmed = part.trim();
       if (trimmed.startsWith(prefix)) {
-        return decodeURIComponent(trimmed.slice(prefix.length));
+        try {
+          // 同名 Cookie は Path が長い順に並ぶ。Path=/ の正規 Cookie を優先するため最後の値を使う。
+          matched = decodeURIComponent(trimmed.slice(prefix.length));
+        } catch {
+          // 壊れた percent encoding は欠落と同じ扱いにして匿名 ID を再発行する。
+          matched = null;
+        }
       }
     }
-    return null;
+    return matched;
   }
 
   function writeCookie(name: string, value: string, maxAgeSec: number): void {
