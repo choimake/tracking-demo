@@ -196,7 +196,7 @@ async function main(): Promise<void> {
     try {
       await teardownE2eFixtures(tracking, fixtures);
     } catch (error) {
-      console.error("fixture teardownに失敗しました:", error);
+      console.error("fixture teardownの例外を捕捉しました:", error);
       process.exitCode = 1;
     }
     runner.printSummary();

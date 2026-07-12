@@ -144,6 +144,10 @@ async function checkTeardownFailure(): Promise<void> {
       assert(error instanceof AggregateError);
       assert.match(error.message, new RegExp(fixtures.exitIntentEventId));
       assert.match(error.message, new RegExp(fixtures.japaneseUrlEventId));
+      assert.doesNotMatch(
+        error.message,
+        new RegExp(fixtures.timeOnPageEventId)
+      );
       return true;
     }
   );
