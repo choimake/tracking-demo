@@ -20,6 +20,9 @@ const TIME_ON_PAGE_TEST_EVENT_NAME = "E2E滞在2秒";
 const JAPANESE_URL_TEST_EVENT_NAME = "E2E日本語URL到達";
 const EXIT_INTENT_TEST_EVENT_NAME = "E2E離脱インテント";
 const FIXTURE_NAME_PREFIX = "__e2e_fixture__";
+const FIXTURE_NAME_RE = new RegExp(
+  `^${FIXTURE_NAME_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:(\\d+):([0-9a-f-]{36}):`
+);
 /** 共有DBに残ったfixtureを次回setupで回収する期限 */
 export const E2E_FIXTURE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -45,7 +48,7 @@ function fixtureName(
 }
 
 function fixtureCreatedAtMs(name: string): number | undefined {
-  const match = /^__e2e_fixture__:(\d+):([0-9a-f-]{36}):/.exec(name);
+  const match = FIXTURE_NAME_RE.exec(name);
   if (!match) return undefined;
   const createdAtMs = Number(match[1]);
   return Number.isSafeInteger(createdAtMs) ? createdAtMs : undefined;
@@ -198,6 +201,7 @@ export async function teardownE2eFixtures(
     fixtures.japaneseUrlEventId,
   ];
   const errors: unknown[] = [];
+  const failedEventIds: string[] = [];
   for (const eventId of eventIds) {
     try {
       await tracking.deleteEvent(eventId);
@@ -206,12 +210,13 @@ export async function teardownE2eFixtures(
         `fixture teardown failed: eventId=${eventId}: ${String(error)}`
       );
       errors.push(error);
+      failedEventIds.push(eventId);
     }
   }
   if (errors.length > 0) {
     throw new AggregateError(
       errors,
-      `fixture teardownに失敗しました: eventIds=${eventIds.join(",")}`
+      `fixture teardownに失敗しました: eventIds=${failedEventIds.join(",")}`
     );
   }
 }

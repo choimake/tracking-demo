@@ -193,11 +193,16 @@ async function main(): Promise<void> {
       }
     }
   } finally {
-    await teardownE2eFixtures(tracking, fixtures);
+    try {
+      await teardownE2eFixtures(tracking, fixtures);
+    } catch (error) {
+      console.error("fixture teardownに失敗しました:", error);
+      process.exitCode = 1;
+    }
+    runner.printSummary();
   }
 
-  runner.printSummary();
-  process.exit(runner.exitCode);
+  process.exitCode = runner.exitCode || process.exitCode || 0;
 }
 
 if (process.env.E2E_SUITE_CHILD === "1") {
