@@ -10,7 +10,11 @@ import { testExitIntentTrigger } from "./tests/exit-intent.js";
 import { testFireSemantics } from "./tests/fire-semantics.js";
 import { testGtmHistoryChangeDedup } from "./tests/gtm-dedup.js";
 import { testHashNavigationUnsupported } from "./tests/hash-navigation.js";
+import { testHistoryTraversal } from "./tests/history-traversal.js";
+import { testPageLeaveTimerCancel } from "./tests/page-leave-timer.js";
 import { testQueryOnlyUnsupported } from "./tests/query-only.js";
+import { testReloadPageview } from "./tests/reload-pageview.js";
+import { testReplaceStatePathChange } from "./tests/replace-state.js";
 import { testScrollTrigger } from "./tests/scroll-trigger.js";
 import { testSpaHistoryChange } from "./tests/spa-history.js";
 import { testSpaPopstate } from "./tests/spa-popstate.js";
@@ -91,5 +95,21 @@ export const e2eScenarios: E2eScenario[] = [
   {
     name: "first-party Cookie 匿名識別: vid/sid の発行・MPA/SPA継続・Max-Age再延長(sid/vid)・区切り・リセット・Cookie無効相当",
     run: testCookieIdentity,
+  },
+  {
+    name: "replaceStateパス変更: リロードなしでpageviewを正確に1件送信",
+    run: testReplaceStatePathChange,
+  },
+  {
+    name: "reload: 再読み込み後のpageviewを正確に1件送信",
+    run: testReloadPageview,
+  },
+  {
+    name: "back/forward反復: 4操作の各移動先でpageviewを正確に1件送信",
+    run: testHistoryTraversal,
+  },
+  {
+    name: "ページ離脱: 旧ページのtime-on-page timerはイベントを送信しない",
+    run: testPageLeaveTimerCancel,
   },
 ];

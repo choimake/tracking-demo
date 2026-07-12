@@ -202,6 +202,40 @@ export async function spaPushState(page: Page, path: string): Promise<void> {
   }, path);
 }
 
+/** SPA上で任意パスへ history.replaceState する。 */
+export async function spaReplaceState(page: Page, path: string): Promise<void> {
+  await page.evaluate((p) => {
+    history.replaceState({}, "", p);
+  }, path);
+}
+
+/** 現在のデモページを reload し、reload 後の pageview 送信まで待つ。 */
+export async function reloadDemoPage(page: Page): Promise<void> {
+  const pageviewDone = page.waitForEvent("console", {
+    predicate: (m) => m.text().includes("[tracker] ページビュー:"),
+    timeout: DEFAULT_WAIT_TIMEOUT_MS,
+  });
+  await page.reload({ waitUntil: "load" });
+  await pageviewDone;
+}
+
+/** 同一ドキュメントの履歴を back 2回連続で移動する。 */
+export async function goBackTwice(page: Page): Promise<void> {
+  await page.goBack();
+  await page.goBack();
+}
+
+/** 同一ドキュメントの履歴を forward 2回連続で移動する。 */
+export async function goForwardTwice(page: Page): Promise<void> {
+  await page.goForward();
+  await page.goForward();
+}
+
+/** 計測タグがない about:blank へ移動し、現在の計測ページから離脱する。 */
+export async function leaveTrackedPage(page: Page): Promise<void> {
+  await page.goto("about:blank", { waitUntil: "load" });
+}
+
 /** location.hash だけを変更する。hashchange はブラウザが発火する。 */
 export async function changeLocationHash(
   page: Page,
