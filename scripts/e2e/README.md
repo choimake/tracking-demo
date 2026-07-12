@@ -4,6 +4,7 @@
 デモサイト（顧客 LP 役・別オリジン）にタグを貼った本番相当の構成を再現する。
 
 詳細なコーディングルールは [AGENTS.md](./AGENTS.md) を参照。
+E2E runner の方針と移行順序は、[E2E runner 移行方針](../../docs/e2e-runner-migration.md) を参照。
 
 ## Fixture の所有権と回収
 

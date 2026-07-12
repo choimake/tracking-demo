@@ -5,7 +5,8 @@
 ## 適用範囲
 
 - 対象: `scripts/e2e/` 配下のテスト・Act・Assert・ハーネス
-- 対象外: POM / Playwright Test への移行、本番アプリ本体の変更
+- 対象: [`@playwright/test` への段階移行](../../docs/e2e-runner-migration.md)
+- 対象外: POM、本番アプリ本体の変更、決定済みの段階を無視した移行
 - スコープ外の検証項目を勝手に広げない（未検証一覧は README「スコープ外」）
 
 ## 用語
