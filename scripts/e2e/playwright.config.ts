@@ -3,10 +3,11 @@ import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "@playwright/test";
 
-import { SCENARIO_TIMEOUT_MS } from "./harness/config.js";
+import type { SCENARIO_TIMEOUT_MS as ScenarioTimeoutMs } from "./harness/config.js";
 import { isE2eMobile, parseE2eBrowsers } from "./harness/project-options.js";
 
 const E2E_DIR = path.dirname(fileURLToPath(import.meta.url));
+const DEFAULT_SCENARIO_TIMEOUT_MS = 60_000 satisfies typeof ScenarioTimeoutMs;
 const mobile = isE2eMobile();
 
 export default defineConfig({
@@ -15,7 +16,8 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   repeatEach: Number(process.env.E2E_REPEAT) || 1,
-  timeout: Number(process.env.E2E_SCENARIO_TIMEOUT_MS) || SCENARIO_TIMEOUT_MS,
+  timeout:
+    Number(process.env.E2E_SCENARIO_TIMEOUT_MS) || DEFAULT_SCENARIO_TIMEOUT_MS,
   outputDir: path.resolve("test-results", "playwright"),
   reporter: process.env.CI
     ? [
