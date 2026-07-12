@@ -239,6 +239,14 @@ export class TrackingClient {
   }
 
   async deleteEvent(eventId: string): Promise<void> {
-    await this.fetchTracking(`/api/events/${eventId}`, { method: "DELETE" });
+    try {
+      await this.fetchTracking(`/api/events/${eventId}`, { method: "DELETE" });
+    } catch (error) {
+      // teardown再試行時に、前回削除済みのfixtureは回収済みとして扱う。
+      if (error instanceof Error && error.message.endsWith("-> HTTP 404")) {
+        return;
+      }
+      throw error;
+    }
   }
 }

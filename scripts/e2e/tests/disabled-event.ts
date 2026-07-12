@@ -65,6 +65,6 @@ export async function testDisabledEventStopsTracking(
     }
     console.log("  ✓ 配信除外で発火せず・0件表示");
   } finally {
-    await tracking.toggleEvent(timeOnPageEventId, true).catch(() => {});
+    await tracking.toggleEvent(timeOnPageEventId, true);
   }
 }

@@ -7,7 +7,6 @@ import { createE2eSession } from "../harness/session.js";
 import type { E2eContext } from "../harness/types.js";
 import { finalizeScenarioVideo } from "../harness/video.js";
 import {
-  EVENT_ID_EXIT_INTENT,
   quiesceBeacons,
   expectNoHitsDuringObservation,
 } from "../tracking/index.js";
@@ -70,7 +69,11 @@ async function assertNoExitIntent(
 ): Promise<void> {
   await expectNoHitsDuringObservation(
     ctx.tracking,
-    { afterHitId: hitCursor, eventId: EVENT_ID_EXIT_INTENT, type: "event" },
+    {
+      afterHitId: hitCursor,
+      eventId: ctx.fixtures.exitIntentEventId,
+      type: "event",
+    },
     "モバイルのタップ操作による離脱インテントイベント",
     { observationMs: EXIT_INTENT_MOBILE_CHECK_DELAY_MS }
   );

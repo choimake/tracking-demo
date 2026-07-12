@@ -44,8 +44,11 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
   const cases: CaseTiming[] = [];
   let browserStatus: "pass" | "fail" = "pass";
 
-  const browser = await BROWSERS[browserName].launch();
+  let browser:
+    | Awaited<ReturnType<(typeof BROWSERS)[BrowserName]["launch"]>>
+    | undefined;
   try {
+    browser = await BROWSERS[browserName].launch();
     const probePage = await browser.newPage();
     const userAgent = await probePage.evaluate(() => navigator.userAgent);
     await probePage.context().close();
@@ -97,7 +100,7 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
       }
     }
   } finally {
-    await browser.close().catch(() => {});
+    await browser?.close().catch(() => {});
     await teardownE2eFixtures(tracking, fixtures);
   }
 

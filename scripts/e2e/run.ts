@@ -167,11 +167,11 @@ async function main(): Promise<void> {
     throw new Error("E2E_SUITE_FAIL_IMMEDIATELY による意図的な失敗");
   }
   const tracking = new TrackingClient();
-  const fixtures = await setupE2eFixtures(tracking);
   const runner = new E2eRunner();
   const recordVideoMode = parseRecordVideoMode();
   const mobile = isE2eMobile();
   const browserOrder = parseE2eBrowsers();
+  const fixtures = await setupE2eFixtures(tracking);
 
   try {
     for (const browserName of browserOrder) {

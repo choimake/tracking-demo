@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 import type {
   Browser,
   BrowserContext,
@@ -6,7 +8,6 @@ import type {
 } from "playwright";
 
 import { TrackingClient } from "../tracking/client.js";
-import { EVENT_ID_EXIT_INTENT } from "../tracking/seed-events.js";
 import {
   E2E_CORRELATION_UA_PREFIX,
   MOBILE_VIEWPORT,
@@ -17,6 +18,53 @@ import type { E2eFixtures } from "./types.js";
 
 const TIME_ON_PAGE_TEST_EVENT_NAME = "E2E滞在2秒";
 const JAPANESE_URL_TEST_EVENT_NAME = "E2E日本語URL到達";
+const EXIT_INTENT_TEST_EVENT_NAME = "E2E離脱インテント";
+const FIXTURE_NAME_PREFIX = "__e2e_fixture__";
+/** 共有DBに残ったfixtureを次回setupで回収する期限 */
+export const E2E_FIXTURE_TTL_MS = 24 * 60 * 60 * 1000;
+
+interface FixtureTrackingClient {
+  createEvent: TrackingClient["createEvent"];
+  deleteEvent: TrackingClient["deleteEvent"];
+  getEventSummaries: TrackingClient["getEventSummaries"];
+}
+
+export interface SetupE2eFixturesOptions {
+  /** 回帰チェックで所有者を固定する場合だけ指定する。 */
+  ownerId?: string;
+  /** 回帰チェックで現在時刻を固定する場合だけ指定する。 */
+  nowMs?: number;
+}
+
+function fixtureName(
+  createdAtMs: number,
+  ownerId: string,
+  name: string
+): string {
+  return `${FIXTURE_NAME_PREFIX}:${createdAtMs}:${ownerId}:${name}`;
+}
+
+function fixtureCreatedAtMs(name: string): number | undefined {
+  const match = /^__e2e_fixture__:(\d+):([0-9a-f-]{36}):/.exec(name);
+  if (!match) return undefined;
+  const createdAtMs = Number(match[1]);
+  return Number.isSafeInteger(createdAtMs) ? createdAtMs : undefined;
+}
+
+async function cleanupStaleFixtures(
+  tracking: FixtureTrackingClient,
+  nowMs: number
+): Promise<void> {
+  const expiresBefore = nowMs - E2E_FIXTURE_TTL_MS;
+  const events = await tracking.getEventSummaries();
+  for (const event of events) {
+    const createdAtMs = fixtureCreatedAtMs(event.name);
+    if (createdAtMs !== undefined && createdAtMs < expiresBefore) {
+      await tracking.deleteEvent(event.id);
+      console.log(`  stale fixture removed: eventId=${event.id}`);
+    }
+  }
+}
 
 /** createE2eSession / createE2ePage が返すセッション(context 必須) */
 export interface E2eSession {
@@ -87,42 +135,83 @@ export async function createE2ePage(browser: Browser): Promise<E2eSession> {
   return createE2eSession(browser);
 }
 
-/** 準備: 離脱インテントを有効化し、検証用の短い滞在時間イベント(2秒)を作成する */
+/** 準備: 検証用イベント3件(離脱インテント・滞在2秒・日本語URL)を run 固有名で作成する */
 export async function setupE2eFixtures(
-  tracking: TrackingClient
+  tracking: FixtureTrackingClient,
+  options: SetupE2eFixturesOptions = {}
 ): Promise<E2eFixtures> {
-  // 前回異常終了で残った検証用イベントを掃除(同名が複数あると disabled 判定が壊れる)
-  const existing = await tracking.getEventSummaries();
-  for (const e of existing) {
-    if (
-      e.name === TIME_ON_PAGE_TEST_EVENT_NAME ||
-      e.name === JAPANESE_URL_TEST_EVENT_NAME
-    ) {
-      await tracking.deleteEvent(e.id).catch(() => {});
+  const nowMs = options.nowMs ?? Date.now();
+  const ownerId = options.ownerId ?? crypto.randomUUID();
+  const createdEventIds: string[] = [];
+  await cleanupStaleFixtures(tracking, nowMs);
+  try {
+    const exitIntentEventId = await tracking.createEvent({
+      description: `E2E fixture owner=${ownerId}`,
+      labelIds: [],
+      name: fixtureName(nowMs, ownerId, EXIT_INTENT_TEST_EVENT_NAME),
+      trigger: "exit_intent",
+    });
+    createdEventIds.push(exitIntentEventId);
+    const timeOnPageEventId = await tracking.createEvent({
+      description: `E2E fixture owner=${ownerId}`,
+      labelIds: [],
+      name: fixtureName(nowMs, ownerId, TIME_ON_PAGE_TEST_EVENT_NAME),
+      trigger: `time_on_page:${TIME_ON_PAGE_TRIGGER_SECONDS}`,
+    });
+    createdEventIds.push(timeOnPageEventId);
+    const japaneseUrlEventId = await tracking.createEvent({
+      description: `E2E fixture owner=${ownerId}`,
+      labelIds: [],
+      name: fixtureName(nowMs, ownerId, JAPANESE_URL_TEST_EVENT_NAME),
+      trigger: "url:/注文/完了",
+    });
+    createdEventIds.push(japaneseUrlEventId);
+    return { exitIntentEventId, japaneseUrlEventId, timeOnPageEventId };
+  } catch (setupError) {
+    const cleanupErrors: unknown[] = [];
+    for (const eventId of createdEventIds) {
+      try {
+        await tracking.deleteEvent(eventId);
+      } catch (error) {
+        cleanupErrors.push(error);
+      }
     }
+    if (cleanupErrors.length > 0) {
+      throw new Error(
+        `fixture setupとrollbackに失敗しました: eventIds=${createdEventIds.join(",")}; ` +
+          `cleanupErrors=${cleanupErrors.map(String).join(" | ")}`,
+        { cause: setupError }
+      );
+    }
+    throw setupError;
   }
-  await tracking.toggleEvent(EVENT_ID_EXIT_INTENT, true);
-  const timeOnPageEventId = await tracking.createEvent({
-    description: "検証用",
-    labelIds: [],
-    name: TIME_ON_PAGE_TEST_EVENT_NAME,
-    trigger: `time_on_page:${TIME_ON_PAGE_TRIGGER_SECONDS}`,
-  });
-  const japaneseUrlEventId = await tracking.createEvent({
-    description: "検証用(URL正規化: 日本語パス)",
-    labelIds: [],
-    name: JAPANESE_URL_TEST_EVENT_NAME,
-    trigger: "url:/注文/完了",
-  });
-  return { japaneseUrlEventId, timeOnPageEventId };
 }
 
-/** 後片付け: 検証用イベントを削除し、離脱インテントを元(無効)に戻す */
+/** 後片付け: 当該setupが作成した検証用イベントだけを削除する。 */
 export async function teardownE2eFixtures(
-  tracking: TrackingClient,
+  tracking: FixtureTrackingClient,
   fixtures: E2eFixtures
 ): Promise<void> {
-  await tracking.deleteEvent(fixtures.timeOnPageEventId).catch(() => {});
-  await tracking.deleteEvent(fixtures.japaneseUrlEventId).catch(() => {});
-  await tracking.toggleEvent(EVENT_ID_EXIT_INTENT, false).catch(() => {});
+  const eventIds = [
+    fixtures.exitIntentEventId,
+    fixtures.timeOnPageEventId,
+    fixtures.japaneseUrlEventId,
+  ];
+  const errors: unknown[] = [];
+  for (const eventId of eventIds) {
+    try {
+      await tracking.deleteEvent(eventId);
+    } catch (error) {
+      console.error(
+        `fixture teardown failed: eventId=${eventId}: ${String(error)}`
+      );
+      errors.push(error);
+    }
+  }
+  if (errors.length > 0) {
+    throw new AggregateError(
+      errors,
+      `fixture teardownに失敗しました: eventIds=${eventIds.join(",")}`
+    );
+  }
 }
