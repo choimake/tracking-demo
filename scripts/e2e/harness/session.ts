@@ -20,8 +20,15 @@ const TIME_ON_PAGE_TEST_EVENT_NAME = "E2E滞在2秒";
 const JAPANESE_URL_TEST_EVENT_NAME = "E2E日本語URL到達";
 const EXIT_INTENT_TEST_EVENT_NAME = "E2E離脱インテント";
 const FIXTURE_NAME_PREFIX = "__e2e_fixture__";
+// fixture接頭辞内の正規表現メタ文字をリテラルへ変換する。例: `fixture.name` は `fixture\.name` になる。
+const FIXTURE_NAME_PREFIX_RE_SOURCE = FIXTURE_NAME_PREFIX.replace(
+  /[.*+?^${}()|[\]\\]/g,
+  "\\$&"
+);
+// fixture名 `<接頭辞>:<作成時刻ms>:<owner UUID>:<表示名>` にマッチする。
+// 例: `__e2e_fixture__:1770000000000:5c8fba50-7d13-4c25-8a9e-123456789abc:E2E滞在2秒`
 const FIXTURE_NAME_RE = new RegExp(
-  `^${FIXTURE_NAME_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:(\\d+):([0-9a-f-]{36}):`
+  `^${FIXTURE_NAME_PREFIX_RE_SOURCE}:(\\d+):([0-9a-f-]{36}):`
 );
 /** 共有DBに残ったfixtureを次回setupで回収する期限 */
 export const E2E_FIXTURE_TTL_MS = 24 * 60 * 60 * 1000;

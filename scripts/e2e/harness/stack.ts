@@ -61,6 +61,7 @@ interface PortReservation {
 }
 
 function safeLabel(value: string): string {
+  // 英数字、`_`、`-` 以外の文字へマッチする。例: `run/01` の `/`。
   return value.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 

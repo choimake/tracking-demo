@@ -85,12 +85,18 @@ export function parseRecordVideoMode(): RecordVideoMode | null {
 
 /** シナリオ名を動画ファイル名用の安全な slug に変換する */
 export function toScenarioSlug(name: string): string {
-  return name
-    .trim()
-    .replace(/[/\\?%*:|"<>]/g, "-")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+  return (
+    name
+      .trim()
+      // ファイル名に使えない記号へマッチする。例: `URL/到達` の `/`。
+      .replace(/[/\\?%*:|"<>]/g, "-")
+      // 1文字以上の空白へマッチする。例: `URL  到達` の連続空白。
+      .replace(/\s+/g, "-")
+      // 1文字以上の連続ハイフンへマッチする。例: `URL--到達` の `--`。
+      .replace(/-+/g, "-")
+      // 文字列の先頭または末尾のハイフンへマッチする。例: `-URL-` の両端。
+      .replace(/^-|-$/g, "")
+  );
 }
 
 /** ブラウザ別の動画出力ディレクトリ(`test-results/videos/{browserName}`) */

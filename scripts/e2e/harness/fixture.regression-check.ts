@@ -123,7 +123,8 @@ async function checkSetupRollback(): Promise<void> {
   tracking.failCreateAt = 2;
   await assert.rejects(
     setupE2eFixtures(tracking, { nowMs: NOW_MS, ownerId: OWNER_A }),
-    /create failure 2/
+    (error: unknown) =>
+      error instanceof Error && error.message.includes("create failure 2")
   );
   assert.equal(tracking.events.size, 0);
   assert.deepEqual(tracking.deleteAttempts, ["created-1"]);
@@ -142,12 +143,9 @@ async function checkTeardownFailure(): Promise<void> {
     teardownE2eFixtures(tracking, fixtures),
     (error: unknown) => {
       assert(error instanceof AggregateError);
-      assert.match(error.message, new RegExp(fixtures.exitIntentEventId));
-      assert.match(error.message, new RegExp(fixtures.japaneseUrlEventId));
-      assert.doesNotMatch(
-        error.message,
-        new RegExp(fixtures.timeOnPageEventId)
-      );
+      assert.equal(error.message.includes(fixtures.exitIntentEventId), true);
+      assert.equal(error.message.includes(fixtures.japaneseUrlEventId), true);
+      assert.equal(error.message.includes(fixtures.timeOnPageEventId), false);
       return true;
     }
   );

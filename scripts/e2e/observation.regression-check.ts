@@ -64,7 +64,8 @@ async function runObservationRegressionCheck(): Promise<void> {
   }
 
   const enabled = await startStack({
-    // 保存前検証では、collectからreadFileまでを10秒未満で実行する。
+    // collectからreadFileまでがdebounceを超えると、保存前でもファイルに含まれて偽の失敗になる。
+    // そのため、保存前検証は10秒未満で実行する前提を置く。
     dbSaveDebounceMs: 10_000,
     runId: "observation-enabled",
   });
@@ -111,7 +112,11 @@ async function runObservationRegressionCheck(): Promise<void> {
 
     await assert.rejects(
       tracking.getEventCount7dFromApi("ev_missing"),
-      /イベントが管理API応答に存在しません: eventId=ev_missing/
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message.includes(
+          "イベントが管理API応答に存在しません: eventId=ev_missing"
+        )
     );
     console.log("missing event contract: diagnostic failure");
   } finally {
@@ -123,7 +128,11 @@ async function runObservationRegressionCheck(): Promise<void> {
     const tracking = new TrackingClient(undefined, malformed.origin);
     await assert.rejects(
       tracking.getAllHits(),
-      /観測API応答が不正です: hits\[0\]\.id がstringではありません/
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message.includes(
+          "観測API応答が不正です: hits[0].id: expected=string actual=1"
+        )
     );
     console.log("malformed observation contract: diagnostic failure");
   } finally {

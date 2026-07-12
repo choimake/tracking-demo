@@ -63,6 +63,7 @@
 - オリジン・タイムアウト・UA トークン等の定数は `harness/config.ts` に置く
 - `sleep` は `harness/config.ts` に置き、`tracking` から re-export しない
 - 匿名 ID 形式の正規表現は `tracking/assertions.ts` の `ANON_VID_RE` / `ANON_SID_RE` に一本化する
+- 正規表現の直前に、マッチの意図とマッチする具体値の例をコメントで記載する
 
 ### 実行と隔離状態
 

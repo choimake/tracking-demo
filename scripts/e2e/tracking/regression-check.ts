@@ -4,12 +4,14 @@ import { fileURLToPath } from "node:url";
 
 import { runAssertionsMutationCheck } from "./assertions.mutation-check.js";
 import { runAssertionsRegressionCheck } from "./assertions.regression-check.js";
+import { runClientRegressionCheck } from "./client.regression-check.js";
 import { runCorrelationRegressionCheck } from "./correlation.regression-check.js";
 
 // 子プロセスで実行するファイルを knip に示す。ここでは関数を呼ばない。
 void runAssertionsRegressionCheck;
 void runCorrelationRegressionCheck;
 void runAssertionsMutationCheck;
+void runClientRegressionCheck;
 
 const require = createRequire(import.meta.url);
 const tsxCli = require.resolve("tsx/cli");
@@ -17,6 +19,7 @@ const entries = [
   "./correlation.regression-check.ts",
   "./assertions.regression-check.ts",
   "./assertions.mutation-check.ts",
+  "./client.regression-check.ts",
 ];
 
 for (const entry of entries) {

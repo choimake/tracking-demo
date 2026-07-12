@@ -21,6 +21,8 @@ function stackDetails(output: string): {
   dbPath: string;
   ports: [number, number];
 } {
+  // stack起動ログのtracking port、site port、DB pathへマッチする。
+  // 例: `tracking=http://localhost:3101 site=http://localhost:3201 db=/tmp/e2e.json`。
   const match = output.match(
     /tracking=http:\/\/localhost:(\d+) site=http:\/\/localhost:(\d+) db=(.+)\n/
   );
@@ -172,6 +174,7 @@ async function main(): Promise<void> {
         await stack.stop();
       }
     } catch (error) {
+      // テストが意図的に投げた例外へマッチする。例: `Error: 意図的なテスト途中例外`。
       assert.match(String(error), /意図的なテスト途中例外/);
     }
     assert.equal(fs.existsSync(injectedDbPath), false);
@@ -186,14 +189,19 @@ async function main(): Promise<void> {
       }),
       (error: Error) => {
         timeoutMessage = error.message;
+        // health check期限超過の診断へマッチする。例: `health timeout after 15000ms`。
         assert.match(error.message, /health timeout/);
+        // 対象run IDの診断へマッチする。例: `runId=regression-timeout`。
         assert.match(error.message, /runId=regression-timeout/);
+        // 動的portとDB pathの診断へマッチする。例: `PORT=3101 SITE_PORT=3201 DB_PATH=/tmp/e2e.json`。
         assert.match(error.message, /PORT=\d+ SITE_PORT=\d+ DB_PATH=/);
+        // server出力の診断見出しへマッチする。例: `server output:`。
         assert.match(error.message, /server output:/);
         console.log(`startup diagnostic: ${error.message.split("\n")[0]}`);
         return true;
       }
     );
+    // timeout診断のportとDB pathへマッチする。例: `PORT=3101 SITE_PORT=3201 DB_PATH=/tmp/e2e.json`。
     const timeoutMatch = timeoutMessage.match(
       /PORT=(\d+) SITE_PORT=(\d+) DB_PATH=(.+)\n/
     );
@@ -210,7 +218,9 @@ async function main(): Promise<void> {
     ]);
     const details = injectedRuns.map((injectedRun) => {
       assert.equal(injectedRun.code, 1);
+      // 注入したsuite失敗の識別子へマッチする。例: `E2E_SUITE_FAIL_IMMEDIATELY`。
       assert.match(injectedRun.output, /E2E_SUITE_FAIL_IMMEDIATELY/);
+      // stack cleanup完了ログへマッチする。例: `[E2E stack] cleanup complete`。
       assert.match(injectedRun.output, /\[E2E stack\] cleanup complete/);
       return stackDetails(injectedRun.output);
     });
@@ -226,6 +236,7 @@ async function main(): Promise<void> {
 
     const interruptedRun = await runInterruptedStartup();
     assert.equal(interruptedRun.code, 143);
+    // SIGTERM後のstack cleanup完了ログへマッチする。例: `[E2E stack] cleanup complete`。
     assert.match(interruptedRun.output, /\[E2E stack\] cleanup complete/);
     const interruptedDetails = stackDetails(interruptedRun.output);
     assert.equal(fs.existsSync(interruptedDetails.dbPath), false);

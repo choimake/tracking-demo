@@ -100,6 +100,7 @@ export async function runCorrelationRegressionCheck(): Promise<void> {
     assert.equal(await tracking.getEventCount7d("ev_purchase"), 2);
     await assert.rejects(
       tracking.getHitsMatching({ afterHitId: "missing" }),
+      // 欠落したHit cursorの診断へマッチする。例: `Hit cursor が観測結果に存在しません: missing`。
       /Hit cursor が観測結果に存在しません/
     );
     console.log("correlation regression check: PASS");

@@ -71,6 +71,7 @@ export async function runAssertionsMutationCheck(): Promise<void> {
           {
             name: "assertion-mutant",
             setup(buildApi) {
+              // assertions.tsの絶対パスへマッチする。例: `/repo/scripts/e2e/tracking/assertions.ts`。
               buildApi.onLoad({ filter: /assertions\.ts$/ }, () => ({
                 contents: mutated,
                 loader: "ts",

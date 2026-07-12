@@ -71,6 +71,7 @@ Options:
 }
 
 function newRunId(): string {
+  // ISO日時に含まれるコロンまたはピリオドへマッチする。例: `12:34:56.789` の `:` と `.`。
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
   return `${ts}-${crypto.randomBytes(3).toString("hex")}`;
 }
