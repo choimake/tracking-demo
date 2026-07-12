@@ -9,6 +9,8 @@ import { testExitIntentMobile } from "./tests/exit-intent-mobile.js";
 import { testExitIntentTrigger } from "./tests/exit-intent.js";
 import { testFireSemantics } from "./tests/fire-semantics.js";
 import { testGtmHistoryChangeDedup } from "./tests/gtm-dedup.js";
+import { testHashNavigationUnsupported } from "./tests/hash-navigation.js";
+import { testQueryOnlyUnsupported } from "./tests/query-only.js";
 import { testScrollTrigger } from "./tests/scroll-trigger.js";
 import { testSpaHistoryChange } from "./tests/spa-history.js";
 import { testSpaPopstate } from "./tests/spa-popstate.js";
@@ -77,6 +79,14 @@ export const e2eScenarios: E2eScenario[] = [
   {
     name: "モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない",
     run: testExitIntentMobile,
+  },
+  {
+    name: "非対応contract: hash navigationでは新しいpageviewを発火しない",
+    run: testHashNavigationUnsupported,
+  },
+  {
+    name: "非対応contract: query-only遷移ではpageviewを再評価しない",
+    run: testQueryOnlyUnsupported,
   },
   {
     name: "first-party Cookie 匿名識別: vid/sid の発行・MPA/SPA継続・Max-Age再延長(sid/vid)・区切り・リセット・Cookie無効相当",

@@ -202,6 +202,26 @@ export async function spaPushState(page: Page, path: string): Promise<void> {
   }, path);
 }
 
+/** location.hash だけを変更する。hashchange はブラウザが発火する。 */
+export async function changeLocationHash(
+  page: Page,
+  hash: string
+): Promise<void> {
+  await page.evaluate((value) => {
+    location.hash = value;
+  }, hash);
+}
+
+/** 現在の pathname を維持し、history.pushState で query だけを変更する。 */
+export async function changeQueryOnly(
+  page: Page,
+  query: string
+): Promise<void> {
+  await page.evaluate((value) => {
+    history.pushState({}, "", `${location.pathname}${value}${location.hash}`);
+  }, query);
+}
+
 /**
  * 現在の pathname で history.replaceState する(同一パス早期 return 殺傷用)。
  * 正規実装では追加 pageview なし。早期 return 削除変異では +1 になる。
