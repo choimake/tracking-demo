@@ -88,7 +88,7 @@ git worktree list
 - 基盤タスク（例: タスク01 Hermetic stack）は依存順を崩さない
 - 統合前に基準 branch との差分と受け入れ基準を確認する
 - 競合解消時に一方の assertion や negative case を消さない
-- 統合前に `npm run quality`（typecheck + check + knip + deps）と対象 E2E（`npm run e2e`）を通す
+- 統合前に `npm run quality` と対象 E2E（`npm run e2e`）を通す。qualityの構成は [継続的インテグレーション](continuous-integration.md) を参照する
 - integration branch で全体を検証してから main へ統合する
 
 ## 制約（現時点の非対応）

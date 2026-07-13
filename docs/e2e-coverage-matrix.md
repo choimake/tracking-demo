@@ -18,7 +18,7 @@
 | 担当層      | リポジトリ内の実体                                | 担当範囲                                                                       |
 | ----------- | ------------------------------------------------- | ------------------------------------------------------------------------------ |
 | unit        | 専用テスト基盤なし                                | URL、trigger、configの純粋な解析と入力境界。必要なケースは未実装として管理する |
-| integration | `scripts/e2e/**/*.regression-check.ts`            | fixture、observation、相関、assertion、helper、scenario選択のcontract          |
+| integration | `scripts/e2e/**/*.regression-check.ts`            | stack、fixture、observation、相関、assertion、helper、scenario選択のcontract   |
 | browser E2E | `scripts/e2e/tests/`                              | tracker.jsの読み込みとページ操作から`/api/collect`までのcontract               |
 | mutation    | `scripts/mutation/`、`docs/mutation-catalog.json` | Chromium E2E oracleの検出力。キュレーションしたmutantを対象とする              |
 
@@ -101,7 +101,7 @@ ownerは`tracker / E2E`とする。関連仕様は[`spec.md`](../spec.md)と[`sc
 | Hit相関、assertion                   | positive / negative / boundary | integration | `tracking/*.regression-check.ts`                 | quality |
 | Cookie helper                        | positive / negative / boundary | integration | `tests/cookie-helpers.regression-check.ts`       | quality |
 | scenario選択、順序、seed             | positive / negative / boundary | integration | `harness/scenario-selection.regression-check.ts` | quality |
-| run専用stack、signal、teardown       | failure / boundary             | integration | `harness/stack.regression-check.ts`              | manual  |
+| run専用stack、signal、teardown       | failure / boundary             | integration | `harness/stack.regression-check.ts`              | quality |
 | E2E oracleの検出力                   | failure / boundary             | mutation    | primary 40、control-survived 1                   | manual  |
 | URL、trigger、configの純粋な入力境界 | negative / boundary            | unit        | 専用基盤なし。未実装                             | 未設定  |
 
