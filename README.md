@@ -41,7 +41,7 @@
 - UTM / 日付(midnight)区切り・`session_start`・`session_number`・`user_id`(ログイン紐づけ)は実装しません。
 - Cookie が無効(または書き込み不能)な環境では、計測ビーコン自体は送り得ますが、再訪識別・セッション継続は成立しません(ヒットごとに新しい `vid`/`sid` 相当になります)。
 - 本番相当の認証・レート制限・HTTPS/CSP・RDB はありません(詳細は「本番化時の課題」を参照してください)。
-- ハッシュルーティング・クエリのみ変更の再評価などには対応していません(詳細は「E2Eのスコープ外」を参照してください)。
+- ハッシュルーティング・クエリのみ変更の再評価などには対応していません。詳細は [scripts/e2e/README.md](./scripts/e2e/README.md) の「スコープ外」を参照してください。
 
 ## 起動
 
@@ -96,42 +96,10 @@ E2E の構成・各ファイルの役割は [`scripts/e2e/README.md`](scripts/e2
 E2E-oracle ミューテーションテストの手法は [`docs/mutation-testing.md`](docs/mutation-testing.md)、直近の実行結果は [`docs/mutation-report.md`](docs/mutation-report.md) を参照してください。
 Git worktree を使った並列開発フローは [`docs/development-flow.md`](docs/development-flow.md) を参照してください。
 
-Chromium / Firefox / WebKit の3エンジンを直列 headless 実行し、以下の18項目を実機検証します
-(`scripts/e2e/tests/` の各シナリオと1対1で対応します)。
-
-1. タグ読み込み+pageview送信(dataLayer方式・非同期・クロスオリジン)
-2. URL到達トリガー(MPA遷移)
-3. クリックトリガー(CSSセレクタ)
-4. スクロール率トリガー(50%)
-5. ページ滞在時間トリガー
-6. 離脱インテントトリガー
-7. SPA対応: History Change でのpageview再評価+URL到達発火
-8. GTM History Change 併用時の二重計上防止(自動検知+手動pushの重複排除、1000ms超の意図的な再送は許容)
-9. dataLayer 連携(手動pageview送信)
-10. dataLayer キュー再生(ロード前 push の処理・二重計上なし)
-11. タグ二重設置ガード
-12. 無効イベントの計測停止(受信側の破棄を含む)
-13. SPA popstate(戻る): リロードなし・戻り先pageview再送・購入イベントは戻るだけでは増えない
-14. 滞在タイマー破棄: 閾値未満の滞在を繰り返す限り time_on_page イベントは発火しない
-15. 発火回数の意味論: クリックは複数回発火(fire)・スクロール率は1PVにつき1回のみ(fireOnce)
-16. URL正規化: 大文字小文字・末尾スラッシュ・日本語パス(パーセントエンコード)の一致
-17. モバイル(isMobile/hasTouch)ではタップ操作のみで離脱インテントが発火しない
-18. first-party Cookie 匿名識別: vid/sid の発行・MPA/SPA継続・Max-Age再延長(sid/vid)・区切り・リセット・Cookie無効相当
-
-**E2Eのスコープ外**:
-
-**非対応**:
-
-- ハッシュルーティング(`#/path` 形式)によるページ遷移の検知
-- クエリパラメータのみの変更(パスが同一でクエリだけ変わるケース)によるpageview再評価
-- モバイル実機・実ブラウザでの離脱インテント発火(仕様上デスクトップのカーソル操作前提であり、そもそも発火"しない"ことの確認に限る)
-- CSP環境
-- 管理画面のE2E
-
-**実装済みだがE2E未検証**:
-
-- `replaceState` 単体の挙動
-- `sendBeacon` 失敗時の `fetch` フォールバック経路
+E2E は Chromium / Firefox / WebKit の3エンジンを直列で実行します。実行シナリオの登録は
+[`scripts/e2e/scenarios.ts`](scripts/e2e/scenarios.ts) を参照してください。検証済みの contract と未検証範囲は
+[`docs/e2e-coverage-matrix.md`](docs/e2e-coverage-matrix.md) を参照してください。実行方法と障害調査手順は
+[`scripts/e2e/README.md`](scripts/e2e/README.md) を参照してください。
 
 ## 構成
 

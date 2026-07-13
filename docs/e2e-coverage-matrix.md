@@ -1,13 +1,13 @@
 # E2E Coverage Matrix
 
-> 最終版。2026-07-13時点の`scenarios.ts`、CI、回帰チェック、mutationカタログと同期する。
+> この文書は、E2Eのcontract、担当層、ブラウザ、実行頻度、未保証範囲を管理する台帳である。IDと名称は`scenarios.ts`と一致させる。
 
 ## 目的と更新規則
 
 このMatrixは、計測contractの保証先と未保証範囲を示す。新規機能のPRでは次を確認する。
 
 1. contractの入力、出力、失敗時の挙動を変える場合は該当行を更新する。
-2. シナリオを追加した場合は、stable ID、名称、種別、担当層、実行対象を追加する。
+2. シナリオを追加した場合は、stable ID、名称、種別、担当層、実行対象を追加する。`npm run e2e:scenario-catalog-check`は、ID、名称、件数、順序を`scenarios.ts`と照合する。
 3. 新しい重要contractにはpositiveとnegativeを用意する。境界値または障害経路がある場合は、その種別も追加する。
 4. ブラウザAPI、Cookie、History、ライフサイクルへ依存するcontractはbrowser E2Eが担当する。
 5. ブラウザを必要としない入力境界はunitまたはintegrationが担当する。
@@ -33,7 +33,13 @@ nightlyは設定していない。mutationはChromiumだけを手動実行する
 
 ## 登録済みシナリオ
 
-次の35行は`scenarios.ts`の登録順と一致する。stable IDは既存行の順序を維持し、新規行を末尾へ追加することで固定する。ownerは`tracker / E2E`とする。関連仕様は[`spec.md`](../spec.md)と[`scripts/e2e/README.md`](../scripts/e2e/README.md)である。
+この表は、登録済みシナリオの件数、ID、名称、検証状態を管理する唯一の文書である。
+次の35行は`scenarios.ts`の登録順と一致する。
+
+stable IDは登録順から生成する。既存行の削除と並べ替えを禁止する。新規行は末尾へ追加する。
+この規則と回帰チェックによって既存IDを固定する。
+
+ownerは`tracker / E2E`とする。関連仕様は[`spec.md`](../spec.md)と[`scripts/e2e/README.md`](../scripts/e2e/README.md)である。
 
 | ID            | シナリオ名称                                                                             | Contract                         | 種別                           | 担当層      | ブラウザ | 頻度・備考                                  |
 | ------------- | ---------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------ | ----------- | -------- | ------------------------------------------- |
@@ -137,7 +143,7 @@ nightlyは設定していない。mutationはChromiumだけを手動実行する
 
 ## 運用状態
 
-- 通常E2Eは35シナリオ×3ブラウザをCIで実行する。Cookie、単一scenario、単一browserを選択できる。
+- 通常E2Eは登録済みの全シナリオを3ブラウザでCI実行する。Cookie、単一scenario、単一browserを選択できる。
 - 通常順、逆順、seed固定ランダム順を選択できる。`npm run e2e:flake`はCookieをChromiumで20回反復する。
 - 成功時は診断artifactを残さない。失敗時はconsole、page error、network、Hit、スクリーンショット、trace、stack logを保存する。
-- mutationカタログはCritical contractと自動照合する。2026-07-13時点の拡張カタログ実走は未完了である。
+- mutationカタログはCritical contractと自動照合する。直近の実走結果は[`docs/mutation-report.md`](./mutation-report.md)に記録する。

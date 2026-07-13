@@ -1,4 +1,5 @@
 import { selectE2eScenarios } from "../harness/scenario-selection.js";
+import { verifyScenarioCatalog } from "../scenario-catalog.js";
 import { e2eScenarios } from "../scenarios.js";
 import { test } from "./fixtures.js";
 
@@ -8,6 +9,7 @@ export const E2E_EXECUTION_METADATA = {
     "同一runの全ケースが共有fixtureと専用DBを使うため、workerごとのDB隔離を導入するまで直列実行する",
 } as const;
 
+verifyScenarioCatalog();
 const selection = selectE2eScenarios(e2eScenarios);
 console.log(
   `[e2e] order=${selection.order} seed=${selection.seed ?? "none"} scenarios=${selection.scenarios.map((scenario) => scenario.id).join(",")}`
