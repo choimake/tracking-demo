@@ -15,6 +15,33 @@ type ResponseMode =
 
 const REQUEST_TIMEOUT_MS = 50;
 
+async function verifyDelayedOriginEvaluation(): Promise<void> {
+  const originalFetch = globalThis.fetch;
+  const originalPort = process.env.PORT;
+  let requestedUrl: string | undefined;
+  try {
+    // clientのimport後にrun専用ポートが決まるglobal setupの順序を再現する。
+    process.env.PORT = "43199";
+    globalThis.fetch = async (input) => {
+      requestedUrl = String(input);
+      return new Response("{}", { status: 200 });
+    };
+    await new TrackingClient().fetchTracking("/api/e2e/origin-probe");
+    assert.equal(
+      requestedUrl,
+      "http://localhost:43199/api/e2e/origin-probe",
+      "TrackingClient生成時にrun専用ポートを評価する"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalPort === undefined) {
+      delete process.env.PORT;
+    } else {
+      process.env.PORT = originalPort;
+    }
+  }
+}
+
 async function startContractServer(): Promise<{
   close: () => Promise<void>;
   origin: string;
@@ -99,6 +126,7 @@ function hasMessage(...parts: string[]): (error: unknown) => boolean {
 }
 
 export async function runClientRegressionCheck(): Promise<void> {
+  await verifyDelayedOriginEvaluation();
   const server = await startContractServer();
   const tracking = new TrackingClient(
     undefined,

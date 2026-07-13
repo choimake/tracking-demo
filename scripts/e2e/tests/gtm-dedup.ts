@@ -31,7 +31,7 @@ export async function testGtmHistoryChangeDedup(
   // tdDataLayer.push({event:'tracker.pageview'}) を発火する。
   // tracker.js 自身の History API 自動検知と手動 push が同一遷移で両方走っても、
   // pageview・URL到達CV(ev_purchase)がそれぞれちょうど+1件であること(二重計上なし)。
-  // pushState と push は同一tickで実行する必要があるため、browser/actions を
+  // pushState と push は同一tickで実行する必要があるため、browser/history と browser/input を
   // 個別に呼ぶのではなく1回の evaluate にまとめている。
   await page.evaluate(() => {
     history.pushState({}, "", "/order/complete");

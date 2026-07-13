@@ -36,13 +36,16 @@ const mutants: AssertionMutant[] = [
 ];
 
 export async function runAssertionsMutationCheck(): Promise<void> {
-  const assertionsPath = fileURLToPath(
-    new URL("./assertions.ts", import.meta.url)
+  const countAssertionsPath = fileURLToPath(
+    new URL("./count-assertions.ts", import.meta.url)
+  );
+  const assertionsIndexPath = fileURLToPath(
+    new URL("./index.ts", import.meta.url)
   );
   const contractPath = fileURLToPath(
     new URL("./assertions.regression-contract.ts", import.meta.url)
   );
-  const original = await fs.readFile(assertionsPath, "utf8");
+  const original = await fs.readFile(countAssertionsPath, "utf8");
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "e2e-assertions-"));
   try {
     for (const mutant of mutants) {
@@ -56,7 +59,7 @@ export async function runAssertionsMutationCheck(): Promise<void> {
       const outputPath = path.join(tempDir, "mutant.mjs");
       await fs.writeFile(
         entryPath,
-        `import * as assertions from ${JSON.stringify(assertionsPath)};\n` +
+        `import * as assertions from ${JSON.stringify(assertionsIndexPath)};\n` +
           `import { runAssertionsRegressionContract } from ${JSON.stringify(contractPath)};\n` +
           "await runAssertionsRegressionContract(assertions);\n"
       );
@@ -71,11 +74,11 @@ export async function runAssertionsMutationCheck(): Promise<void> {
           {
             name: "assertion-mutant",
             setup(buildApi) {
-              // assertions.tsの絶対パスへマッチする。例: `/repo/scripts/e2e/tracking/assertions.ts`。
-              buildApi.onLoad({ filter: /assertions\.ts$/ }, () => ({
+              // count-assertions.tsの絶対パスへマッチする。
+              buildApi.onLoad({ filter: /count-assertions\.ts$/ }, () => ({
                 contents: mutated,
                 loader: "ts",
-                resolveDir: path.dirname(assertionsPath),
+                resolveDir: path.dirname(countAssertionsPath),
               }));
             },
           },

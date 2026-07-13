@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { HitRecord } from "./client.js";
 
 type AssertionsApi = Pick<
-  typeof import("./assertions.js"),
+  typeof import("./index.js"),
   | "expectAnonIdsPresent"
   | "expectEventCountExactlyIncreasedBy"
   | "expectHitCountAtLeast"

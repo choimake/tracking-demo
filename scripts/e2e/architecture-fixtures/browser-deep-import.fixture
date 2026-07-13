@@ -1,1 +1,1 @@
-import "../browser/actions.js";
+import "../browser/navigation.js";

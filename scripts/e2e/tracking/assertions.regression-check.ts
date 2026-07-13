@@ -1,5 +1,5 @@
-import * as assertions from "./assertions.js";
 import { runAssertionsRegressionContract } from "./assertions.regression-contract.js";
+import * as assertions from "./index.js";
 
 export async function runAssertionsRegressionCheck(): Promise<void> {
   await runAssertionsRegressionContract(assertions);

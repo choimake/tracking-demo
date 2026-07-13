@@ -54,7 +54,7 @@ E2Eコーディング規則の自動検査では、担当の正本を [`architec
 
 ### 自動検査しない実装規則
 
-- `browser/actions.ts` では、クリック可能な UI に `getByRole` を優先する
+- `browser/input.ts` では、クリック可能な UI に `getByRole` を優先する
 - オリジン・UAトークン等の定数は `harness/config.ts` に置く
 - `registeredWait` と `registeredAbortSignal` の実装は `harness/config.ts` に置き、`tracking` から re-export しない
 - 固定待機を直接呼ばない。許可する待機は登録済み待機APIを使い、`architecture-allowlist.json`へ分類・理由・contract ID・基準時間・許容幅を登録する
@@ -87,7 +87,7 @@ E2Eコーディング規則の自動検査では、担当の正本を [`architec
 ## 新規シナリオ手順
 
 1. `tests/<name>.ts` に `export async function test…(ctx: E2eContext)` を書く
-2. デモサイト上の操作を追加するときは `browser/actions.ts` に Act を書く
+2. デモサイト上の操作は、変更理由が一致する `browser/` の責務モジュールに書く
 3. `scenarios.ts` の `e2eScenarios` に `{ name, run }` を1行登録する
 4. `npm run e2e` で確認する
 

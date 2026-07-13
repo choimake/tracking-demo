@@ -1,7 +1,8 @@
 import type { Request, Route } from "playwright";
 
-import { getDemoSiteOrigin } from "../harness/config.js";
 import type { E2ePage, ManagedSession } from "../harness/types.js";
+
+/** このモジュールは、通信障害とブラウザエラーの注入・観測を管理する。 */
 
 const CONFIG_ROUTE_PATTERN = "**/api/config?*";
 const COLLECT_ROUTE_PATTERN = "**/api/collect";
@@ -164,14 +165,6 @@ export async function preloadFailureQueueSentinel(
       { event: "e2e.config-failure-sentinel" },
     ];
   });
-}
-
-/** tracker の初期化完了を待たずにデモページを開く。 */
-export async function gotoDemoPageWithoutTrackerWait(
-  page: E2ePage,
-  path: string
-): Promise<void> {
-  await page.goto(`${getDemoSiteOrigin()}${path}`, { waitUntil: "load" });
 }
 
 /** Config 失敗後も queue が識別要素を保持し、push 可能であることを確認する。 */

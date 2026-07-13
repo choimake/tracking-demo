@@ -47,6 +47,26 @@ module.exports = {
       to: { path: "^scripts/e2e/tracking" },
     },
     {
+      name: "e2e-browser-module-direction",
+      severity: "error",
+      comment: "browser の下位責務は相互依存せず、barrel に逆依存しない",
+      from: {
+        path: "^scripts/e2e/browser/(navigation|history|cookie|failure-injection)(?:\\.ts|/)",
+      },
+      to: {
+        path: "^scripts/e2e/browser/(navigation|history|cookie|input|failure-injection|index)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-browser-input-direction",
+      severity: "error",
+      comment: "input は navigation だけを下位責務として利用できる",
+      from: { path: "^scripts/e2e/browser/input(?:\\.ts|/)" },
+      to: {
+        path: "^scripts/e2e/browser/(history|cookie|failure-injection|index)\\.ts$",
+      },
+    },
+    {
       name: "e2e-tests-browser-barrel-import",
       severity: "error",
       comment: "tests から browser への import は barrel に限定する",
@@ -96,6 +116,111 @@ module.exports = {
         path: "^scripts/e2e/harness",
         pathNot: "^scripts/e2e/harness/config",
       },
+    },
+    {
+      name: "e2e-tracking-response-parser-is-leaf",
+      severity: "error",
+      comment: "response parser は他の tracking モジュールに依存しない",
+      from: {
+        path: "^scripts/e2e/tracking/response-parser(?:\\.ts|/)",
+      },
+      to: {
+        path: "^scripts/e2e/tracking/(transport|admin-api|observation-api|client|polling|count-assertions|hit-payload-assertions|log-assertions|assertion-formatter|index)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tracking-transport-direction",
+      severity: "error",
+      comment: "transport は API・assertion・client に逆依存しない",
+      from: { path: "^scripts/e2e/tracking/transport(?:\\.ts|/)" },
+      to: {
+        path: "^scripts/e2e/tracking/(admin-api|observation-api|client|polling|count-assertions|hit-payload-assertions|log-assertions|index)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tracking-admin-api-direction",
+      severity: "error",
+      comment: "admin API は observation・client・assertion に逆依存しない",
+      from: { path: "^scripts/e2e/tracking/admin-api(?:\\.ts|/)" },
+      to: {
+        path: "^scripts/e2e/tracking/(observation-api|client|polling|count-assertions|hit-payload-assertions|log-assertions|index)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tracking-observation-api-direction",
+      severity: "error",
+      comment: "observation API は admin・client・assertion に逆依存しない",
+      from: {
+        path: "^scripts/e2e/tracking/observation-api(?:\\.ts|/)",
+      },
+      to: {
+        path: "^scripts/e2e/tracking/(admin-api|client|polling|count-assertions|hit-payload-assertions|log-assertions|index)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tracking-client-not-to-assertions",
+      severity: "error",
+      comment: "client facade は assertion 層に依存しない",
+      from: { path: "^scripts/e2e/tracking/client(?:\\.ts|/)" },
+      to: {
+        path: "^scripts/e2e/tracking/(polling|count-assertions|hit-payload-assertions|log-assertions|index)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tracking-assertion-direction",
+      severity: "error",
+      comment: "assertion は polling から count、Hit payload への一方向にする",
+      from: {
+        path: "^scripts/e2e/tracking/(assertion-formatter|polling|count-assertions|hit-payload-assertions|log-assertions)(?:\\.ts|/)",
+      },
+      to: {
+        path: "^scripts/e2e/tracking/(index|hit-payload-assertions)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tracking-assertion-formatter-is-leaf",
+      severity: "error",
+      comment: "assertion formatter は他の assertion モジュールに依存しない",
+      from: {
+        path: "^scripts/e2e/tracking/assertion-formatter(?:\\.ts|/)",
+      },
+      to: {
+        path: "^scripts/e2e/tracking/(polling|count-assertions|hit-payload-assertions|log-assertions)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tracking-polling-not-to-count-or-log",
+      severity: "error",
+      comment: "polling は count と log に逆依存しない",
+      from: { path: "^scripts/e2e/tracking/polling(?:\\.ts|/)" },
+      to: {
+        path: "^scripts/e2e/tracking/(count-assertions|log-assertions)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tracking-log-not-to-count",
+      severity: "error",
+      comment: "log assertion は count assertion に依存しない",
+      from: { path: "^scripts/e2e/tracking/log-assertions(?:\\.ts|/)" },
+      to: { path: "^scripts/e2e/tracking/count-assertions\\.ts$" },
+    },
+    {
+      name: "e2e-tracking-count-not-to-log",
+      severity: "error",
+      comment: "count assertion は log assertion に依存しない",
+      from: {
+        path: "^scripts/e2e/tracking/count-assertions(?:\\.ts|/)",
+      },
+      to: { path: "^scripts/e2e/tracking/log-assertions\\.ts$" },
+    },
+    {
+      name: "e2e-tracking-hit-payload-not-to-log",
+      severity: "error",
+      comment: "Hit payload assertion は log assertion に依存しない",
+      from: {
+        path: "^scripts/e2e/tracking/hit-payload-assertions(?:\\.ts|/)",
+      },
+      to: { path: "^scripts/e2e/tracking/log-assertions\\.ts$" },
     },
     {
       name: "e2e-harness-not-to-browser",

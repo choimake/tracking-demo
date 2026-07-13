@@ -15,25 +15,25 @@
 
 ## 棚卸し結果
 
-| 変更前の待機                                | 分類                           | 移行先または登録理由                                                               |
-| ------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------- |
-| `tracking/assertions.ts` の条件待機         | polling                        | `tracking-condition-poll`。Hit、件数、ログの成立条件を再観測する。                 |
-| `tracking/assertions.ts` の観測期間         | polling                        | `tracking-observation-poll`。負のcontractと正確件数を期限まで監視する。            |
-| `tracking/assertions.ts` の静穏待ち         | polling                        | `tracking-quiesce-poll`。Hit ID列の安定を再観測する。                              |
-| `tracking/client.ts` のfetch上限            | polling                        | `tracking-fetch-deadline`。API応答待ちへ期限を設定する。                           |
-| `harness/stack.ts` のhealth待機             | polling                        | `stack-health-poll`。HTTP応答が成功すれば直ちに終了する。                          |
-| `harness/stack.ts` のhealth応答上限         | polling                        | `stack-health-request-deadline`。停止したHTTP応答を全体期限内に中断する。          |
-| `harness/stack.ts` のSIGTERM/SIGKILL上限    | polling                        | `exit` event待機の5000ms上限として2件を登録する。                                  |
-| `browser/actions.ts` のroute到達上限        | polling                        | `tracker-route-interception-deadline`。要求数を最終観測値として報告する。          |
-| `browser/actions.ts` のtracker.js 800ms遅延 | state-wait-substitute          | routeが要求を停止した状態をPromiseで観測し、明示的に再開する。固定待機を削除した。 |
-| `disabled-event.ts` の受信後500ms待機       | state-wait-substitute          | HTTP 202応答後にメモリ上のHitを即時確認する。固定待機を削除した。                  |
-| `gtm-dedup.ts` の1200ms待機                 | product-contract-time-boundary | 直前の1500ms重複監視で1000ms境界を超えるため、冗長な待機を削除した。               |
-| `datalayer-manual.ts` の1100ms待機          | product-contract-time-boundary | `TRACKER-PAGEVIEW-DEDUP-001`。1000ms境界へ100msの後側許容幅を設ける。              |
-| `time-on-page-cancel.ts` の400ms反復        | product-contract-time-boundary | Playwright Clockで各区間を400ms進める。実行環境のscheduler遅延を除外する。         |
-| `page-leave-timer.ts` の離脱前400ms         | product-contract-time-boundary | Playwright Clockで閾値未満と離脱後の閾値超過を再現する。                           |
-| `disabled-event.ts` の3000ms観測            | product-contract-time-boundary | Playwright Clockで2秒閾値を超えた後、Hitとログを確認する。                         |
-| デバッグ待機                                | debug                          | 該当なし。                                                                         |
-| `page.waitForTimeout`                       | state-wait-substitute          | 該当なし。architecture fixtureが新規利用を拒否する。                               |
+| 変更前の待機                             | 分類                           | 移行先または登録理由                                                               |
+| ---------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------- |
+| `tracking/polling.ts` の条件待機         | polling                        | `tracking-condition-poll`。Hit、件数、ログの成立条件を再観測する。                 |
+| `tracking/polling.ts` の観測期間         | polling                        | `tracking-observation-poll`。負のcontractと正確件数を期限まで監視する。            |
+| `tracking/polling.ts` の静穏待ち         | polling                        | `tracking-quiesce-poll`。Hit ID列の安定を再観測する。                              |
+| `tracking/transport.ts` のfetch上限      | polling                        | `tracking-fetch-deadline`。API応答待ちへ期限を設定する。                           |
+| `harness/stack.ts` のhealth待機          | polling                        | `stack-health-poll`。HTTP応答が成功すれば直ちに終了する。                          |
+| `harness/stack.ts` のhealth応答上限      | polling                        | `stack-health-request-deadline`。停止したHTTP応答を全体期限内に中断する。          |
+| `harness/stack.ts` のSIGTERM/SIGKILL上限 | polling                        | `exit` event待機の5000ms上限として2件を登録する。                                  |
+| `browser/navigation.ts` のroute到達上限  | polling                        | `tracker-route-interception-deadline`。要求数を最終観測値として報告する。          |
+| `browser/navigation.ts` のroute停止      | state-wait-substitute          | routeが要求を停止した状態をPromiseで観測し、明示的に再開する。固定待機を削除した。 |
+| `disabled-event.ts` の受信後500ms待機    | state-wait-substitute          | HTTP 202応答後にメモリ上のHitを即時確認する。固定待機を削除した。                  |
+| `gtm-dedup.ts` の1200ms待機              | product-contract-time-boundary | 直前の1500ms重複監視で1000ms境界を超えるため、冗長な待機を削除した。               |
+| `datalayer-manual.ts` の1100ms待機       | product-contract-time-boundary | `TRACKER-PAGEVIEW-DEDUP-001`。1000ms境界へ100msの後側許容幅を設ける。              |
+| `time-on-page-cancel.ts` の400ms反復     | product-contract-time-boundary | Playwright Clockで各区間を400ms進める。実行環境のscheduler遅延を除外する。         |
+| `page-leave-timer.ts` の離脱前400ms      | product-contract-time-boundary | Playwright Clockで閾値未満と離脱後の閾値超過を再現する。                           |
+| `disabled-event.ts` の3000ms観測         | product-contract-time-boundary | Playwright Clockで2秒閾値を超えた後、Hitとログを確認する。                         |
+| デバッグ待機                             | debug                          | 該当なし。                                                                         |
+| `page.waitForTimeout`                    | state-wait-substitute          | 該当なし。architecture fixtureが新規利用を拒否する。                               |
 
 `harness/config.ts` の `setTimeout` は登録済み待機の実装である。個別の待機ではないため、登録対象から除外する。
 

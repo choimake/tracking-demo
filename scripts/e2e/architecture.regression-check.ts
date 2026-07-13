@@ -400,20 +400,98 @@ try {
   fs.rmSync(secondViolationRoot, { force: true, recursive: true });
 }
 
-const deepImportFixtures = [
+const dependencyCruiserFixtures = [
   {
     file: "browser-deep-import.fixture",
     rule: "e2e-tests-browser-barrel-import",
+    target: "scripts/e2e/tests/.architecture-browser-deep-import.tmp.ts",
   },
   {
     file: "tracking-deep-import.fixture",
     rule: "e2e-tests-tracking-barrel-import",
+    target: "scripts/e2e/tests/.architecture-tracking-deep-import.tmp.ts",
+  },
+  {
+    file: "browser-module-reverse.fixture",
+    rule: "e2e-browser-module-direction",
+    target: "scripts/e2e/browser/navigation/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "browser-input-reverse.fixture",
+    rule: "e2e-browser-input-direction",
+    target: "scripts/e2e/browser/input/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-parser-reverse.fixture",
+    rule: "e2e-tracking-response-parser-is-leaf",
+    target: "scripts/e2e/tracking/response-parser/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-transport-reverse.fixture",
+    rule: "e2e-tracking-transport-direction",
+    target: "scripts/e2e/tracking/transport/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-admin-reverse.fixture",
+    rule: "e2e-tracking-admin-api-direction",
+    target: "scripts/e2e/tracking/admin-api/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-observation-reverse.fixture",
+    rule: "e2e-tracking-observation-api-direction",
+    target: "scripts/e2e/tracking/observation-api/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-assertion-reverse.fixture",
+    rule: "e2e-tracking-assertion-direction",
+    target:
+      "scripts/e2e/tracking/count-assertions/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-client-reverse.fixture",
+    rule: "e2e-tracking-client-not-to-assertions",
+    target: "scripts/e2e/tracking/client/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-formatter-reverse.fixture",
+    rule: "e2e-tracking-assertion-formatter-is-leaf",
+    target:
+      "scripts/e2e/tracking/assertion-formatter/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-polling-reverse.fixture",
+    rule: "e2e-tracking-polling-not-to-count-or-log",
+    target: "scripts/e2e/tracking/polling/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-log-reverse.fixture",
+    rule: "e2e-tracking-log-not-to-count",
+    target: "scripts/e2e/tracking/log-assertions/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-count-log-reverse.fixture",
+    rule: "e2e-tracking-count-not-to-log",
+    target:
+      "scripts/e2e/tracking/count-assertions/.architecture-log-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-hit-log-reverse.fixture",
+    rule: "e2e-tracking-hit-payload-not-to-log",
+    target:
+      "scripts/e2e/tracking/hit-payload-assertions/.architecture-reverse.tmp.ts",
+  },
+  {
+    file: "tracking-hit-index-reverse.fixture",
+    rule: "e2e-tracking-assertion-direction",
+    target:
+      "scripts/e2e/tracking/hit-payload-assertions/.architecture-index-reverse.tmp.ts",
   },
 ] as const;
 
-for (const fixture of deepImportFixtures) {
-  const relativeTarget = `scripts/e2e/tests/.architecture-${fixture.file}.tmp.ts`;
+for (const fixture of dependencyCruiserFixtures) {
+  const relativeTarget = fixture.target;
   const absoluteTarget = path.join(ROOT, relativeTarget);
+  fs.mkdirSync(path.dirname(absoluteTarget), { recursive: true });
   fs.writeFileSync(
     absoluteTarget,
     fs.readFileSync(path.join(FIXTURE_DIR, fixture.file), "utf8")
@@ -439,9 +517,50 @@ for (const fixture of deepImportFixtures) {
     );
   } finally {
     fs.rmSync(absoluteTarget, { force: true });
+    const targetDirectory = path.dirname(absoluteTarget);
+    if (targetDirectory !== path.join(ROOT, "scripts/e2e/tests")) {
+      fs.rmdirSync(targetDirectory);
+    }
+  }
+}
+
+const cycleTargets = [
+  {
+    fixture: "tracking-cycle-a.fixture",
+    target: "scripts/e2e/tracking/.architecture-cycle-a.tmp.ts",
+  },
+  {
+    fixture: "tracking-cycle-b.fixture",
+    target: "scripts/e2e/tracking/.architecture-cycle-b.tmp.ts",
+  },
+];
+for (const item of cycleTargets) {
+  fs.writeFileSync(
+    path.join(ROOT, item.target),
+    fs.readFileSync(path.join(FIXTURE_DIR, item.fixture), "utf8")
+  );
+}
+try {
+  const result = spawnSync(
+    "mise",
+    [
+      "exec",
+      "--",
+      "depcruise",
+      "--config",
+      ".dependency-cruiser.cjs",
+      ...cycleTargets.map((item) => item.target),
+    ],
+    { cwd: ROOT, encoding: "utf8" }
+  );
+  assert.notEqual(result.status, 0, "循環依存fixtureを検出できない");
+  assert.match(`${result.stdout}${result.stderr}`, /no-circular/);
+} finally {
+  for (const item of cycleTargets) {
+    fs.rmSync(path.join(ROOT, item.target), { force: true });
   }
 }
 
 console.log(
-  `E2E architecture regression check: OK (${customRuleFixtures.length + deepImportFixtures.length} violation fixtures, regression-timeout exclusion, method-alias/managed-route scope isolation, allowlist allow/missing-reason/stale/second-violation)`
+  `E2E architecture regression check: OK (${customRuleFixtures.length + dependencyCruiserFixtures.length + cycleTargets.length} violation fixtures, regression-timeout exclusion, method-alias/managed-route scope isolation, allowlist allow/missing-reason/stale/second-violation)`
 );

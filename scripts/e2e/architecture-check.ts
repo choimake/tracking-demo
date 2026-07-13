@@ -13,7 +13,7 @@ import { REGISTERED_WAIT_DEFINITIONS } from "./harness/config.js";
  * `npm run e2e:architecture-check`は両方の検査を実行する。
  */
 const E2E_DIR = "scripts/e2e";
-const CANONICAL_ANON_ID_FILE = `${E2E_DIR}/tracking/assertions.ts`;
+const CANONICAL_ANON_ID_FILE = `${E2E_DIR}/tracking/hit-payload-assertions.ts`;
 export const ARCHITECTURE_RULES = [
   "tests-no-locator",
   "tests-no-get-by-role",
@@ -826,7 +826,7 @@ function visitSourceFile(
         addViolation(
           node.name,
           "anon-id-regex-single-source",
-          "匿名ID正規表現はtracking/assertions.tsだけで定義する"
+          "匿名ID正規表現はtracking/hit-payload-assertions.tsだけで定義する"
         );
       } else if (
         ts.isRegularExpressionLiteral(node) &&
@@ -835,7 +835,7 @@ function visitSourceFile(
         addViolation(
           node,
           "anon-id-regex-single-source",
-          "匿名ID相当の正規表現はtracking/assertions.tsだけで定義する"
+          "匿名ID相当の正規表現はtracking/hit-payload-assertions.tsだけで定義する"
         );
       } else if (
         ts.isNewExpression(node) &&
@@ -848,7 +848,7 @@ function visitSourceFile(
         addViolation(
           node,
           "anon-id-regex-single-source",
-          "匿名ID相当の正規表現はtracking/assertions.tsだけで定義する"
+          "匿名ID相当の正規表現はtracking/hit-payload-assertions.tsだけで定義する"
         );
       }
     }

@@ -1,0 +1,3 @@
+import type { WaitObservation } from "../index.js";
+
+export type FixtureObservation = WaitObservation<unknown>;

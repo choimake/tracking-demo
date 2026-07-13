@@ -188,12 +188,22 @@ scripts/e2e/
 │   └── scenarios.spec.ts # scenarios.ts を test() で包む薄い wrapper
 ├── tests/              # シナリオ本体（1ファイル = 1ケース）
 ├── browser/
-│   ├── actions.ts      # デモサイト操作（getByRole ベース）
+│   ├── navigation.ts   # 文書ナビゲーションと完了条件
+│   ├── history.ts      # History API と同一文書の URL 状態
+│   ├── cookie.ts       # 匿名識別 Cookie の読み書き
+│   ├── input.ts        # UI・スクロール・ポインター・dataLayer入力
 │   ├── failure-injection.ts # Network・Config障害注入と観測
 │   └── index.ts        # barrel export
 ├── tracking/
-│   ├── client.ts       # 計測サーバー API クライアント / Hit 直読み
-│   ├── assertions.ts   # 件数・ヒット単位の着弾待ち・期待値検証
+│   ├── transport.ts    # HTTP要求と応答期限
+│   ├── response-parser.ts # API応答の型検証
+│   ├── observation-api.ts # 相関IDとHit cursorによるHit抽出
+│   ├── admin-api.ts    # 管理APIの照会と変更
+│   ├── client.ts       # 既存TrackingClientの統合窓口
+│   ├── polling.ts      # 条件・期限・静穏の再観測
+│   ├── count-assertions.ts # 件数条件の検証
+│   ├── hit-payload-assertions.ts # Hit payloadと匿名IDの検証
+│   ├── log-assertions.ts # tracker logの検証
 │   ├── seed-events.ts  # 固定イベント ID（ev_purchase 等）
 │   └── index.ts        # barrel export
 └── harness/
@@ -302,10 +312,23 @@ Playwright Test
 デモサイト（`demo-site/`）上の Playwright 操作を集約。
 テストからは `import { gotoDemoPage } from '../browser/index.js'` で使う。
 
+- `navigation.ts` — 文書を読み込むナビゲーションと完了条件を管理する。
+- `history.ts` — 同一文書内のHistory APIとURL状態を操作する。
+- `cookie.ts` — ページ文脈の匿名識別Cookieを読み書きする。
+- `input.ts` — クリック、スクロール、ポインター、dataLayerの入力を発生させる。
+- `failure-injection.ts` — 通信障害とブラウザエラーの注入・観測を管理する。
+
 ### `tracking/` — サーバー検証
 
-- `client.ts` — 管理API呼び出し、観測APIの応答検証、相関IDとHitカーソルによるHit抽出
-- `assertions.ts` — 4区分の件数helper、`quiesceBeacons`、`waitForNewHit`、`expectHitPayload`（末尾で `expectAnonIdsPresent`）、匿名ID正規表現
+- `transport.ts` — 計測APIへのHTTP要求の期限と通信エラーを管理する。
+- `response-parser.ts` — 未知のJSONを検証し、E2Eが使う応答型へ変換する。
+- `observation-api.ts` — 観測Hitを相関IDとHit cursorで抽出する。
+- `admin-api.ts` — 管理APIでイベントを照会・変更する。
+- `client.ts` — transport・観測API・管理APIを既存`TrackingClient`として統合する。
+- `polling.ts` — 条件成立、期限内観測、Hit列の静穏を再観測する。
+- `count-assertions.ts` — Hit・pageview・eventの件数制約を検証する。
+- `hit-payload-assertions.ts` — Hit 1件の取得、識別子、payload、時刻を検証する。
+- `log-assertions.ts` — tracker logの期待文字列を期限内に検証する。
 - `seed-events.ts` — `EVENT_ID_PURCHASE` 等の定数
 
 固定待機の分類、登録規則、Clockの適用範囲は [`wait-strategy.md`](./wait-strategy.md) を参照する。
@@ -327,7 +350,7 @@ Playwright Test
 ## 新しいテストを追加する手順
 
 1. `tests/my-scenario.ts` に `export async function testMyScenario(ctx: E2eContext)` を書く
-2. 必要なら `browser/actions.ts` に操作を追加
+2. 必要なら変更理由が一致する `browser/` の責務モジュールに操作を追加
 3. `scenarios.ts` の `e2eScenarios` に `{ name, run }` を登録
 4. `npm run e2e` で確認
 
@@ -377,11 +400,11 @@ export async function testMyScenario(ctx: E2eContext): Promise<void> {
 
 ## 注意
 
-- `gtm-dedup.ts` では `pushState` と `tdDataLayer.push` を**同一 tick**で実行する必要があるため、`browser/actions` を個別に呼ばず `page.evaluate` にまとめている。この例外は `architecture-allowlist.json` が理由付きで管理する
-- `tracking/client.ts` の `getHitsForEvent` / `getHitsMatching` は API 経由ではなく run 専用 DB を直読みする
+- `gtm-dedup.ts` では `pushState` と `tdDataLayer.push` を**同一 tick**で実行する必要があるため、`browser/history` と `browser/input` を個別に呼ばず `page.evaluate` にまとめている。この例外は `architecture-allowlist.json` が理由付きで管理する
+- `tracking/observation-api.ts` の `getHitsForEvent` / `getHitsMatching` は観測API経由でrun専用DBのHitを読む
 - 別 run は動的ポートと専用 DB で隔離する。同一 run 内のブラウザマトリクスとシナリオは直列実行する
 - フィクスチャ（検証用イベント等）は全ブラウザ共通で 1 回 setup / 最後に teardown
-- `browser/actions.ts` の `spaPushState` は素の `history.pushState` を呼ぶだけでよい。tracker.js が
+- `browser/history.ts` の `spaPushState` は素の `history.pushState` を呼ぶだけでよい。tracker.js が
   `pushState` 自体をパッチして `onHistoryChange` を呼ぶため、`popstate` を手動発火すると二重処理になる
 - `exit-intent-mobile.ts` の `isMobile` は Playwright の制約で **Firefox 未サポート**（コンテキスト生成が
   例外になる）。Firefox 実行時は `isMobile` を付けず `hasTouch` / `viewport` のみで代替している
@@ -391,7 +414,7 @@ export async function testMyScenario(ctx: E2eContext): Promise<void> {
   Max-Age / expires 検証の許容キャップは browserName で分岐する:
   chromium / firefox は uncapped または約400日のみ（ITP 7日は許容しない＝誤キャップ回帰検知）、
   webkit は上記に加え Safari ITP 相当7日も許容する
-- 匿名 ID 形式の正規表現は `tracking/assertions.ts` の `ANON_VID_RE` / `ANON_SID_RE` に一本化している
+- 匿名 ID 形式の正規表現は `tracking/hit-payload-assertions.ts` の `ANON_VID_RE` / `ANON_SID_RE` に一本化している
   （Cookieシナリオもこれを import する）
 - Cookie属性E2EはHTTPデモの`Path=/`、`SameSite=Lax`、`Secure=false`を検証する。実装は`Domain`を指定しない。Playwrightの`cookies()`が返す`domain`値だけではDomain属性の有無を証明できないため、現行localhost構成ではhost-onlyの送出境界を未検証とする。HTTPSの`Secure=true`と送出境界は将来のHTTPSスタックへ移管している
 - 複数タブはCookieがない同一BrowserContextで2ページのnavigationを`Promise.all`で開始する。この操作はCookie readの真の同時実行を保証しない。排他制御がないため初期化競合時の初回Hitは複数IDになり得る。テストは競合後の共有Cookieと次のHitが同じvid/sidへ収束することを要求する
