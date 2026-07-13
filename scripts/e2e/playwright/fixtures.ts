@@ -17,8 +17,12 @@ import type {
   E2eContext,
   E2eFixtures,
 } from "../harness/types.js";
-import { finalizeScenarioVideo } from "../harness/video.js";
+import { finalizeOrDiscardVideo } from "../harness/video.js";
 import { e2eScenarios } from "../scenarios.js";
+import {
+  attachFailureDiagnostics,
+  runScenarioFixtureTeardown,
+} from "./teardown.js";
 
 interface E2eTestFixtures {
   e2eContext: E2eContext;
@@ -58,35 +62,6 @@ function parseGlobalFixtures(raw: string | undefined): E2eFixtures {
     throw new Error("E2E_FIXTURES の形式が不正です");
   }
   return fixtures as E2eFixtures;
-}
-
-async function finalizeOrDiscardVideo(options: {
-  mode: "all" | "on-failure";
-  ok: boolean;
-  page: E2eContext["page"];
-  videoPath: string;
-}): Promise<void> {
-  const alreadyPromoted = await fs
-    .access(options.videoPath)
-    .then(() => true)
-    .catch(() => false);
-  if (!alreadyPromoted) {
-    await finalizeScenarioVideo(options);
-    return;
-  }
-
-  const outerVideo = options.page.video();
-  if (outerVideo) {
-    const outerPath = await outerVideo.path().catch(() => null);
-    if (outerPath && outerPath !== options.videoPath) {
-      await fs.unlink(outerPath).catch(() => {});
-    }
-  }
-  if (options.mode === "on-failure" && options.ok) {
-    await fs.unlink(options.videoPath).catch(() => {});
-  } else if (!options.ok) {
-    console.error(`  video: ${path.resolve(options.videoPath)}`);
-  }
 }
 
 export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
@@ -164,37 +139,38 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
       await use(context);
     } finally {
       const failed = testInfo.status !== testInfo.expectedStatus;
-      if (failed) {
-        const attachJson = (name: string, value: unknown) =>
-          testInfo.attach(name, {
-            body: Buffer.from(JSON.stringify(value, null, 2)),
-            contentType: "application/json",
-          });
-        await context.tracking
-          .getHitsMatching({})
-          .then((hits) => attachJson("correlated-hits", hits))
-          .catch((error) => attachJson("correlated-hits-error", String(error)));
-        const stackLogPath = process.env.E2E_STACK_LOG_PATH;
-        if (stackLogPath) {
-          await testInfo
-            .attach("stack-log", {
-              contentType: "text/plain",
-              path: stackLogPath,
-            })
-            .catch(() => {});
-        }
-      }
-      await session.context.close().catch((error) => {
-        console.error(`  context.close failed: ${String(error)}`);
+      const stackLogPath = process.env.E2E_STACK_LOG_PATH;
+      await runScenarioFixtureTeardown({
+        cleanupVideo:
+          recordVideoMode && scenarioVideoPath
+            ? () =>
+                finalizeOrDiscardVideo({
+                  mode: recordVideoMode,
+                  ok: testInfo.status === testInfo.expectedStatus,
+                  page: session.page,
+                  videoPath: scenarioVideoPath,
+                })
+            : undefined,
+        closeBrowserContext: () => session.context.close(),
+        failureDiagnostics: failed
+          ? () =>
+              attachFailureDiagnostics({
+                attachJson: (name, value) =>
+                  testInfo.attach(name, {
+                    body: Buffer.from(JSON.stringify(value, null, 2)),
+                    contentType: "application/json",
+                  }),
+                attachStackLog: stackLogPath
+                  ? () =>
+                      testInfo.attach("stack-log", {
+                        contentType: "text/plain",
+                        path: stackLogPath,
+                      })
+                  : undefined,
+                getCorrelatedHits: () => context.tracking.getHitsMatching({}),
+              })
+          : undefined,
       });
-      if (recordVideoMode && scenarioVideoPath) {
-        await finalizeOrDiscardVideo({
-          mode: recordVideoMode,
-          ok: testInfo.status === testInfo.expectedStatus,
-          page: session.page,
-          videoPath: scenarioVideoPath,
-        });
-      }
     }
   },
 });
