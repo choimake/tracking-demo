@@ -11,6 +11,7 @@ import {
 } from "../harness/video.js";
 import {
   attachFailureDiagnostics,
+  runScenarioFixtureLifecycle,
   runScenarioFixtureTeardown,
 } from "./teardown.js";
 
@@ -104,9 +105,17 @@ async function checkFailureDiagnostics(): Promise<void> {
         attempts.push("stack-log");
         throw new Error("injected failure: stack-log attach");
       },
+      getConsoleLog: async () => {
+        attempts.push("get-console-log");
+        return [];
+      },
       getCorrelatedHits: async () => {
         attempts.push("get-correlated-hits");
         throw new Error("injected failure: get-correlated-hits");
+      },
+      getPageErrors: async () => {
+        attempts.push("get-page-errors");
+        return [];
       },
     }),
     (error: unknown) => {
@@ -124,11 +133,47 @@ async function checkFailureDiagnostics(): Promise<void> {
   assert.deepEqual(attempts, [
     "get-correlated-hits",
     "correlated-hits-error",
+    "get-console-log",
+    "console-log",
+    "get-page-errors",
+    "page-errors",
     "stack-log",
+    "stack-log-error",
   ]);
   console.log(
     "failure diagnostics: correlated-hits and stack-log failures retained"
   );
+}
+
+async function checkDiagnosticReasonAttachments(): Promise<void> {
+  const attached: string[] = [];
+  await assert.rejects(
+    attachFailureDiagnostics({
+      attachJson: async (name) => {
+        attached.push(name);
+      },
+      getConsoleLog: async () => {
+        throw new Error("injected failure: console collection");
+      },
+      getCorrelatedHits: async () => [],
+      getPageErrors: async () => {
+        throw new Error("injected failure: page error collection");
+      },
+    }),
+    (error: unknown) => {
+      assert(error instanceof AggregateError);
+      assert.equal(error.errors.length, 2);
+      assert.match(error.message, /console collection/);
+      assert.match(error.message, /page error collection/);
+      return true;
+    }
+  );
+  assert.deepEqual(attached, [
+    "correlated-hits",
+    "console-log-error",
+    "page-errors-error",
+  ]);
+  console.log("failure diagnostics: artifact failure reasons attached");
 }
 
 async function checkOptionalStages(): Promise<void> {
@@ -153,6 +198,43 @@ async function checkOptionalStages(): Promise<void> {
   console.log(
     "scenario teardown optional stages: diagnostics and video skipped"
   );
+}
+
+async function checkTeardownFailureDiagnostics(): Promise<void> {
+  const attempts: string[] = [];
+  await assert.rejects(
+    runScenarioFixtureLifecycle({
+      cleanupVideo: async (ok) => {
+        attempts.push(`video:${ok}`);
+      },
+      closeBrowserContext: async () => {
+        attempts.push("close");
+        throw new Error("injected failure: close");
+      },
+      failureDiagnostics: async () => {
+        attempts.push("diagnostics");
+      },
+      scenarioFailed: false,
+    }),
+    /injected failure: close/
+  );
+  assert.deepEqual(attempts, ["close", "video:false", "diagnostics"]);
+
+  attempts.length = 0;
+  await runScenarioFixtureLifecycle({
+    cleanupVideo: async (ok) => {
+      attempts.push(`video:${ok}`);
+    },
+    closeBrowserContext: async () => {
+      attempts.push("close");
+    },
+    failureDiagnostics: async () => {
+      attempts.push("diagnostics");
+    },
+    scenarioFailed: true,
+  });
+  assert.deepEqual(attempts, ["diagnostics", "close", "video:false"]);
+  console.log("teardown failure diagnostics: late failure retains artifacts");
 }
 
 function fakePage(videoPath: () => Promise<string>): Page {
@@ -297,6 +379,8 @@ await checkSuccessfulOrder();
 await checkEachStageFailure();
 await checkMultipleFailures();
 await checkFailureDiagnostics();
+await checkDiagnosticReasonAttachments();
 await checkOptionalStages();
+await checkTeardownFailureDiagnostics();
 await checkVideoArtifactContract();
 await checkVideoFailures();

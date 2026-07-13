@@ -10,8 +10,8 @@ import {
 import type { BrowserName } from "../harness/config.js";
 import type { E2eContext, E2ePage, ManagedSession } from "../harness/types.js";
 import {
-  ANON_SID_RE,
-  ANON_VID_RE,
+  assertionError,
+  expectAnonIdentityValues,
   expectHitPayload,
   expectPageviewCountExactly,
   quiesceBeacons,
@@ -36,10 +36,22 @@ interface PageviewObservationOptions {
 
 export function assertDemoCookieAttrs(cookie: Cookie, name: string): void {
   if (cookie.path !== "/" || cookie.sameSite !== "Lax") {
-    throw new Error(`${name} の Path/SameSite 属性が不正`);
+    throw assertionError({
+      actual: { path: cookie.path, sameSite: cookie.sameSite },
+      context: { cookieName: name },
+      expected: { path: "/", sameSite: "Lax" },
+      name: "cookie-path-same-site",
+      summary: `${name} の Path/SameSite 属性が不正`,
+    });
   }
   if (cookie.secure || cookie.httpOnly) {
-    throw new Error(`${name} の Secure/HttpOnly 属性がデモ仕様と不一致`);
+    throw assertionError({
+      actual: { httpOnly: cookie.httpOnly, secure: cookie.secure },
+      context: { cookieName: name },
+      expected: { httpOnly: false, secure: false },
+      name: "cookie-security-attributes",
+      summary: `${name} の Secure/HttpOnly 属性がデモ仕様と不一致`,
+    });
   }
 }
 
@@ -61,7 +73,13 @@ export function assertCookieExpires(
         EXPIRES_TOLERANCE_SEC
     )
   ) {
-    throw new Error(`${name} expires が Max-Age=${maxAgeSec}s 相当でない`);
+    throw assertionError({
+      actual: { expires: cookie.expires },
+      context: { browserName, cookieName: name, issuedAtSec },
+      expected: { maxAgeSec, toleranceSec: EXPIRES_TOLERANCE_SEC },
+      name: "cookie-expiration",
+      summary: `${name} expires が Max-Age=${maxAgeSec}s 相当でない`,
+    });
   }
 }
 
@@ -167,7 +185,5 @@ export function assertPageviewIdentity(
 }
 
 export function assertValidIdentity(vid: string, sid: string): void {
-  if (!ANON_VID_RE.test(vid) || !ANON_SID_RE.test(sid)) {
-    throw new Error(`匿名ID形式が不正: vid=${vid} sid=${sid}`);
-  }
+  expectAnonIdentityValues(vid, sid);
 }

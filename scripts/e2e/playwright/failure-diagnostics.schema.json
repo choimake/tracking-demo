@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tracking-demo.invalid/schemas/e2e-failure-diagnostics.schema.json",
+  "title": "E2E failure diagnostics manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "scenario",
+    "failure",
+    "artifacts"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "browser",
+        "repeat",
+        "seed",
+        "correlationId",
+        "hitCursor"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "browser": { "type": "string" },
+        "repeat": { "type": "integer", "minimum": 0 },
+        "seed": { "type": ["integer", "null"] },
+        "correlationId": { "type": "string" },
+        "hitCursor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["captured", "value"],
+          "properties": {
+            "captured": { "type": "boolean" },
+            "value": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["errors", "assertion", "finalObserved"],
+      "properties": {
+        "errors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["message"],
+            "properties": {
+              "message": { "type": "string" },
+              "stack": { "type": "string" }
+            }
+          }
+        },
+        "assertion": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "name", "actual", "expected", "context"],
+              "properties": {
+                "status": { "const": "available" },
+                "name": { "type": "string" },
+                "actual": {},
+                "expected": {},
+                "context": { "type": "object" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "reason"],
+              "properties": {
+                "status": { "const": "unavailable" },
+                "reason": { "type": "string" }
+              }
+            }
+          ]
+        },
+        "finalObserved": {}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hit",
+        "trace",
+        "screenshot",
+        "stackLog",
+        "console",
+        "pageError",
+        "video"
+      ],
+      "properties": {
+        "hit": { "$ref": "#/$defs/artifact" },
+        "trace": { "$ref": "#/$defs/artifact" },
+        "screenshot": { "$ref": "#/$defs/artifact" },
+        "stackLog": { "$ref": "#/$defs/artifact" },
+        "console": { "$ref": "#/$defs/artifact" },
+        "pageError": { "$ref": "#/$defs/artifact" },
+        "video": { "$ref": "#/$defs/artifact" }
+      }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "path"],
+          "properties": {
+            "status": { "const": "available" },
+            "path": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "reason"],
+          "properties": {
+            "status": { "const": "unavailable" },
+            "reason": { "type": "string" },
+            "generationError": { "type": "string" }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -4,6 +4,7 @@ import {
   getTrackingOrigin,
   registeredAbortSignal,
 } from "../harness/config.js";
+import { recordAssertionHitCursor } from "./assertion-formatter.js";
 
 export interface EventSummary {
   id: string;
@@ -205,6 +206,9 @@ function parseDeleteResult(value: unknown): void {
 
 /** 計測サーバーの管理APIへのアクセスをまとめたクライアント */
 export class TrackingClient {
+  private diagnosticHitCursorCaptured = false;
+  private diagnosticHitCursorValue: string | undefined;
+
   constructor(
     private readonly correlationId?: string,
     private readonly trackingOrigin = getTrackingOrigin(),
@@ -322,7 +326,19 @@ export class TrackingClient {
 
   /** Act 前の観測末尾を取得する。Hit がない場合はundefinedを返す。 */
   async captureHitCursor(): Promise<string | undefined> {
-    return (await this.getAllHits()).at(-1)?.id;
+    const cursor = (await this.getAllHits()).at(-1)?.id;
+    this.diagnosticHitCursorCaptured = true;
+    this.diagnosticHitCursorValue = cursor;
+    recordAssertionHitCursor(cursor);
+    return cursor;
+  }
+
+  /** 診断manifest用に最後のHit cursor取得結果を返す。 */
+  getDiagnosticHitCursor(): { captured: boolean; value: string | null } {
+    return {
+      captured: this.diagnosticHitCursorCaptured,
+      value: this.diagnosticHitCursorValue ?? null,
+    };
   }
 
   async getHitsMatching(filter: HitFilter): Promise<HitRecord[]> {

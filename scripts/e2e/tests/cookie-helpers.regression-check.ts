@@ -4,6 +4,7 @@ import type { Cookie } from "playwright";
 
 import type { HitRecord } from "../harness/types.js";
 import { e2eScenarios } from "../scenarios.js";
+import { parseAssertionFailure } from "../tracking/index.js";
 import {
   assertCookieExpires,
   assertDemoCookieAttrs,
@@ -50,6 +51,19 @@ for (const invalid of [
     if (String(error).includes("不正属性を受理した")) throw error;
   }
 }
+
+assert.throws(
+  () => assertDemoCookieAttrs({ ...base, sameSite: "Strict" }, "_td_sid"),
+  (error: unknown) => {
+    assert(error instanceof Error);
+    const details = parseAssertionFailure(error.message);
+    assert.deepEqual(details?.actual, { path: "/", sameSite: "Strict" });
+    assert.deepEqual(details?.expected, { path: "/", sameSite: "Lax" });
+    assert.equal(details?.context.cookieName, "_td_sid");
+    return true;
+  },
+  "Cookie assertionは共通formatterでactual、expected、contextを構造化する"
+);
 
 try {
   assertCookieExpires(

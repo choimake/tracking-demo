@@ -7,6 +7,10 @@ import {
   QUIESCE_STABLE_DURATION_MS,
   registeredWait,
 } from "../harness/config.js";
+import {
+  assertionError,
+  formatAssertionFailure,
+} from "./assertion-formatter.js";
 import type { HitFilter, HitRecord, TrackingClient } from "./client.js";
 
 type HitReader = Pick<TrackingClient, "getHitsMatching">;
@@ -60,7 +64,13 @@ export async function waitForCondition<T>(
     );
   }
   throw new WaitTimeoutError(
-    `待機timeout: condition=${label}; timeoutMs=${timeoutMs}; finalObserved=${observedValue(lastObserved)}`
+    formatAssertionFailure({
+      actual: { finalObserved: lastObserved },
+      context: { condition: label, timeoutMs },
+      expected: { ready: true },
+      name: "wait-for-condition",
+      summary: `待機timeout: condition=${label}; timeoutMs=${timeoutMs}; finalObserved=${observedValue(lastObserved)}`,
+    })
   );
 }
 
@@ -86,15 +96,23 @@ async function observeUntilDeadline(
 
 function assertExactCount(actualCount: number, expectedCount: number): void {
   if (actualCount !== expectedCount) {
-    throw new Error(
-      `Hit 件数が不一致: got=${actualCount} want=${expectedCount}`
-    );
+    throw assertionError({
+      actual: { count: actualCount },
+      expected: { count: expectedCount },
+      name: "hit-count-exactly",
+      summary: `Hit 件数が不一致: got=${actualCount} want=${expectedCount}`,
+    });
   }
 }
 
 function assertZeroCount(actualCount: number): void {
   if (actualCount !== 0) {
-    throw new Error(`観測期間中の Hit 件数が不一致: got=${actualCount} want=0`);
+    throw assertionError({
+      actual: { count: actualCount },
+      expected: { count: 0 },
+      name: "hit-count-zero-during-observation",
+      summary: `観測期間中の Hit 件数が不一致: got=${actualCount} want=0`,
+    });
   }
 }
 
@@ -132,9 +150,16 @@ export async function quiesceBeacons(
       return;
     }
   }
-  throw new Error(
-    `ビーコン静穏待ちが ${maxWaitMs}ms で timeout: actual=安定${Date.now() - stableSince}ms expected=安定${stableDurationMs}ms; hitIds=${JSON.stringify(previousHitIds.split("\n").filter(Boolean))}`
-  );
+  const actualStableMs = Date.now() - stableSince;
+  throw assertionError({
+    actual: {
+      hitIds: previousHitIds.split("\n").filter(Boolean),
+      stableMs: actualStableMs,
+    },
+    expected: { stableMs: stableDurationMs },
+    name: "beacon-quiescence",
+    summary: `ビーコン静穏待ちが ${maxWaitMs}ms で timeout: actual=安定${actualStableMs}ms expected=安定${stableDurationMs}ms; hitIds=${JSON.stringify(previousHitIds.split("\n").filter(Boolean))}`,
+  });
 }
 
 export async function expectEventCountExactlyIncreasedBy(
@@ -154,9 +179,13 @@ export async function expectEventCountExactlyIncreasedBy(
         const actualCount = await tracking.getEventCount7d(eventId);
         lastActualCount = actualCount;
         if (actualCount > expectedCount) {
-          throw new Error(
-            `イベント件数が期待値を超過: got=${actualCount} want=${expectedCount}`
-          );
+          throw assertionError({
+            actual: { count: actualCount },
+            context: { eventId, label },
+            expected: { count: expectedCount },
+            name: "event-count-increase",
+            summary: `イベント件数が期待値を超過: got=${actualCount} want=${expectedCount}`,
+          });
         }
         return {
           actual: { actualCount, expectedCount },
@@ -167,9 +196,19 @@ export async function expectEventCountExactlyIncreasedBy(
     );
   } catch (error) {
     if (error instanceof WaitTimeoutError) {
-      throw new Error(
-        `イベント件数が期待値へ未到達: got=${lastActualCount ?? "未取得"} want=${expectedCount}; ${error.message}`,
-        { cause: error }
+      throw assertionError(
+        {
+          actual: { count: lastActualCount ?? null },
+          context: {
+            eventId,
+            label,
+            timeoutDiagnostic: error.message,
+          },
+          expected: { count: expectedCount },
+          name: "event-count-increase",
+          summary: `イベント件数が期待値へ未到達: got=${lastActualCount ?? "未取得"} want=${expectedCount}; ${error.message}`,
+        },
+        error
       );
     }
     throw error;
@@ -206,9 +245,15 @@ export async function expectHitCountAtLeast(
     );
   } catch (error) {
     if (error instanceof WaitTimeoutError) {
-      throw new Error(
-        `Hit 件数が期待値へ未到達: got=${lastActualCount ?? "未取得"} min=${minCount}; ${error.message}`,
-        { cause: error }
+      throw assertionError(
+        {
+          actual: { count: lastActualCount ?? null },
+          context: { filter, label, timeoutDiagnostic: error.message },
+          expected: { minimumCount: minCount },
+          name: "hit-count-at-least",
+          summary: `Hit 件数が期待値へ未到達: got=${lastActualCount ?? "未取得"} min=${minCount}; ${error.message}`,
+        },
+        error
       );
     }
     throw error;
@@ -308,9 +353,13 @@ export async function expectHitCountAtMost(
     async () => {
       const actualCount = (await tracking.getHitsMatching(filter)).length;
       if (actualCount > maximumCount) {
-        throw new Error(
-          `Hit 件数が上限超過: got=${actualCount} max=${maximumCount}`
-        );
+        throw assertionError({
+          actual: { count: actualCount },
+          context: { filter, label },
+          expected: { maximumCount },
+          name: "hit-count-at-most",
+          summary: `Hit 件数が上限超過: got=${actualCount} max=${maximumCount}`,
+        });
       }
     }
   );
@@ -341,9 +390,13 @@ export async function expectTagCheckContainsHit(
 ): Promise<void> {
   const tagCheck = await tracking.getTagCheck(Date.parse(hit.ts));
   if (!tagCheck.hits.some((tagCheckHit) => tagCheckHit.id === hit.id)) {
-    throw new Error(
-      `/api/tag-check の応答に受信済み pageview が含まれない: actualHitIds=${JSON.stringify(tagCheck.hits.map((item) => item.id))} expectedHitId=${hit.id}`
-    );
+    const actualHitIds = tagCheck.hits.map((item) => item.id);
+    throw assertionError({
+      actual: { hitIds: actualHitIds },
+      expected: { hitId: hit.id },
+      name: "tag-check-contains-hit",
+      summary: `/api/tag-check の応答に受信済み pageview が含まれない: actualHitIds=${JSON.stringify(actualHitIds)} expectedHitId=${hit.id}`,
+    });
   }
   console.log("  ✓ /api/tag-check が受信済み pageview を返す");
 }
@@ -369,9 +422,16 @@ export async function expectTrackerLogContains(
     );
   } catch (error) {
     if (error instanceof WaitTimeoutError) {
-      throw new Error(
-        `tracker log が期待文字列を含みません: actual=${JSON.stringify(trackerLogs.slice(sinceIndex))} expectedSubstring=${JSON.stringify(substring)}; ${error.message}`,
-        { cause: error }
+      const actualLogs = trackerLogs.slice(sinceIndex);
+      throw assertionError(
+        {
+          actual: { logs: actualLogs },
+          context: { label, sinceIndex, timeoutDiagnostic: error.message },
+          expected: { substring },
+          name: "tracker-log-contains",
+          summary: `tracker log が期待文字列を含みません: actual=${JSON.stringify(actualLogs)} expectedSubstring=${JSON.stringify(substring)}; ${error.message}`,
+        },
+        error
       );
     }
     throw error;
@@ -391,9 +451,13 @@ export async function waitForNewHit(
   await expectHitCountAtLeast(tracking, filter, 1, label, timeoutMs);
   const found = (await tracking.getHitsMatching(filter)).at(-1);
   if (!found) {
-    throw new Error(
-      `Hit 取得結果が不一致: actual=0件 expected=1件以上; label=${label}`
-    );
+    throw assertionError({
+      actual: { count: 0 },
+      context: { filter, label },
+      expected: { minimumCount: 1 },
+      name: "new-hit-exists",
+      summary: `Hit 取得結果が不一致: actual=0件 expected=1件以上; label=${label}`,
+    });
   }
   return found;
 }
@@ -415,18 +479,29 @@ export const ANON_VID_RE = /^v_[0-9a-f-]{36}$/;
 /** 匿名sid（`s_` + UUID）にマッチする。例: `s_123e4567-e89b-12d3-a456-426614174000` */
 export const ANON_SID_RE = /^s_[0-9a-f-]{36}$/;
 
+/** vid/sidが匿名ID形式に一致することを検証する。 */
+export function expectAnonIdentityValues(vid: string, sid: string): void {
+  if (!ANON_VID_RE.test(vid)) {
+    throw assertionError({
+      actual: { vid },
+      expected: { vid: "v_<UUID>" },
+      name: "anonymous-vid-format",
+      summary: `hit.vid の形式が不正または空: actual=${JSON.stringify(vid)} expected=v_<UUID>（例: v_123e4567-e89b-12d3-a456-426614174000）`,
+    });
+  }
+  if (!ANON_SID_RE.test(sid)) {
+    throw assertionError({
+      actual: { sid },
+      expected: { sid: "s_<UUID>" },
+      name: "anonymous-sid-format",
+      summary: `hit.sid の形式が不正または空: actual=${JSON.stringify(sid)} expected=s_<UUID>（例: s_123e4567-e89b-12d3-a456-426614174000）`,
+    });
+  }
+}
+
 /** ヒットに形式付きの非空 vid/sid が付いていることを検証する(送信欠落のサイレント回帰防止) */
 export function expectAnonIdsPresent(hit: HitRecord): void {
-  if (!ANON_VID_RE.test(hit.vid)) {
-    throw new Error(
-      `hit.vid の形式が不正または空: actual=${JSON.stringify(hit.vid)} expected=v_<UUID>（例: v_123e4567-e89b-12d3-a456-426614174000）`
-    );
-  }
-  if (!ANON_SID_RE.test(hit.sid)) {
-    throw new Error(
-      `hit.sid の形式が不正または空: actual=${JSON.stringify(hit.sid)} expected=s_<UUID>（例: s_123e4567-e89b-12d3-a456-426614174000）`
-    );
-  }
+  expectAnonIdentityValues(hit.vid, hit.sid);
   console.log("  ✓ hit.vid / hit.sid 形式OK");
 }
 
@@ -436,60 +511,97 @@ export function expectHitPayload(
   expected: ExpectedHitPayload
 ): void {
   if (expected.eventId !== undefined && hit.eventId !== expected.eventId) {
-    throw new Error(
-      `hit.eventId が不一致: got=${hit.eventId} want=${expected.eventId}`
-    );
+    throw assertionError({
+      actual: { eventId: hit.eventId },
+      expected: { eventId: expected.eventId },
+      name: "hit-payload-event-id",
+      summary: `hit.eventId が不一致: got=${hit.eventId} want=${expected.eventId}`,
+    });
   }
   if (expected.type !== undefined && hit.type !== expected.type) {
-    throw new Error(`hit.type が不一致: got=${hit.type} want=${expected.type}`);
+    throw assertionError({
+      actual: { type: hit.type },
+      expected: { type: expected.type },
+      name: "hit-payload-type",
+      summary: `hit.type が不一致: got=${hit.type} want=${expected.type}`,
+    });
   }
   if (
     expected.urlIncludes !== undefined &&
     !hit.url.includes(expected.urlIncludes)
   ) {
-    throw new Error(
-      `hit.url が期待文字列を含まない: actual=${JSON.stringify(hit.url)} expectedSubstring=${JSON.stringify(expected.urlIncludes)}`
-    );
+    throw assertionError({
+      actual: { url: hit.url },
+      expected: { urlIncludes: expected.urlIncludes },
+      name: "hit-payload-url",
+      summary: `hit.url が期待文字列を含まない: actual=${JSON.stringify(hit.url)} expectedSubstring=${JSON.stringify(expected.urlIncludes)}`,
+    });
   }
   if (
     expected.workspaceId !== undefined &&
     hit.workspaceId !== expected.workspaceId
   ) {
-    throw new Error(
-      `hit.workspaceId が不一致: got=${hit.workspaceId} want=${expected.workspaceId}`
-    );
+    throw assertionError({
+      actual: { workspaceId: hit.workspaceId },
+      expected: { workspaceId: expected.workspaceId },
+      name: "hit-payload-workspace-id",
+      summary: `hit.workspaceId が不一致: got=${hit.workspaceId} want=${expected.workspaceId}`,
+    });
   }
   if (
     expected.uaIncludes !== undefined &&
     !hit.ua.includes(expected.uaIncludes)
   ) {
-    throw new Error(
-      `hit.ua が期待文字列を含まない: actual=${JSON.stringify(hit.ua)} expectedSubstring=${JSON.stringify(expected.uaIncludes)}`
-    );
+    throw assertionError({
+      actual: { ua: hit.ua },
+      expected: { uaIncludes: expected.uaIncludes },
+      name: "hit-payload-user-agent",
+      summary: `hit.ua が期待文字列を含まない: actual=${JSON.stringify(hit.ua)} expectedSubstring=${JSON.stringify(expected.uaIncludes)}`,
+    });
   }
   if (expected.vid !== undefined && hit.vid !== expected.vid) {
-    throw new Error(`hit.vid が不一致: got=${hit.vid} want=${expected.vid}`);
+    throw assertionError({
+      actual: { vid: hit.vid },
+      expected: { vid: expected.vid },
+      name: "hit-payload-vid",
+      summary: `hit.vid が不一致: got=${hit.vid} want=${expected.vid}`,
+    });
   }
   if (expected.sid !== undefined && hit.sid !== expected.sid) {
-    throw new Error(`hit.sid が不一致: got=${hit.sid} want=${expected.sid}`);
+    throw assertionError({
+      actual: { sid: hit.sid },
+      expected: { sid: expected.sid },
+      name: "hit-payload-sid",
+      summary: `hit.sid が不一致: got=${hit.sid} want=${expected.sid}`,
+    });
   }
   const hitTimestampMs = Date.parse(hit.ts);
   if (
     !Number.isFinite(hitTimestampMs) ||
     new Date(hitTimestampMs).toISOString() !== hit.ts
   ) {
-    throw new Error(
-      `hit.ts が ISO 形式ではない: actual=${JSON.stringify(hit.ts)} expected=UTC ISO 8601（例: 2026-01-01T00:00:00.000Z）`
-    );
+    throw assertionError({
+      actual: { timestamp: hit.ts },
+      expected: { format: "UTC ISO 8601" },
+      name: "hit-payload-timestamp-format",
+      summary: `hit.ts が ISO 形式ではない: actual=${JSON.stringify(hit.ts)} expected=UTC ISO 8601（例: 2026-01-01T00:00:00.000Z）`,
+    });
   }
   const checkedAtMs = Date.now();
   if (
     hitTimestampMs < E2E_ASSERTIONS_STARTED_AT_MS ||
     hitTimestampMs > checkedAtMs
   ) {
-    throw new Error(
-      `hit.ts が E2E 実行範囲外: got=${hit.ts} range=${new Date(E2E_ASSERTIONS_STARTED_AT_MS).toISOString()}..${new Date(checkedAtMs).toISOString()}`
-    );
+    const timestampRange = {
+      from: new Date(E2E_ASSERTIONS_STARTED_AT_MS).toISOString(),
+      to: new Date(checkedAtMs).toISOString(),
+    };
+    throw assertionError({
+      actual: { timestamp: hit.ts },
+      expected: { range: timestampRange },
+      name: "hit-payload-timestamp-range",
+      summary: `hit.ts が E2E 実行範囲外: got=${hit.ts} range=${timestampRange.from}..${timestampRange.to}`,
+    });
   }
   // ブラウザ由来ヒットは常に形式付きの非空 vid/sid を持つ(送信欠落のサイレント回帰防止)
   expectAnonIdsPresent(hit);

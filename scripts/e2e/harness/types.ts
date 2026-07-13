@@ -107,6 +107,12 @@ export interface E2eContext extends ManagedSession {
   browserName: BrowserName;
   /** run・browser・scenario を一意に識別する E2E 相関 ID */
   correlationId: string;
+  /** 登録順に固定したシナリオID。 */
+  scenarioId: string;
+  /** Playwrightの0始まり反復番号。 */
+  repeat: number;
+  /** ランダム順の再現seed。未指定時はnull。 */
+  seed: number | null;
   /** 相関トークンを付ける前のブラウザ User-Agent */
   userAgent: string;
   /** ページの console から収集した "[tracker]" 始まりのログ */

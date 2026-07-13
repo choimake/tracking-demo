@@ -190,6 +190,25 @@ export interface ManagedResourceSnapshot {
   routes: ResourceCounter;
 }
 
+export interface E2eDiagnosticConsoleEntry {
+  location: { columnNumber?: number; lineNumber?: number; url?: string };
+  pageUrl: string;
+  text: string;
+  type: string;
+}
+
+export interface E2eDiagnosticPageError {
+  message: string;
+  name: string;
+  pageUrl: string;
+  stack?: string;
+}
+
+export interface E2eRuntimeDiagnostics {
+  console: E2eDiagnosticConsoleEntry[];
+  pageErrors: E2eDiagnosticPageError[];
+}
+
 interface ManagedRouteRecord {
   handler: E2eRouteHandler;
   id: string;
@@ -227,6 +246,7 @@ export interface ManagedE2eRuntime {
   readonly trackerLogs: string[];
   readonly tracking: TrackingClient;
   close(): Promise<void>;
+  diagnostics(): E2eRuntimeDiagnostics;
   finalizeVideo(ok: boolean): Promise<void>;
   resourceSnapshot(): ManagedResourceSnapshot;
   withSession<T>(
@@ -261,6 +281,10 @@ function combineCallbackAndCleanupErrors(
 }
 
 class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
+  readonly #diagnostics: E2eRuntimeDiagnostics = {
+    console: [],
+    pageErrors: [],
+  };
   readonly #contexts: ResourceCounter = { generated: 0, released: 0 };
   readonly #options: CreateManagedE2eRuntimeOptions;
   readonly #pages: ResourceCounter = { generated: 0, released: 0 };
@@ -279,6 +303,7 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
     this.trackerLogs = root.trackerLogs;
     this.tracking = root.tracking;
     this.#root = this.#registerSession(root, false);
+    this.#registerDiagnosticPage(root.page);
     this.session = this.#capability(this.#root);
   }
 
@@ -344,6 +369,7 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
       },
       newPage: async () => {
         const page = await record.context.newPage();
+        this.#registerDiagnosticPage(page);
         record.pages.add(page);
         this.#pages.generated += 1;
         return page as unknown as E2ePage;
@@ -353,6 +379,25 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
         this.#registerRoute(record, page, pattern, handler),
       unroute: (routeId) => this.#releaseRoute(record, routeId),
     };
+  }
+
+  #registerDiagnosticPage(page: Page): void {
+    page.on("console", (message) => {
+      this.#diagnostics.console.push({
+        location: message.location(),
+        pageUrl: page.url(),
+        text: message.text(),
+        type: message.type(),
+      });
+    });
+    page.on("pageerror", (error) => {
+      this.#diagnostics.pageErrors.push({
+        message: error.message,
+        name: error.name,
+        pageUrl: page.url(),
+        stack: error.stack,
+      });
+    });
   }
 
   async #registerRoute(
@@ -477,6 +522,7 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
       raw,
       options.recordScenarioVideo === true
     );
+    this.#registerDiagnosticPage(raw.page);
     let callbackError: unknown;
     let callbackFailed = false;
     let result: T | undefined;
@@ -551,6 +597,13 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
       page: this.#root.primaryPage,
       videoPath: scenarioVideoPath,
     });
+  }
+
+  diagnostics(): E2eRuntimeDiagnostics {
+    return {
+      console: this.#diagnostics.console.map((entry) => ({ ...entry })),
+      pageErrors: this.#diagnostics.pageErrors.map((entry) => ({ ...entry })),
+    };
   }
 
   resourceSnapshot(): ManagedResourceSnapshot {

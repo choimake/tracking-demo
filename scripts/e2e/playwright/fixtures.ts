@@ -14,9 +14,11 @@ import {
 import { createManagedE2eRuntime } from "../harness/session.js";
 import type { E2eContext, E2eFixtures } from "../harness/types.js";
 import { e2eScenarios } from "../scenarios.js";
+import { DIAGNOSTIC_CONTEXT_ANNOTATION } from "./failure-diagnostics.js";
+import type { FailureDiagnosticContext } from "./failure-diagnostics.js";
 import {
   attachFailureDiagnostics,
-  runScenarioFixtureTeardown,
+  runScenarioFixtureLifecycle,
 } from "./teardown.js";
 
 interface E2eTestFixtures {
@@ -126,7 +128,10 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
       mobile,
       newPage: runtime.session.newPage,
       page: runtime.session.page,
+      repeat: testInfo.repeatEachIndex,
       route: runtime.session.route,
+      scenarioId: e2eScenarios[scenarioIndex].id,
+      seed: process.env.E2E_SEED ? Number(process.env.E2E_SEED) : null,
       trackerLogs: runtime.trackerLogs,
       tracking: runtime.tracking,
       unroute: runtime.session.unroute,
@@ -140,29 +145,49 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
     } finally {
       const failed = testInfo.status !== testInfo.expectedStatus;
       const stackLogPath = process.env.E2E_STACK_LOG_PATH;
-      await runScenarioFixtureTeardown({
+      const diagnosticContext: FailureDiagnosticContext = {
+        browser: typedBrowserName,
+        correlationId,
+        hitCursor: runtime.tracking.getDiagnosticHitCursor(),
+        manifestPath: testInfo.outputPath("failure-diagnostics-manifest.json"),
+        repeat: testInfo.repeatEachIndex,
+        scenarioId: e2eScenarios[scenarioIndex].id,
+        scenarioName: testInfo.title,
+        seed: process.env.E2E_SEED ? Number(process.env.E2E_SEED) : null,
+        video:
+          recordVideoMode && scenarioVideoPath
+            ? { mode: recordVideoMode, path: scenarioVideoPath }
+            : null,
+      };
+      testInfo.annotations.push({
+        description: JSON.stringify(diagnosticContext),
+        type: DIAGNOSTIC_CONTEXT_ANNOTATION,
+      });
+      const failureDiagnostics = () =>
+        attachFailureDiagnostics({
+          attachJson: (name, value) =>
+            testInfo.attach(name, {
+              body: Buffer.from(JSON.stringify(value, null, 2)),
+              contentType: "application/json",
+            }),
+          attachStackLog: stackLogPath
+            ? () =>
+                testInfo.attach("stack-log", {
+                  contentType: "text/plain",
+                  path: stackLogPath,
+                })
+            : undefined,
+          getConsoleLog: async () => runtime.diagnostics().console,
+          getCorrelatedHits: () => context.tracking.getHitsMatching({}),
+          getPageErrors: async () => runtime.diagnostics().pageErrors,
+        });
+      await runScenarioFixtureLifecycle({
         cleanupVideo: recordVideoMode
-          ? () => runtime.finalizeVideo(!failed)
+          ? (ok) => runtime.finalizeVideo(ok)
           : undefined,
         closeBrowserContext: () => runtime.close(),
-        failureDiagnostics: failed
-          ? () =>
-              attachFailureDiagnostics({
-                attachJson: (name, value) =>
-                  testInfo.attach(name, {
-                    body: Buffer.from(JSON.stringify(value, null, 2)),
-                    contentType: "application/json",
-                  }),
-                attachStackLog: stackLogPath
-                  ? () =>
-                      testInfo.attach("stack-log", {
-                        contentType: "text/plain",
-                        path: stackLogPath,
-                      })
-                  : undefined,
-                getCorrelatedHits: () => context.tracking.getHitsMatching({}),
-              })
-          : undefined,
+        failureDiagnostics,
+        scenarioFailed: failed,
       });
     }
   },
