@@ -1,0 +1,13 @@
+export function capturePageEvaluate(page: {
+  evaluate: (callback: () => void) => unknown;
+}) {
+  const f = page.evaluate;
+  return f;
+}
+
+export function callNonPageEvaluate(helper: {
+  evaluate: (callback: () => void) => unknown;
+}) {
+  const f = helper.evaluate;
+  return f(() => undefined);
+}

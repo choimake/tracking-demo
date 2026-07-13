@@ -1,0 +1,6 @@
+export async function violation(ctx: {
+  page: { evaluate: (callback: () => void) => unknown };
+}) {
+  const p = ctx.page;
+  return p.evaluate(() => undefined);
+}

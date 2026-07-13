@@ -45,24 +45,18 @@
 5. `waitForNewHit`。`afterHitId` に `hitCursor` を指定する
 6. `expectHitPayload`
 
-### 操作の置き場所
+### 自動検査
 
-- `page.getByRole` / `locator` / `page.evaluate` 等のページ操作は `browser/actions.ts` に置く。例外は README「注意」
-- テスト本体は `browser/index` から Act 関数を呼ぶ
-- 同一 tick 必須など、actions 分割が検証意図を壊す場合はテスト本体に書いてよい。例外の事実は README「注意」に従う（例: `gtm-dedup.ts`）
+E2Eコーディング規則の自動検査では、担当の正本を [`architecture-check.ts`](./architecture-check.ts) とする。
+`npm run e2e:architecture-check` は字句規則とdeep import規則を実行する。
+例外は [`architecture-allowlist.json`](./architecture-allowlist.json) にファイル、規則、理由を登録する。
+失敗fixtureは `npm run e2e:architecture-regression-check` が検証する。
 
-### セレクタと import
+### 自動検査しない実装規則
 
-- クリック可能な UI は `getByRole` を優先する（`browser/actions.ts` の既存方針）
-- テストからの import は barrel 経由にする
-  - `import { … } from '../browser/index.js'`
-  - `import { … } from '../tracking/index.js'`
-
-### 定数と匿名 ID
-
-- オリジン・タイムアウト・UA トークン等の定数は `harness/config.ts` に置く
+- `browser/actions.ts` では、クリック可能な UI に `getByRole` を優先する
+- オリジン・UAトークン等の定数は `harness/config.ts` に置く
 - `sleep` は `harness/config.ts` に置き、`tracking` から re-export しない
-- 匿名 ID 形式の正規表現は `tracking/assertions.ts` の `ANON_VID_RE` / `ANON_SID_RE` に一本化する
 - 正規表現の直前に、マッチの意図とマッチする具体値の例をコメントで記載する
 
 ### 実行と隔離状態
@@ -80,10 +74,7 @@
 
 ## 禁止事項
 
-- テスト本体に `locator` / `getByRole` / `page.evaluate` 等のページ操作を直書きする。例外は README「注意」に限る
 - Hit 検証を省略し、件数だけを最終判定にする（発火系）
-- `ANON_VID_RE` / `ANON_SID_RE` を別ファイルで再定義する
-- タイムアウト等のマジックナンバーをテストに散在させる（`harness/config` へ）
 - 共有 `data/db.json` のままシナリオやブラウザを並列実行する
 - シナリオ page / Cookie / フィクスチャを汚したまま次シナリオへ進む
 - 負のcontractテストを根拠に、README「スコープ外」の非対応機能を「対応済み」にする変更

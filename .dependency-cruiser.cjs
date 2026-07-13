@@ -47,6 +47,26 @@ module.exports = {
       to: { path: "^scripts/e2e/tracking" },
     },
     {
+      name: "e2e-tests-browser-barrel-import",
+      severity: "error",
+      comment: "tests から browser への import は barrel に限定する",
+      from: { path: "^scripts/e2e/tests/" },
+      to: {
+        path: "^scripts/e2e/browser/",
+        pathNot: "^scripts/e2e/browser/index\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tests-tracking-barrel-import",
+      severity: "error",
+      comment: "tests から tracking への import は barrel に限定する",
+      from: { path: "^scripts/e2e/tests/" },
+      to: {
+        path: "^scripts/e2e/tracking/",
+        pathNot: "^scripts/e2e/tracking/index\\.ts$",
+      },
+    },
+    {
       name: "e2e-browser-not-to-tests",
       severity: "error",
       comment: "browser は tests に依存しない",

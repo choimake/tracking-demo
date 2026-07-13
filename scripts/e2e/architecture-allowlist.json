@@ -1,0 +1,7 @@
+[
+  {
+    "file": "scripts/e2e/tests/gtm-dedup.ts",
+    "rule": "tests-no-page-evaluate",
+    "reason": "pushStateとtdDataLayer.pushを同一tickで実行しないと検証意図が変わるため"
+  }
+]

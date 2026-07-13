@@ -8,6 +8,7 @@
 | 情報                                           | 正本                                                     |
 | ---------------------------------------------- | -------------------------------------------------------- |
 | コーディング規則と変更時の制約                 | [AGENTS.md](./AGENTS.md)                                 |
+| 自動検査の担当                                 | [architecture-check.ts](./architecture-check.ts)         |
 | 実行シナリオの登録                             | [scenarios.ts](./scenarios.ts)                           |
 | contract、担当層、ブラウザ、実行頻度、検証状態 | [E2E Coverage Matrix](../../docs/e2e-coverage-matrix.md) |
 | 実行方法と障害調査手順                         | このREADME                                               |
@@ -16,6 +17,12 @@
 シナリオの件数はREADMEへ記載しない。`scenarios.ts` と E2E Coverage Matrix の一致は
 `npm run e2e:scenario-catalog-check` で検証する。
 CIの`npm run e2e`も、シナリオを登録する前に同じ検証を実行する。
+
+`npm run e2e:architecture-check` はE2Eコーディング規則を自動検査する。
+字句規則は `architecture-check.ts` が検査する。
+deep import規則は同ファイルが示すdependency-cruiser規則が検査する。
+例外は `architecture-allowlist.json` にファイル、規則、理由を登録する。
+`npm run e2e:architecture-regression-check` は各規則の失敗fixtureとallowlistの拒否条件を検証する。
 
 ## Fixture の所有権と回収
 
@@ -362,7 +369,7 @@ export async function testMyScenario(ctx: E2eContext): Promise<void> {
 
 ## 注意
 
-- `gtm-dedup.ts` では `pushState` と `tdDataLayer.push` を**同一 tick**で実行する必要があるため、`browser/actions` を個別に呼ばず `page.evaluate` にまとめている
+- `gtm-dedup.ts` では `pushState` と `tdDataLayer.push` を**同一 tick**で実行する必要があるため、`browser/actions` を個別に呼ばず `page.evaluate` にまとめている。この例外は `architecture-allowlist.json` が理由付きで管理する
 - `tracking/client.ts` の `getHitsForEvent` / `getHitsMatching` は API 経由ではなく run 専用 DB を直読みする
 - 別 run は動的ポートと専用 DB で隔離する。同一 run 内のブラウザマトリクスとシナリオは直列実行する
 - フィクスチャ（検証用イベント等）は全ブラウザ共通で 1 回 setup / 最後に teardown
