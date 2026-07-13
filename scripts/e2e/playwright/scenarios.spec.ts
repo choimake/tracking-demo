@@ -27,12 +27,12 @@ test.describe(
         if (process.env.E2E_HANG_SCENARIO === scenario.name) {
           await new Promise(() => {});
         }
+        await scenario.run(e2eContext);
         if (process.env.E2E_FAIL_SCENARIO === scenario.name) {
           throw new Error(
             `E2E_FAIL_SCENARIO による意図的な失敗: ${scenario.name}`
           );
         }
-        await scenario.run(e2eContext);
       });
     }
   }

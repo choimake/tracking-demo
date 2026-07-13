@@ -19,6 +19,10 @@ export default defineConfig({
   timeout:
     Number(process.env.E2E_SCENARIO_TIMEOUT_MS) || DEFAULT_SCENARIO_TIMEOUT_MS,
   outputDir: path.resolve("test-results", "playwright"),
+  use: {
+    screenshot: { fullPage: true, mode: "only-on-failure" },
+    trace: "retain-on-failure",
+  },
   reporter: process.env.CI
     ? [
         ["github"],

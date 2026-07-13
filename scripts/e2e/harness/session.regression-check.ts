@@ -5,8 +5,13 @@
 import type { Browser, BrowserContext, Page } from "playwright";
 
 import type { TrackingClient } from "../tracking/client.js";
-import type { createE2ePage, createE2eSession, E2eSession } from "./session.js";
-import type { E2eContext } from "./types.js";
+import type {
+  createE2ePage,
+  createE2eSession,
+  CreateE2eSessionOptions,
+  E2eSession,
+} from "./session.js";
+import type { E2eBrowserContextFactory, E2eContext } from "./types.js";
 
 type AwaitedReturn<T> = T extends (...args: never[]) => Promise<infer R>
   ? R
@@ -33,6 +38,14 @@ type _TrackingRequired = E2eSession["tracking"] extends TrackingClient
 type _E2eContextMobileRequired = E2eContext["mobile"] extends boolean
   ? true
   : false;
+type _SessionFactoryMatchesContextFactory = AssertEqual<
+  NonNullable<CreateE2eSessionOptions["contextFactory"]>,
+  NonNullable<E2eContext["createBrowserContext"]>
+>;
+type _ContextFactoryMatchesPublicType = AssertEqual<
+  NonNullable<E2eContext["createBrowserContext"]>,
+  E2eBrowserContextFactory
+>;
 
 const _checks: [
   _SessionEqualsPage,
@@ -41,7 +54,9 @@ const _checks: [
   _PageRequired,
   _TrackingRequired,
   _E2eContextMobileRequired,
-] = [true, true, true, true, true, true];
+  _SessionFactoryMatchesContextFactory,
+  _ContextFactoryMatchesPublicType,
+] = [true, true, true, true, true, true, true, true];
 
 // createE2ePage の戻り値から context を必須プロパティとして取り出せること
 type _ContextFromPage = AwaitedReturn<typeof createE2ePage>["context"];

@@ -1,10 +1,20 @@
-import type { Browser, Page } from "playwright";
+import type {
+  Browser,
+  BrowserContext,
+  BrowserContextOptions,
+  Page,
+} from "playwright";
 
 import type { TrackingClient } from "../tracking/client.js";
 import type { BrowserName } from "./config.js";
 
 export type { EventSummary, HitRecord } from "../tracking/client.js";
 export type { BrowserName } from "./config.js";
+
+/** シナリオの診断対象に含める BrowserContext を作成する。 */
+export type E2eBrowserContextFactory = (
+  options?: BrowserContextOptions
+) => Promise<BrowserContext>;
 
 /** setupE2eFixtures が作成し、全テストケースで共有する検証用データ */
 export interface E2eFixtures {
@@ -19,6 +29,8 @@ export interface E2eFixtures {
 /** 各テストケース関数に渡される実行コンテキスト */
 export interface E2eContext {
   browser: Browser;
+  /** Playwright fixture 経由では、追加 BrowserContext の作成に必ず使う。 */
+  createBrowserContext?: E2eBrowserContextFactory;
   browserName: BrowserName;
   /** run・browser・scenario を一意に識別する E2E 相関 ID */
   correlationId: string;

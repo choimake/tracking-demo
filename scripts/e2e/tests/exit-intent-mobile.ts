@@ -33,6 +33,7 @@ export async function testExitIntentMobile(ctx: E2eContext): Promise<void> {
   const { page, context } = await createE2eSession(ctx.browser, {
     browserName: ctx.browserName,
     correlationId: ctx.correlationId,
+    contextFactory: ctx.createBrowserContext,
     mobile: true,
     recordVideoDir: ctx.recordVideoDir,
     userAgent: ctx.userAgent,

@@ -23,6 +23,7 @@ export async function testCookieUnavailable(ctx: E2eContext): Promise<void> {
   const session = await createE2eSession(ctx.browser, {
     browserName: ctx.browserName,
     correlationId: ctx.correlationId,
+    contextFactory: ctx.createBrowserContext,
     userAgent: ctx.userAgent,
   });
   try {

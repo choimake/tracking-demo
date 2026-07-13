@@ -14,7 +14,7 @@ import {
   TIME_ON_PAGE_TRIGGER_SECONDS,
 } from "./config.js";
 import type { BrowserName } from "./config.js";
-import type { E2eFixtures } from "./types.js";
+import type { E2eBrowserContextFactory, E2eFixtures } from "./types.js";
 
 const TIME_ON_PAGE_TEST_EVENT_NAME = "E2E滞在2秒";
 const JAPANESE_URL_TEST_EVENT_NAME = "E2E日本語URL到達";
@@ -85,6 +85,8 @@ export interface E2eSession {
 }
 
 export interface CreateE2eSessionOptions {
+  /** 指定時は BrowserContext の作成をこの factory へ委譲する。 */
+  contextFactory?: E2eBrowserContextFactory;
   /** モバイル viewport / hasTouch / isMobile(Firefox 以外) を付与する */
   mobile?: boolean;
   /** 指定時のみ recordVideo: { dir } を有効化する */
@@ -124,7 +126,9 @@ export async function createE2eSession(
     contextOptions.recordVideo = { dir: options.recordVideoDir };
   }
 
-  const context = await browser.newContext(contextOptions);
+  const context = options.contextFactory
+    ? await options.contextFactory(contextOptions)
+    : await browser.newContext(contextOptions);
   const page = await context.newPage();
   const trackerLogs: string[] = [];
   page.on("console", (msg) => {
