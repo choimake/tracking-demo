@@ -35,6 +35,26 @@ async function assertPortsReleased(ports: number[]): Promise<void> {
   await Promise.all(released.map(close));
 }
 
+function playwrightRegressionEnv(
+  overrides: NodeJS.ProcessEnv = {}
+): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    E2E_BROWSERS: "chromium",
+    E2E_FAIL_SCENARIO: "",
+    E2E_HANG_SCENARIO: "",
+    E2E_MOBILE: "",
+    E2E_ORDER: "normal",
+    E2E_REPEAT: "1",
+    E2E_SCENARIOS: "scenario-1",
+    E2E_SEED: "",
+    E2E_SUITE_FAIL_IMMEDIATELY: "",
+    E2E_TAGS: "",
+    E2E_TEARDOWN_FAIL_IMMEDIATELY: "",
+    ...overrides,
+  };
+}
+
 function runInjectedSuiteFailure(): Promise<{
   code: number | null;
   output: string;
@@ -42,7 +62,7 @@ function runInjectedSuiteFailure(): Promise<{
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [PLAYWRIGHT_CLI, "test"], {
       cwd: ROOT,
-      env: { ...process.env, E2E_SUITE_FAIL_IMMEDIATELY: "1" },
+      env: playwrightRegressionEnv({ E2E_SUITE_FAIL_IMMEDIATELY: "1" }),
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";
@@ -57,23 +77,51 @@ function runInjectedSuiteFailure(): Promise<{
   });
 }
 
-function runInterruptedStartup(): Promise<{
+function runInjectedTeardownFailure(): Promise<{
   code: number | null;
   output: string;
 }> {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [PLAYWRIGHT_CLI, "test"], {
       cwd: ROOT,
-      env: process.env,
+      env: playwrightRegressionEnv({
+        E2E_TEARDOWN_FAIL_IMMEDIATELY: "1",
+      }),
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let output = "";
+    child.stdout.on("data", (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    child.once("error", reject);
+    child.once("exit", (code) => resolve({ code, output }));
+  });
+}
+
+function runInterruptedStartup(signal: "SIGINT" | "SIGTERM"): Promise<{
+  code: number | null;
+  output: string;
+}> {
+  // Playwrightはglobal setup中のSIGINTを先に処理するため、返却teardownを登録できない。
+  // SIGINTはglobal setup完了後かつテスト実行前のscenario読込ログで送信する。
+  const interruptMarker =
+    signal === "SIGINT" ? "[e2e] order=" : "[E2E stack] starting";
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [PLAYWRIGHT_CLI, "test"], {
+      cwd: ROOT,
+      env: playwrightRegressionEnv(),
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";
     let interrupted = false;
     const collect = (chunk: Buffer): void => {
       output += chunk.toString();
-      if (!interrupted && output.includes("[E2E stack] starting")) {
+      if (!interrupted && output.includes(interruptMarker)) {
         interrupted = true;
-        child.kill("SIGTERM");
+        child.kill(signal);
       }
     };
     child.stdout.on("data", collect);
@@ -234,14 +282,35 @@ async function main(): Promise<void> {
       "parallel suite exceptions: processes stopped and run DBs removed"
     );
 
-    const interruptedRun = await runInterruptedStartup();
+    const teardownFailureRun = await runInjectedTeardownFailure();
+    assert.notEqual(teardownFailureRun.code, null);
+    assert.notEqual(teardownFailureRun.code, 0);
+    // 注入したglobal teardown失敗の識別子へマッチする。例: `E2E_TEARDOWN_FAIL_IMMEDIATELY`。
+    assert.match(teardownFailureRun.output, /E2E_TEARDOWN_FAIL_IMMEDIATELY/);
+    // global teardown失敗後のstack cleanup完了ログへマッチする。例: `[E2E stack] cleanup complete`。
+    assert.match(teardownFailureRun.output, /\[E2E stack\] cleanup complete/);
+    const teardownFailureDetails = stackDetails(teardownFailureRun.output);
+    assert.equal(fs.existsSync(teardownFailureDetails.dbPath), false);
+    await assertPortsReleased(teardownFailureDetails.ports);
+    console.log("global teardown failure: stack stopped and run DB removed");
+
+    const interruptedRun = await runInterruptedStartup("SIGTERM");
     assert.equal(interruptedRun.code, 143);
     // SIGTERM後のstack cleanup完了ログへマッチする。例: `[E2E stack] cleanup complete`。
     assert.match(interruptedRun.output, /\[E2E stack\] cleanup complete/);
     const interruptedDetails = stackDetails(interruptedRun.output);
     assert.equal(fs.existsSync(interruptedDetails.dbPath), false);
     await assertPortsReleased(interruptedDetails.ports);
-    console.log("startup signal: stack stopped and run DB removed");
+    console.log("startup SIGTERM: stack stopped and run DB removed");
+
+    const sigintRun = await runInterruptedStartup("SIGINT");
+    assert.equal(sigintRun.code, 130);
+    // SIGINT後のstack cleanup完了ログへマッチする。例: `[E2E stack] cleanup complete`。
+    assert.match(sigintRun.output, /\[E2E stack\] cleanup complete/);
+    const sigintDetails = stackDetails(sigintRun.output);
+    assert.equal(fs.existsSync(sigintDetails.dbPath), false);
+    await assertPortsReleased(sigintDetails.ports);
+    console.log("startup SIGINT: stack stopped and run DB removed");
 
     const stalePath = path.join(DATA_DIR, "e2e-regression-stale.tmp");
     const freshPath = path.join(DATA_DIR, "e2e-regression-fresh.tmp");

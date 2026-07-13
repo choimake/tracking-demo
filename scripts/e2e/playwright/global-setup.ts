@@ -65,6 +65,13 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
 
     return async () => {
       const errors: unknown[] = [];
+      const teardownFailureInjected =
+        process.env.E2E_TEARDOWN_FAIL_IMMEDIATELY === "1";
+      if (teardownFailureInjected) {
+        errors.push(
+          new Error("E2E_TEARDOWN_FAIL_IMMEDIATELY による意図的な失敗")
+        );
+      }
       try {
         await teardownE2eFixtures(tracking, fixtures);
       } catch (error) {
@@ -77,7 +84,10 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
         errors.push(error);
       }
       if (errors.length > 0) {
-        throw new AggregateError(errors, "E2E global teardownに失敗しました");
+        const message = teardownFailureInjected
+          ? "E2E_TEARDOWN_FAIL_IMMEDIATELY による意図的な失敗"
+          : "E2E global teardownに失敗しました";
+        throw new AggregateError(errors, message);
       }
       await fs.rm(stackLogPath, { force: true });
     };
