@@ -268,7 +268,7 @@ Playwright Test
 | `hash-navigation.ts`              | hash変更後のpageviewを観測期間中0件                                             |
 | `query-only.ts`                   | query-only遷移後のpageviewを観測期間中0件                                       |
 | `cookie-issuance.ts`              | Cookie発行visitのpageviewを正確に1件                                            |
-| `cookie-navigation-continuity.ts` | 初回とMPAを各1件。SPA初回と購入完了を合計2件。購入イベントを1件                 |
+| `cookie-navigation-continuity.ts` | 初回とMPAを各1件。SPA初回と購入完了を合計2件。購入イベントを正確に1件           |
 | `cookie-rolling-expiration.ts`    | 初回、sid期限更新、vid期限更新のpageviewを各1件。合計3件                        |
 | `cookie-session-reset.ts`         | 初回とsid削除後のpageviewを各1件。合計2件                                       |
 | `cookie-client-reset.ts`          | 初回とvid/sid削除後のpageviewを各1件。合計2件                                   |
