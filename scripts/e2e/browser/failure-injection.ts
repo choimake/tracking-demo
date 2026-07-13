@@ -126,12 +126,13 @@ export function observePageErrors(page: Page): PageErrorProbe {
 
 /** sendBeacon を false 応答に固定し、tracker の fetch fallback を選択させる。 */
 export async function forceSendBeaconFalse(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+  // page.addInitScript は tsx の __name 変換を避けるため文字列で実行する。
+  await page.addInitScript(`(() => {
     Object.defineProperty(Navigator.prototype, "sendBeacon", {
       configurable: true,
       value: () => false,
     });
-  });
+  })()`);
 }
 
 /** Config 失敗後の非破壊性を確認する識別要素をロード前 queue に積む。 */

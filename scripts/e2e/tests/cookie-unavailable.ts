@@ -26,13 +26,14 @@ export async function testCookieUnavailable(ctx: E2eContext): Promise<void> {
     userAgent: ctx.userAgent,
   });
   try {
-    await session.context.addInitScript(() => {
+    // context.addInitScript は tsx の __name 変換を避けるため文字列で実行する。
+    await session.context.addInitScript(`(() => {
       Object.defineProperty(Document.prototype, "cookie", {
         configurable: true,
         get: () => "",
         set: () => undefined,
       });
-    });
+    })()`);
     await session.context.clearCookies();
     const first = await visitAndGetPageview(ctx, "/", session.page);
     const second = await visitAndGetPageview(ctx, "/products", session.page);
