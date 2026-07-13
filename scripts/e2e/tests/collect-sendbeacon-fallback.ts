@@ -8,11 +8,7 @@ import {
 } from "../browser/index.js";
 import { UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
-import {
-  expectHitPayload,
-  expectPageviewCountExactly,
-  waitForNewHit,
-} from "../tracking/index.js";
+import { expectFiredHit } from "../tracking/index.js";
 
 /** sendBeacon=false時にfetch fallbackを1回だけ実行する。 */
 export async function testCollectSendBeaconFallback(
@@ -23,27 +19,25 @@ export async function testCollectSendBeaconFallback(
   const configProbe = await installEmptyConfig(ctx, page);
   const collectProbe = await observeCollectRequests(ctx, page);
   const pageErrorProbe = observePageErrors(page);
-  const hitCursor = await tracking.captureHitCursor();
   const trackerLogStart = trackerLogs.length;
   try {
-    await gotoDemoPageWithoutTrackerWait(page, "/");
-    await expectPageviewCountExactly(
+    await expectFiredHit({
+      act: async () => gotoDemoPageWithoutTrackerWait(page, "/"),
+      exactCount: {
+        expectedCount: 1,
+        kind: "hit-count",
+        label: "sendBeacon=false時のfallback pageview",
+      },
+      expectedPayload: {
+        eventId: null,
+        type: "pageview",
+        uaIncludes: UA_TOKEN[browserName],
+        urlIncludes: "/",
+        workspaceId: WORKSPACE_ID,
+      },
+      filter: { eventId: null, type: "pageview" },
+      hitLabel: "fallback pageview Hit",
       tracking,
-      hitCursor,
-      1,
-      "sendBeacon=false時のfallback pageview"
-    );
-    const hit = await waitForNewHit(
-      tracking,
-      { afterHitId: hitCursor, eventId: null, type: "pageview" },
-      "fallback pageview Hit"
-    );
-    expectHitPayload(hit, {
-      eventId: null,
-      type: "pageview",
-      uaIncludes: UA_TOKEN[browserName],
-      urlIncludes: "/",
-      workspaceId: WORKSPACE_ID,
     });
 
     const scenarioLogs = trackerLogs.slice(trackerLogStart);

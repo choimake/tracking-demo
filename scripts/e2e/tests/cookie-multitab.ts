@@ -1,10 +1,6 @@
 import { gotoDemoPage } from "../browser/index.js";
 import type { E2eContext } from "../harness/types.js";
-import {
-  expectPageviewCountExactly,
-  quiesceBeacons,
-  waitForNewHit,
-} from "../tracking/index.js";
+import { expectFiredHit, quiesceBeacons } from "../tracking/index.js";
 import {
   assertPageviewIdentity,
   snapshotTdCookies,
@@ -14,22 +10,23 @@ export async function testCookieMultitab(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   await ctx.clearCookies();
   const sibling = await ctx.newPage();
-  const cursor = await ctx.tracking.captureHitCursor();
-  await Promise.all([
-    gotoDemoPage(ctx.page, "/"),
-    gotoDemoPage(sibling, "/spa"),
-  ]);
-  await expectPageviewCountExactly(
-    ctx.tracking,
-    cursor,
-    2,
-    "複数タブの同時pageview"
-  );
-  const latestInitialHit = await waitForNewHit(
-    ctx.tracking,
-    { afterHitId: cursor, eventId: null, type: "pageview" },
-    "複数タブ初期化のpageview Hit"
-  );
+  const { hit: latestInitialHit, hitCursor: cursor } = await expectFiredHit({
+    act: async () => {
+      await Promise.all([
+        gotoDemoPage(ctx.page, "/"),
+        gotoDemoPage(sibling, "/spa"),
+      ]);
+    },
+    exactCount: {
+      expectedCount: 2,
+      kind: "hit-count",
+      label: "複数タブの同時pageview",
+    },
+    expectedPayload: { eventId: null, type: "pageview" },
+    filter: { eventId: null, type: "pageview" },
+    hitLabel: "複数タブ初期化のpageview Hit",
+    tracking: ctx.tracking,
+  });
   const latestInitialPath = new URL(latestInitialHit.url).pathname;
   if (latestInitialPath !== "/" && latestInitialPath !== "/spa") {
     throw new Error(`複数タブ初期化のHit URLが不正: ${latestInitialPath}`);

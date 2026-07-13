@@ -7,6 +7,7 @@ import { expectHitCountAtLeast } from "./count-assertions.js";
 
 const E2E_ASSERTIONS_STARTED_AT_MS = Date.now();
 type TagCheckReader = Pick<TrackingClient, "getTagCheck">;
+type NewHitReader = Pick<TrackingClient, "getHitsMatching">;
 
 /** `/api/tag-check` が指定した Hit を返すことを検証する。 */
 export async function expectTagCheckContainsHit(
@@ -27,7 +28,7 @@ export async function expectTagCheckContainsHit(
 }
 
 export async function waitForNewHit(
-  tracking: TrackingClient,
+  tracking: NewHitReader,
   filter: HitFilter,
   label: string,
   timeoutMs = DEFAULT_WAIT_TIMEOUT_MS

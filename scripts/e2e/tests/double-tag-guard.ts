@@ -6,22 +6,30 @@ import {
 } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
+  expectFiredHit,
   expectPageviewCountExactly,
-  waitForNewHit,
-  expectHitPayload,
 } from "../tracking/index.js";
 
 /** タグ二重設置ガード: 2つ目の読み込みは無視される */
 export async function testDuplicateTagGuard(ctx: E2eContext): Promise<void> {
   const { tracking, page, trackerLogs, browserName } = ctx;
-  const hitCursor = await tracking.captureHitCursor();
-  await gotoDemoPage(page, "/");
-  await expectPageviewCountExactly(
+  const { hitCursor } = await expectFiredHit({
+    act: async () => gotoDemoPage(page, "/"),
+    exactCount: {
+      expectedCount: 1,
+      kind: "hit-count",
+      label: "初回 pageview を受信",
+    },
+    expectedPayload: {
+      eventId: null,
+      type: "pageview",
+      uaIncludes: UA_TOKEN[browserName],
+      workspaceId: WORKSPACE_ID,
+    },
+    filter: { eventId: null, type: "pageview" },
+    hitLabel: "二重設置ガード pageview ヒット取得",
     tracking,
-    hitCursor,
-    1,
-    "初回 pageview を受信"
-  );
+  });
   const pageviewCountBefore = await tracking.getPageviewCountAfter(hitCursor);
   const trackerLogsCountBefore = trackerLogs.length;
   await page.addScriptTag({
@@ -44,16 +52,4 @@ export async function testDuplicateTagGuard(ctx: E2eContext): Promise<void> {
     throw new Error("二重読み込みで pageview が二重計上された");
   }
   console.log("  ✓ 警告を出して2つ目を無視・二重計上なし");
-
-  const hit = await waitForNewHit(
-    tracking,
-    { afterHitId: hitCursor, eventId: null, type: "pageview" },
-    "二重設置ガード pageview ヒット取得"
-  );
-  expectHitPayload(hit, {
-    eventId: null,
-    type: "pageview",
-    uaIncludes: UA_TOKEN[browserName],
-    workspaceId: WORKSPACE_ID,
-  });
 }

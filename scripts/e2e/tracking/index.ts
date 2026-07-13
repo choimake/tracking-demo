@@ -33,6 +33,13 @@ export {
   waitForNewHit,
 } from "./hit-payload-assertions.js";
 export type { ExpectedHitPayload } from "./hit-payload-assertions.js";
+export { expectFiredHit } from "./fire-assertion-helper.js";
+export type {
+  ExpectFiredHitInput,
+  ExpectedFiredHitPayload,
+  FiredHitExactCount,
+  VerifiedFireResult,
+} from "./fire-assertion-helper.js";
 export { expectTrackerLogContains } from "./log-assertions.js";
 export { quiesceBeacons, waitForCondition } from "./polling.js";
 export type { WaitObservation } from "./polling.js";

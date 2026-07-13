@@ -9,12 +9,11 @@ import { BEACON_SETTLE_MS, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
-  quiesceBeacons,
-  expectEventCountExactlyIncreasedBy,
+  expectFiredHit,
+  expectHitPayload,
   expectNoHitsDuringObservation,
   expectPageviewCountExactly,
-  waitForNewHit,
-  expectHitPayload,
+  quiesceBeacons,
 } from "../tracking/index.js";
 
 /** SPA対応: History Change でページビュー再評価 + URL到達発火 */
@@ -22,17 +21,30 @@ export async function testSpaHistoryChange(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const purchaseCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const hitCursor = await ctx.tracking.captureHitCursor();
-  await gotoDemoPage(ctx.page, "/spa");
-  await setNoReloadMarker(ctx.page);
-  await clickSpaOrderComplete(ctx.page);
-  await expectEventCountExactlyIncreasedBy(
-    ctx.tracking,
-    EVENT_ID_PURCHASE,
-    purchaseCountBefore,
-    1,
-    "SPA遷移で購入完了イベント +1"
-  );
+  const { hitCursor } = await expectFiredHit({
+    act: async () => {
+      await gotoDemoPage(ctx.page, "/spa");
+      await setNoReloadMarker(ctx.page);
+      await clickSpaOrderComplete(ctx.page);
+    },
+    exactCount: {
+      countBefore: purchaseCountBefore,
+      eventId: EVENT_ID_PURCHASE,
+      expectedDelta: 1,
+      kind: "event-increase",
+      label: "SPA遷移で購入完了イベント +1",
+    },
+    expectedPayload: {
+      eventId: EVENT_ID_PURCHASE,
+      type: "event",
+      uaIncludes: UA_TOKEN[ctx.browserName],
+      urlIncludes: "/order/complete",
+      workspaceId: WORKSPACE_ID,
+    },
+    filter: { eventId: EVENT_ID_PURCHASE, type: "event" },
+    hitLabel: "SPA購入完了ヒット取得",
+    tracking: ctx.tracking,
+  });
   await expectPageviewCountExactly(
     ctx.tracking,
     hitCursor,
@@ -44,19 +56,6 @@ export async function testSpaHistoryChange(ctx: E2eContext): Promise<void> {
     throw new Error("ページがリロードされている(SPA遷移になっていない)");
   }
   console.log("  ✓ リロードなし(pushState遷移)を確認");
-
-  const purchaseHit = await waitForNewHit(
-    ctx.tracking,
-    { afterHitId: hitCursor, eventId: EVENT_ID_PURCHASE, type: "event" },
-    "SPA購入完了ヒット取得"
-  );
-  expectHitPayload(purchaseHit, {
-    eventId: EVENT_ID_PURCHASE,
-    type: "event",
-    uaIncludes: UA_TOKEN[ctx.browserName],
-    urlIncludes: "/order/complete",
-    workspaceId: WORKSPACE_ID,
-  });
 
   const pageviewHits = await ctx.tracking.getPageviewHitsAfter(hitCursor);
   if (pageviewHits.length < 2) {

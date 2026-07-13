@@ -163,7 +163,18 @@ module.exports = {
       comment: "client facade は assertion 層に依存しない",
       from: { path: "^scripts/e2e/tracking/client(?:\\.ts|/)" },
       to: {
-        path: "^scripts/e2e/tracking/(polling|count-assertions|hit-payload-assertions|log-assertions|index)\\.ts$",
+        path: "^scripts/e2e/tracking/(polling|count-assertions|hit-payload-assertions|log-assertions|fire-assertion-helper|index)\\.ts$",
+      },
+    },
+    {
+      name: "e2e-tracking-fire-assertion-helper-direction",
+      severity: "error",
+      comment: "下位tracking責務は発火検証helperへ逆依存しない",
+      from: {
+        path: "^scripts/e2e/tracking/(response-parser|transport|admin-api|observation-api|client|assertion-formatter|polling|count-assertions|hit-payload-assertions|log-assertions)(?:\\.ts|/)",
+      },
+      to: {
+        path: "^scripts/e2e/tracking/fire-assertion-helper\\.ts$",
       },
     },
     {

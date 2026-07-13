@@ -18,15 +18,15 @@
 
 ## フォルダ責務
 
-| 場所                   | 責務     | 書くこと                                                        |
-| ---------------------- | -------- | --------------------------------------------------------------- |
-| `tests/`               | 検証意図 | Hit カーソル・Act 呼び出し・件数/Hit の期待                     |
-| `browser/`             | Act      | Playwright の locator / `getByRole` / ページ操作                |
-| `tracking/`            | Assert   | 件数待ち・`waitForNewHit`・`expectHitPayload`・匿名 ID 正規表現 |
-| `harness/`             | 裏方     | スタック・セッション・定数（`config.ts`）・型                   |
-| `scenarios.ts`         | 登録     | `{ name, run }` の一覧                                          |
-| `playwright.config.ts` | 設定     | projects・直列実行・global setup                                |
-| `playwright/`          | 実行     | fixture・`E2eContext`・薄い `test()` wrapper                    |
+| 場所                   | 責務     | 書くこと                                                      |
+| ---------------------- | -------- | ------------------------------------------------------------- |
+| `tests/`               | 検証意図 | Act・`exactCount`・`filter`・`expectedPayload`・`hitLabel`    |
+| `browser/`             | Act      | Playwright の locator / `getByRole` / ページ操作              |
+| `tracking/`            | Assert   | `expectFiredHit`・件数待ち・Hit payload検証・匿名 ID 正規表現 |
+| `harness/`             | 裏方     | スタック・セッション・定数（`config.ts`）・型                 |
+| `scenarios.ts`         | 登録     | `{ name, run }` の一覧                                        |
+| `playwright.config.ts` | 設定     | projects・直列実行・global setup                              |
+| `playwright/`          | 実行     | fixture・`E2eContext`・薄い `test()` wrapper                  |
 
 依存方向: `browser` は `tracking` / `tests` に依存しない。`tracking` が依存できる `harness` は `config` のみ（他の harness は禁止）。`harness/session`・`types` から `tracking` への依存は可。`harness/config`・`video` は `tracking` に依存しない。これらは `.dependency-cruiser.cjs` で error として担保する。
 
@@ -36,14 +36,11 @@
 
 真実は Hit である。件数 API は集計の便宜であり、最終判定は Hit 単位で行う。
 
-発火系シナリオの基本順:
+発火系シナリオは `expectFiredHit` を使う。helperはHitカーソル、Act、exact count、new Hit、payload検証の順序を固定する。
 
-1. 直前シナリオの遅延ビーコンが件数に食い込む恐れがあるときは、Act 前に `quiesceBeacons` を呼ぶ
-2. `hitCursor = await tracking.captureHitCursor()`
-3. Act
-4. 件数を正確に +1（例: `expectEventCountExactlyIncreasedBy`）
-5. `waitForNewHit`。`afterHitId` に `hitCursor` を指定する
-6. `expectHitPayload`
+呼び出し側は `act`、`exactCount`、`filter`、`expectedPayload`、`hitLabel` を指定する。直前シナリオの遅延ビーコンが件数に食い込む恐れがある場合は、呼び出し側が `expectFiredHit` の前に `quiesceBeacons` を呼ぶ。
+
+helperを使わない発火検証は [`architecture-allowlist.json`](./architecture-allowlist.json) にファイル、規則、理由を登録する。
 
 ### 自動検査
 

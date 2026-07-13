@@ -12,11 +12,10 @@ import type { E2eContext, E2ePage, ManagedSession } from "../harness/types.js";
 import {
   assertionError,
   expectAnonIdentityValues,
+  expectFiredHit,
   expectHitPayload,
   expectPageviewCountExactly,
   quiesceBeacons,
-  waitForCondition,
-  waitForNewHit,
 } from "../tracking/index.js";
 
 export const VID_MAX_AGE_SEC = 2 * 365 * 24 * 60 * 60;
@@ -102,58 +101,42 @@ export async function visitAndGetPageview(
   page: E2ePage = ctx.page
 ) {
   await quiesceBeacons(ctx.tracking);
-  const cursor = await ctx.tracking.captureHitCursor();
   const injectDuplicatePageview =
     process.env.E2E_COOKIE_DUPLICATE_PAGEVIEW === "1";
 
-  // 先行Hitの後に正しいブラウザHitを送る。exact件数判定の失敗注入にだけ使う。
-  if (injectDuplicatePageview) {
-    await ctx.tracking.fetchTracking("/api/collect", {
-      body: JSON.stringify({
-        sid: DUPLICATE_PAGEVIEW_SID,
-        type: "pageview",
-        ua: `${ctx.userAgent} ${E2E_CORRELATION_UA_PREFIX}${ctx.correlationId}`,
-        url: `${getDemoSiteOrigin()}${path}`,
-        vid: DUPLICATE_PAGEVIEW_VID,
-        ws: WORKSPACE_ID,
-      }),
-      method: "POST",
-    });
-  }
-  await gotoDemoPage(page, path);
-  if (injectDuplicatePageview) {
-    await waitForCondition("重複pageviewの失敗注入", async () => {
-      const pageviews = await ctx.tracking.getHitsMatching({
-        afterHitId: cursor,
-        eventId: null,
-        type: "pageview",
-      });
-      return {
-        actual: {
-          hitCount: pageviews.length,
-          hitIds: pageviews.map((hit) => hit.id),
-        },
-        ready: pageviews.length >= 2,
-      };
-    });
-  }
-
-  await expectVisitPageviewExactlyOnce(
-    ctx.tracking,
-    cursor,
-    `${path} pageview`
-  );
-  const hit = await waitForNewHit(
-    ctx.tracking,
-    { afterHitId: cursor, eventId: null, type: "pageview" },
-    `${path} pageview Hit`
-  );
-  expectHitPayload(hit, {
-    eventId: null,
-    type: "pageview",
-    uaIncludes: UA_TOKEN[ctx.browserName],
-    urlIncludes: path,
-    workspaceId: WORKSPACE_ID,
+  const { hit } = await expectFiredHit({
+    act: async () => {
+      // 先行Hitの後に正しいブラウザHitを送る。exact件数判定の失敗注入にだけ使う。
+      if (injectDuplicatePageview) {
+        await ctx.tracking.fetchTracking("/api/collect", {
+          body: JSON.stringify({
+            sid: DUPLICATE_PAGEVIEW_SID,
+            type: "pageview",
+            ua: `${ctx.userAgent} ${E2E_CORRELATION_UA_PREFIX}${ctx.correlationId}`,
+            url: `${getDemoSiteOrigin()}${path}`,
+            vid: DUPLICATE_PAGEVIEW_VID,
+            ws: WORKSPACE_ID,
+          }),
+          method: "POST",
+        });
+      }
+      await gotoDemoPage(page, path);
+    },
+    exactCount: {
+      expectedCount: 1,
+      kind: "hit-count",
+      label: `${path} pageview`,
+    },
+    expectedPayload: {
+      eventId: null,
+      type: "pageview",
+      uaIncludes: UA_TOKEN[ctx.browserName],
+      urlIncludes: path,
+      workspaceId: WORKSPACE_ID,
+    },
+    filter: { eventId: null, type: "pageview" },
+    hitLabel: `${path} pageview Hit`,
+    tracking: ctx.tracking,
   });
   return hit;
 }

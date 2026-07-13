@@ -9,8 +9,8 @@ import {
 import { UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
+  expectFiredHit,
   expectHitPayload,
-  expectPageviewCountExactly,
   quiesceBeacons,
 } from "../tracking/index.js";
 
@@ -22,20 +22,16 @@ export async function testHistoryTraversal(ctx: E2eContext): Promise<void> {
   await spaPushState(ctx.page, "/lifecycle/second");
   await quiesceBeacons(ctx.tracking);
 
-  const backCursor = await ctx.tracking.captureHitCursor();
-  await goBackTwice(ctx.page);
   await expectTraversalHits(
     ctx,
-    backCursor,
+    async () => goBackTwice(ctx.page),
     ["/lifecycle/first", "/spa"],
     "back 2回の pageview"
   );
 
-  const forwardCursor = await ctx.tracking.captureHitCursor();
-  await goForwardTwice(ctx.page);
   await expectTraversalHits(
     ctx,
-    forwardCursor,
+    async () => goForwardTwice(ctx.page),
     ["/lifecycle/first", "/lifecycle/second"],
     "forward 2回の pageview"
   );
@@ -47,11 +43,23 @@ export async function testHistoryTraversal(ctx: E2eContext): Promise<void> {
 
 async function expectTraversalHits(
   ctx: E2eContext,
-  hitCursor: string | undefined,
+  act: () => Promise<void>,
   expectedPaths: string[],
   label: string
 ): Promise<void> {
-  await expectPageviewCountExactly(ctx.tracking, hitCursor, 2, label);
+  const { hitCursor } = await expectFiredHit({
+    act,
+    exactCount: { expectedCount: 2, kind: "hit-count", label },
+    expectedPayload: {
+      eventId: null,
+      type: "pageview",
+      uaIncludes: UA_TOKEN[ctx.browserName],
+      workspaceId: WORKSPACE_ID,
+    },
+    filter: { eventId: null, type: "pageview" },
+    hitLabel: `${label}の最新Hit`,
+    tracking: ctx.tracking,
+  });
   const pageviewHits = await ctx.tracking.getPageviewHitsAfter(hitCursor);
   for (const hit of pageviewHits) {
     expectHitPayload(hit, {

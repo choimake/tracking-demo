@@ -7,10 +7,8 @@ import { BEACON_SETTLE_MS, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   quiesceBeacons,
-  expectEventCountExactlyIncreasedBy,
+  expectFiredHit,
   expectNoHitsDuringObservation,
-  waitForNewHit,
-  expectHitPayload,
 } from "../tracking/index.js";
 
 /** 離脱インテントトリガー(非離脱 mouseout は不発・上端外で発火) */
@@ -35,25 +33,24 @@ export async function testExitIntentTrigger(ctx: E2eContext): Promise<void> {
   );
   console.log("  ✓ 非離脱 mouseout(clientY>0)では件数不変");
 
-  const hitCursor = await ctx.tracking.captureHitCursor();
-  await simulateExitIntent(ctx.page);
-  await expectEventCountExactlyIncreasedBy(
-    ctx.tracking,
-    exitIntentEventId,
-    exitCountBefore,
-    1,
-    "離脱インテントイベント +1"
-  );
-  const hit = await waitForNewHit(
-    ctx.tracking,
-    { afterHitId: hitCursor, eventId: exitIntentEventId, type: "event" },
-    "離脱インテントヒット取得"
-  );
-  expectHitPayload(hit, {
-    eventId: exitIntentEventId,
-    type: "event",
-    uaIncludes: UA_TOKEN[ctx.browserName],
-    urlIncludes: "/",
-    workspaceId: WORKSPACE_ID,
+  await expectFiredHit({
+    act: async () => simulateExitIntent(ctx.page),
+    exactCount: {
+      countBefore: exitCountBefore,
+      eventId: exitIntentEventId,
+      expectedDelta: 1,
+      kind: "event-increase",
+      label: "離脱インテントイベント +1",
+    },
+    expectedPayload: {
+      eventId: exitIntentEventId,
+      type: "event",
+      uaIncludes: UA_TOKEN[ctx.browserName],
+      urlIncludes: "/",
+      workspaceId: WORKSPACE_ID,
+    },
+    filter: { eventId: exitIntentEventId, type: "event" },
+    hitLabel: "離脱インテントヒット取得",
+    tracking: ctx.tracking,
   });
 }

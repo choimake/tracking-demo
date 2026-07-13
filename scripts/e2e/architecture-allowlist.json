@@ -1,5 +1,30 @@
 [
   {
+    "file": "scripts/e2e/tests/cookie-helpers.ts",
+    "rule": "tests-fire-assertion-helper-required",
+    "reason": "expectFiredHitが検証済みのpageview HitへCookie継続のsid・vid期待値を追加検証するため"
+  },
+  {
+    "file": "scripts/e2e/tests/datalayer-queue.ts",
+    "rule": "tests-fire-assertion-helper-required",
+    "reason": "1回のキュー再生Actがpageviewと購入イベントを同時発火し、2種類のexact countとpayloadを検証するため"
+  },
+  {
+    "file": "scripts/e2e/tests/gtm-dedup.ts",
+    "rule": "tests-fire-assertion-helper-required",
+    "reason": "同一tickの1回のActがpageviewと購入イベントを発火し、重複排除窓を越えた再送も同じシナリオで検証するため"
+  },
+  {
+    "file": "scripts/e2e/tests/history-traversal.ts",
+    "rule": "tests-fire-assertion-helper-required",
+    "reason": "expectFiredHitで2件のexact countと最新Hitを検証した後、履歴順に並ぶ全Hitのpayloadを追加検証するため"
+  },
+  {
+    "file": "scripts/e2e/tests/spa-history.ts",
+    "rule": "tests-fire-assertion-helper-required",
+    "reason": "expectFiredHitで購入Hitを検証した後、同じActが送る2件のpageviewの末尾payloadを追加検証するため"
+  },
+  {
     "file": "scripts/e2e/tests/gtm-dedup.ts",
     "rule": "tests-no-page-evaluate",
     "reason": "pushStateとtdDataLayer.pushを同一tickで実行しないと検証意図が変わるため"

@@ -9,11 +9,8 @@ import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
   quiesceBeacons,
-  expectEventCountExactlyIncreasedBy,
   expectEventCountExactly,
-  expectHitCountExactly,
-  waitForNewHit,
-  expectHitPayload,
+  expectFiredHit,
 } from "../tracking/index.js";
 
 /**
@@ -24,55 +21,52 @@ export async function testSpaPopstate(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const purchaseCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const purchaseCursor = await ctx.tracking.captureHitCursor();
-  await gotoDemoPage(ctx.page, "/spa");
-  await setNoReloadMarker(ctx.page);
-  await clickSpaOrderComplete(ctx.page);
-  await expectEventCountExactlyIncreasedBy(
-    ctx.tracking,
-    EVENT_ID_PURCHASE,
-    purchaseCountBefore,
-    1,
-    "SPA遷移(注文完了)で購入完了イベント +1"
-  );
-  const purchaseHit = await waitForNewHit(
-    ctx.tracking,
-    {
-      afterHitId: purchaseCursor,
+  await expectFiredHit({
+    act: async () => {
+      await gotoDemoPage(ctx.page, "/spa");
+      await setNoReloadMarker(ctx.page);
+      await clickSpaOrderComplete(ctx.page);
+    },
+    exactCount: {
+      countBefore: purchaseCountBefore,
+      eventId: EVENT_ID_PURCHASE,
+      expectedDelta: 1,
+      kind: "event-increase",
+      label: "SPA遷移(注文完了)で購入完了イベント +1",
+    },
+    expectedPayload: {
       eventId: EVENT_ID_PURCHASE,
       type: "event",
+      uaIncludes: UA_TOKEN[ctx.browserName],
+      urlIncludes: "/order/complete",
+      workspaceId: WORKSPACE_ID,
     },
-    "SPA購入完了ヒット取得"
-  );
-  expectHitPayload(purchaseHit, {
-    eventId: EVENT_ID_PURCHASE,
-    type: "event",
-    uaIncludes: UA_TOKEN[ctx.browserName],
-    urlIncludes: "/order/complete",
-    workspaceId: WORKSPACE_ID,
+    filter: { eventId: EVENT_ID_PURCHASE, type: "event" },
+    hitLabel: "SPA購入完了ヒット取得",
+    tracking: ctx.tracking,
   });
 
   // 「戻る」操作: リロードを伴わない popstate 経由の疑似遷移になっているか
-  const backCursor = await ctx.tracking.captureHitCursor();
-  await ctx.page.goBack();
-  const backHit = await waitForNewHit(
-    ctx.tracking,
-    { afterHitId: backCursor, eventId: null, type: "pageview" },
-    "戻る操作(popstate)でのpageview再送ヒット取得"
-  );
-  expectHitPayload(backHit, {
-    eventId: null,
-    type: "pageview",
-    uaIncludes: UA_TOKEN[ctx.browserName],
-    urlIncludes: "/spa",
-    workspaceId: WORKSPACE_ID,
+  await expectFiredHit({
+    act: async () => {
+      await ctx.page.goBack();
+    },
+    exactCount: {
+      expectedCount: 1,
+      kind: "hit-count",
+      label: "戻る操作の pageview",
+    },
+    expectedPayload: {
+      eventId: null,
+      type: "pageview",
+      uaIncludes: UA_TOKEN[ctx.browserName],
+      urlIncludes: "/spa",
+      workspaceId: WORKSPACE_ID,
+    },
+    filter: { eventId: null, type: "pageview" },
+    hitLabel: "戻る操作(popstate)でのpageview再送ヒット取得",
+    tracking: ctx.tracking,
   });
-  await expectHitCountExactly(
-    ctx.tracking,
-    { afterHitId: backCursor, eventId: null, type: "pageview" },
-    1,
-    "戻る操作の pageview"
-  );
 
   const marker = await getNoReloadMarker(ctx.page);
   if (marker !== 1) {

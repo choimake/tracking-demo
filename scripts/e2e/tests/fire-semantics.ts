@@ -5,16 +5,13 @@ import {
   scrollToTop,
 } from "../browser/index.js";
 import { BEACON_SETTLE_MS, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
-import type { E2eContext, HitRecord } from "../harness/types.js";
+import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_CART,
   EVENT_ID_SCROLL_50,
-  quiesceBeacons,
-  expectEventCountExactlyIncreasedBy,
   expectEventCountExactly,
-  waitForCondition,
-  waitForNewHit,
-  expectHitPayload,
+  expectFiredHit,
+  quiesceBeacons,
 } from "../tracking/index.js";
 
 /**
@@ -28,65 +25,54 @@ export async function testFireSemantics(ctx: E2eContext): Promise<void> {
   const cartCountBefore = await ctx.tracking.getEventCount7d(EVENT_ID_CART);
   const scrollCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_SCROLL_50);
-  const hitCursor = await ctx.tracking.captureHitCursor();
-  await gotoDemoPage(ctx.page, "/products");
-
   // --- クリック: 2回押して +2(fire、1PV内で複数回発火を許容) ---
-  await clickAddToCart(ctx.page);
-  await clickAddToCart(ctx.page);
-  await expectEventCountExactlyIncreasedBy(
-    ctx.tracking,
-    EVENT_ID_CART,
-    cartCountBefore,
-    2,
-    "カート追加ボタンを2回クリックしてイベントが+2件(クリックは複数回発火)"
-  );
-  // db.json への書き込みは非同期debounceのため、件数APIで+2を確認済みでも
-  // ヒットの直接読み取り(getHitsMatching)は着弾までポーリングで待つ必要がある
-  let cartHits: HitRecord[] = [];
-  await waitForCondition("カート追加ヒットが2件着弾", async () => {
-    cartHits = await ctx.tracking.getHitsMatching({
-      afterHitId: hitCursor,
+  await expectFiredHit({
+    act: async () => {
+      await gotoDemoPage(ctx.page, "/products");
+      await clickAddToCart(ctx.page);
+      await clickAddToCart(ctx.page);
+    },
+    exactCount: {
+      countBefore: cartCountBefore,
+      eventId: EVENT_ID_CART,
+      expectedDelta: 2,
+      kind: "event-increase",
+      label:
+        "カート追加ボタンを2回クリックしてイベントが+2件(クリックは複数回発火)",
+    },
+    expectedPayload: {
       eventId: EVENT_ID_CART,
       type: "event",
-    });
-    return {
-      actual: {
-        hitCount: cartHits.length,
-        hitIds: cartHits.map((hit) => hit.id),
-      },
-      ready: cartHits.length >= 2,
-    };
-  });
-  expectHitPayload(cartHits.at(-1)!, {
-    eventId: EVENT_ID_CART,
-    type: "event",
-    uaIncludes: UA_TOKEN[ctx.browserName],
-    urlIncludes: "/products",
-    workspaceId: WORKSPACE_ID,
+      uaIncludes: UA_TOKEN[ctx.browserName],
+      urlIncludes: "/products",
+      workspaceId: WORKSPACE_ID,
+    },
+    filter: { eventId: EVENT_ID_CART, type: "event" },
+    hitLabel: "カート追加ヒット取得",
+    tracking: ctx.tracking,
   });
   console.log("  ✓ クリックは押した回数だけ発火(fire)することを確認");
 
   // --- スクロール: 最下部→先頭→再最下部でも +1 のまま(fireOnce、同一PV内では再発火なし) ---
-  await scrollToBottom(ctx.page);
-  await expectEventCountExactlyIncreasedBy(
-    ctx.tracking,
-    EVENT_ID_SCROLL_50,
-    scrollCountBefore,
-    1,
-    "最下部スクロールでスクロール50%イベント+1"
-  );
-  const scrollHit = await waitForNewHit(
-    ctx.tracking,
-    { afterHitId: hitCursor, eventId: EVENT_ID_SCROLL_50, type: "event" },
-    "スクロール50%ヒット取得"
-  );
-  expectHitPayload(scrollHit, {
-    eventId: EVENT_ID_SCROLL_50,
-    type: "event",
-    uaIncludes: UA_TOKEN[ctx.browserName],
-    urlIncludes: "/products",
-    workspaceId: WORKSPACE_ID,
+  await expectFiredHit({
+    act: async () => scrollToBottom(ctx.page),
+    exactCount: {
+      countBefore: scrollCountBefore,
+      eventId: EVENT_ID_SCROLL_50,
+      expectedDelta: 1,
+      kind: "event-increase",
+      label: "最下部スクロールでスクロール50%イベント+1",
+    },
+    expectedPayload: {
+      eventId: EVENT_ID_SCROLL_50,
+      type: "event",
+      uaIncludes: UA_TOKEN[ctx.browserName],
+      urlIncludes: "/products",
+      workspaceId: WORKSPACE_ID,
+    },
+    filter: { eventId: EVENT_ID_SCROLL_50, type: "event" },
+    hitLabel: "スクロール50%ヒット取得",
+    tracking: ctx.tracking,
   });
 
   await scrollToTop(ctx.page);

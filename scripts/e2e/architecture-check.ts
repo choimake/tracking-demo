@@ -22,6 +22,7 @@ export const ARCHITECTURE_RULES = [
   "anon-id-regex-single-source",
   "timeout-constant-in-config",
   "fixed-wait-registration",
+  "tests-fire-assertion-helper-required",
 ] as const;
 
 export type ArchitectureRule = (typeof ARCHITECTURE_RULES)[number];
@@ -508,6 +509,76 @@ type FixedWaitCallName =
   | "sleep"
   | "waitForTimeout";
 
+type FireAssertionCallName =
+  | "captureHitCursor"
+  | "expectEventCountExactly"
+  | "expectEventCountExactlyIncreasedBy"
+  | "expectHitCountExactly"
+  | "expectHitPayload"
+  | "expectPageviewCountExactly"
+  | "waitForNewHit";
+
+function collectFireAssertionCallAliases(
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker
+): ReadonlyMap<ts.Symbol, FireAssertionCallName> {
+  const aliases = new Map<ts.Symbol, FireAssertionCallName>();
+  const directNames = new Set<FireAssertionCallName>([
+    "captureHitCursor",
+    "expectEventCountExactly",
+    "expectEventCountExactlyIncreasedBy",
+    "expectHitCountExactly",
+    "expectHitPayload",
+    "expectPageviewCountExactly",
+    "waitForNewHit",
+  ]);
+  const canonicalName = (
+    expression: ts.Expression
+  ): FireAssertionCallName | undefined => {
+    if (ts.isIdentifier(expression)) {
+      const symbol = checker.getSymbolAtLocation(expression);
+      if (symbol && aliases.has(symbol)) return aliases.get(symbol);
+      return directNames.has(expression.text as FireAssertionCallName)
+        ? (expression.text as FireAssertionCallName)
+        : undefined;
+    }
+    const member = accessedMember(expression);
+    return member && directNames.has(member.name as FireAssertionCallName)
+      ? (member.name as FireAssertionCallName)
+      : undefined;
+  };
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const visit = (node: ts.Node): void => {
+      if (ts.isImportSpecifier(node)) {
+        const importedName = (node.propertyName ?? node.name)
+          .text as FireAssertionCallName;
+        const symbol = checker.getSymbolAtLocation(node.name);
+        if (directNames.has(importedName) && symbol && !aliases.has(symbol)) {
+          aliases.set(symbol, importedName);
+          changed = true;
+        }
+      }
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.initializer
+      ) {
+        const name = canonicalName(node.initializer);
+        const symbol = checker.getSymbolAtLocation(node.name);
+        if (name && symbol && aliases.get(symbol) !== name) {
+          aliases.set(symbol, name);
+          changed = true;
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+  }
+  return aliases;
+}
+
 function collectFixedWaitCallAliases(
   sourceFile: ts.SourceFile,
   checker: ts.TypeChecker
@@ -670,7 +741,18 @@ function visitSourceFile(
     checker
   );
   const fixedWaitCallAliases = collectFixedWaitCallAliases(sourceFile, checker);
+  const fireAssertionCallAliases = collectFireAssertionCallAliases(
+    sourceFile,
+    checker
+  );
   const isTestSource = file.startsWith(`${E2E_DIR}/tests/`);
+  const checksFireAssertionPattern =
+    isTestSource && !file.endsWith(".regression-check.ts");
+  let fireAssertionAnchor: ts.Node | undefined;
+  let callsCaptureHitCursor = false;
+  let callsExactCount = false;
+  let callsExpectHitPayload = false;
+  let callsWaitForNewHit = false;
   const isFixedWaitLayer = [
     "browser",
     "harness",
@@ -707,6 +789,34 @@ function visitSourceFile(
   };
 
   const visit = (node: ts.Node): void => {
+    if (checksFireAssertionPattern && ts.isCallExpression(node)) {
+      const calledName = (() => {
+        if (ts.isIdentifier(node.expression)) {
+          const symbol = checker.getSymbolAtLocation(node.expression);
+          return symbol ? fireAssertionCallAliases.get(symbol) : undefined;
+        }
+        const member = accessedMember(node.expression);
+        return member?.name as FireAssertionCallName | undefined;
+      })();
+      if (calledName === "captureHitCursor") {
+        callsCaptureHitCursor = true;
+        fireAssertionAnchor ??= node.expression;
+      } else if (
+        calledName === "expectEventCountExactly" ||
+        calledName === "expectEventCountExactlyIncreasedBy" ||
+        calledName === "expectHitCountExactly" ||
+        calledName === "expectPageviewCountExactly"
+      ) {
+        callsExactCount = true;
+        fireAssertionAnchor ??= node.expression;
+      } else if (calledName === "expectHitPayload") {
+        callsExpectHitPayload = true;
+        fireAssertionAnchor ??= node.expression;
+      } else if (calledName === "waitForNewHit") {
+        callsWaitForNewHit = true;
+        fireAssertionAnchor ??= node.expression;
+      }
+    }
     if (isFixedWaitLayer && ts.isCallExpression(node)) {
       const member = accessedMember(node.expression);
       const identifierName = ts.isIdentifier(node.expression)
@@ -874,6 +984,18 @@ function visitSourceFile(
   };
 
   visit(sourceFile);
+  if (
+    fireAssertionAnchor &&
+    (callsWaitForNewHit ||
+      callsExpectHitPayload ||
+      (callsCaptureHitCursor && callsExactCount))
+  ) {
+    addViolation(
+      fireAssertionAnchor,
+      "tests-fire-assertion-helper-required",
+      "発火系テストはexpectFiredHitで必須手順を実行する"
+    );
+  }
   return violations;
 }
 

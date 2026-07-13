@@ -1,0 +1,10 @@
+import {
+  expectEventCountExactlyIncreasedBy as assertIncrease,
+} from "../tracking/index.js";
+
+export async function violation(ctx: any): Promise<void> {
+  const cursor = await ctx.tracking.captureHitCursor();
+  await ctx.act();
+  await assertIncrease(ctx.tracking, "ev_fixture", 0, 1, "fixture +1");
+  void cursor;
+}

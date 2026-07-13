@@ -18,6 +18,11 @@ interface CustomRuleFixture {
 
 const customRuleFixtures: CustomRuleFixture[] = [
   {
+    fixture: "fire-assertion-helper-required.fixture",
+    rule: "tests-fire-assertion-helper-required",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
     fixture: "fixed-wait-abort-signal.fixture",
     rule: "fixed-wait-registration",
     target: "scripts/e2e/tests/violation.ts",
@@ -141,6 +146,23 @@ for (const fixture of customRuleFixtures) {
       `${result.stdout}${result.stderr}`,
       new RegExp(`\\[${fixture.rule}\\]`),
       `${fixture.fixture}の規則IDが出力されない`
+    );
+  } finally {
+    fs.rmSync(root, { force: true, recursive: true });
+  }
+}
+
+for (const fixture of [
+  "fire-assertion-helper-allowed.fixture",
+  "fire-assertion-negative-allowed.fixture",
+]) {
+  const root = writeFixtureRoot(fixture, "scripts/e2e/tests/allowed-fire.ts");
+  try {
+    const result = runCustomCheck(root);
+    assert.equal(
+      result.status,
+      0,
+      `${fixture}: ${result.stdout}${result.stderr}`
     );
   } finally {
     fs.rmSync(root, { force: true, recursive: true });
@@ -401,6 +423,11 @@ try {
 }
 
 const dependencyCruiserFixtures = [
+  {
+    file: "tracking-fire-assertion-helper-reverse.fixture",
+    rule: "e2e-tracking-fire-assertion-helper-direction",
+    target: "scripts/e2e/tracking/client/.architecture-fire-helper.tmp.ts",
+  },
   {
     file: "browser-deep-import.fixture",
     rule: "e2e-tests-browser-barrel-import",

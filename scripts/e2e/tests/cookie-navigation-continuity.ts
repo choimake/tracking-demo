@@ -7,11 +7,9 @@ import {
 import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
-  expectEventCountExactlyIncreasedBy,
-  expectHitPayload,
+  expectFiredHit,
   expectPageviewCountExactly,
   quiesceBeacons,
-  waitForNewHit,
 } from "../tracking/index.js";
 import {
   assertPageviewIdentity,
@@ -32,28 +30,40 @@ export async function testCookieNavigationContinuity(
 
   await quiesceBeacons(ctx.tracking);
   const count = await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
-  const cursor = await ctx.tracking.captureHitCursor();
-  await gotoDemoPage(ctx.page, "/spa");
-  await setNoReloadMarker(ctx.page);
-  await clickSpaOrderComplete(ctx.page);
-  await expectEventCountExactlyIncreasedBy(
-    ctx.tracking,
-    EVENT_ID_PURCHASE,
-    count,
-    1,
-    "SPA購入 +1"
-  );
+  const { hitCursor: cursor } = await expectFiredHit({
+    act: async () => {
+      await gotoDemoPage(ctx.page, "/spa");
+      await setNoReloadMarker(ctx.page);
+      await clickSpaOrderComplete(ctx.page);
+    },
+    exactCount: {
+      countBefore: count,
+      eventId: EVENT_ID_PURCHASE,
+      expectedDelta: 1,
+      kind: "event-increase",
+      label: "SPA購入 +1",
+    },
+    expectedPayload: {
+      eventId: EVENT_ID_PURCHASE,
+      sid: first.sid,
+      type: "event",
+      urlIncludes: "/order/complete",
+      vid: first.vid,
+    },
+    filter: { eventId: EVENT_ID_PURCHASE, type: "event" },
+    hitLabel: "SPA購入Hit",
+    tracking: ctx.tracking,
+  });
   await expectPageviewCountExactly(
     ctx.tracking,
     cursor,
     2,
     "SPA初回と/order/complete遷移のpageview"
   );
-  const latestPageview = await waitForNewHit(
-    ctx.tracking,
-    { afterHitId: cursor, eventId: null, type: "pageview" },
-    "SPA購入完了pageview Hit"
+  const latestPageview = (await ctx.tracking.getPageviewHitsAfter(cursor)).at(
+    -1
   );
+  if (!latestPageview) throw new Error("SPA購入完了pageview Hitを取得できない");
   assertPageviewIdentity(ctx, latestPageview, {
     path: "/order/complete",
     sid: first.sid,
@@ -61,19 +71,6 @@ export async function testCookieNavigationContinuity(
   });
   if ((await getNoReloadMarker(ctx.page)) !== 1)
     throw new Error("SPA遷移でreloadした");
-  const purchaseHit = await waitForNewHit(
-    ctx.tracking,
-    { afterHitId: cursor, eventId: EVENT_ID_PURCHASE, type: "event" },
-    "SPA購入Hit"
-  );
-  expectHitPayload(purchaseHit, {
-    eventId: EVENT_ID_PURCHASE,
-    sid: first.sid,
-    type: "event",
-    urlIncludes: "/order/complete",
-    vid: first.vid,
-  });
-
   const pageviews = await ctx.tracking.getHitsMatching({
     afterHitId: cursor,
     eventId: null,
