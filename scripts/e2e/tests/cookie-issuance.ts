@@ -1,6 +1,5 @@
 import { DEMO_SITE_ORIGIN } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
-import { quiesceBeacons } from "../tracking/index.js";
 import {
   SID_MAX_AGE_SEC,
   VID_MAX_AGE_SEC,
@@ -12,7 +11,6 @@ import {
 } from "./cookie-helpers.js";
 
 export async function testCookieIssuance(ctx: E2eContext): Promise<void> {
-  await quiesceBeacons(ctx.tracking);
   await ctx.page.context().clearCookies();
   const issuedAt = Date.now() / 1000;
   const hit = await visitAndGetPageview(ctx, "/");

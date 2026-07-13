@@ -1,10 +1,8 @@
 import { setRawTdCookie, setTdCookie } from "../browser/index.js";
 import type { E2eContext } from "../harness/types.js";
-import { quiesceBeacons } from "../tracking/index.js";
 import { assertValidIdentity, visitAndGetPageview } from "./cookie-helpers.js";
 
 export async function testCookieInvalidValues(ctx: E2eContext): Promise<void> {
-  await quiesceBeacons(ctx.tracking);
   await ctx.page.context().clearCookies();
   const first = await visitAndGetPageview(ctx, "/");
   await setTdCookie(ctx.page, "_td_sid", "not-a-valid-sid");

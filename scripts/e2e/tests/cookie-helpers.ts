@@ -1,14 +1,21 @@
 import type { Cookie, Page } from "playwright";
 
 import { gotoDemoPage } from "../browser/index.js";
-import { DEMO_SITE_ORIGIN, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
+import {
+  DEMO_SITE_ORIGIN,
+  E2E_CORRELATION_UA_PREFIX,
+  UA_TOKEN,
+  WORKSPACE_ID,
+} from "../harness/config.js";
 import type { BrowserName } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   ANON_SID_RE,
   ANON_VID_RE,
   expectHitPayload,
-  expectPageviewCountAtLeast,
+  expectPageviewCountExactly,
+  quiesceBeacons,
+  waitForCondition,
   waitForNewHit,
 } from "../tracking/index.js";
 
@@ -18,6 +25,14 @@ export const SHORT_MAX_AGE_SEC = 60;
 const BROWSER_COOKIE_CAP_SEC = 400 * 24 * 60 * 60;
 const ITP_COOKIE_CAP_SEC = 7 * 24 * 60 * 60;
 const EXPIRES_TOLERANCE_SEC = 120;
+const DUPLICATE_PAGEVIEW_VID = "v_00000000-0000-4000-8000-000000000001";
+const DUPLICATE_PAGEVIEW_SID = "s_00000000-0000-4000-8000-000000000001";
+
+interface PageviewObservationOptions {
+  observationMs?: number;
+  pollIntervalMs?: number;
+  timeoutMs?: number;
+}
 
 export function assertDemoCookieAttrs(cookie: Cookie, name: string): void {
   if (cookie.path !== "/" || cookie.sameSite !== "Lax") {
@@ -66,14 +81,65 @@ export async function visitAndGetPageview(
   path: string,
   page: Page = ctx.page
 ) {
+  await quiesceBeacons(ctx.tracking);
   const cursor = await ctx.tracking.captureHitCursor();
+  const injectDuplicatePageview =
+    process.env.E2E_COOKIE_DUPLICATE_PAGEVIEW === "1";
+
+  // 先行Hitの後に正しいブラウザHitを送る。exact件数判定の失敗注入にだけ使う。
+  if (injectDuplicatePageview) {
+    await ctx.tracking.fetchTracking("/api/collect", {
+      body: JSON.stringify({
+        sid: DUPLICATE_PAGEVIEW_SID,
+        type: "pageview",
+        ua: `${ctx.userAgent} ${E2E_CORRELATION_UA_PREFIX}${ctx.correlationId}`,
+        url: `${DEMO_SITE_ORIGIN}${path}`,
+        vid: DUPLICATE_PAGEVIEW_VID,
+        ws: WORKSPACE_ID,
+      }),
+      method: "POST",
+    });
+  }
   await gotoDemoPage(page, path);
-  await expectPageviewCountAtLeast(ctx.tracking, cursor, 1, `${path} pageview`);
-  return waitForNewHit(
+  if (injectDuplicatePageview) {
+    await waitForCondition("重複pageviewの失敗注入", async () => {
+      const pageviews = await ctx.tracking.getHitsMatching({
+        afterHitId: cursor,
+        eventId: null,
+        type: "pageview",
+      });
+      return pageviews.length >= 2;
+    });
+  }
+
+  await expectVisitPageviewExactlyOnce(
+    ctx.tracking,
+    cursor,
+    `${path} pageview`
+  );
+  const hit = await waitForNewHit(
     ctx.tracking,
     { afterHitId: cursor, eventId: null, type: "pageview" },
     `${path} pageview Hit`
   );
+  expectHitPayload(hit, {
+    eventId: null,
+    type: "pageview",
+    uaIncludes: UA_TOKEN[ctx.browserName],
+    urlIncludes: path,
+    workspaceId: WORKSPACE_ID,
+  });
+  return hit;
+}
+
+/** 通常visitのpageviewをsettle観測し、正確に1件であることを保証する。 */
+export async function expectVisitPageviewExactlyOnce(
+  tracking: Pick<E2eContext["tracking"], "getHitsMatching">,
+  afterHitId: string | undefined,
+  label: string,
+  options: PageviewObservationOptions = {}
+): Promise<void> {
+  await expectPageviewCountExactly(tracking, afterHitId, 1, label, options);
 }
 
 export function assertPageviewIdentity(

@@ -1,9 +1,13 @@
+import assert from "node:assert/strict";
+
 import type { Cookie } from "playwright";
 
+import type { HitRecord } from "../harness/types.js";
 import { e2eScenarios } from "../scenarios.js";
 import {
   assertCookieExpires,
   assertDemoCookieAttrs,
+  expectVisitPageviewExactlyOnce,
 } from "./cookie-helpers.js";
 
 const cookieScenarios = e2eScenarios.filter((scenario) =>
@@ -59,5 +63,62 @@ try {
 } catch (error) {
   if (String(error).includes("不正expiresを受理した")) throw error;
 }
+
+const pageview = (id: string, vid: string, sid: string): HitRecord => ({
+  eventId: null,
+  id,
+  sid,
+  test: false,
+  ts: "2026-07-13T00:00:00.000Z",
+  type: "pageview",
+  ua: "regression-check",
+  url: "http://localhost/products",
+  vid,
+  workspaceId: "ws-001",
+});
+const expectedVid = "v_00000000-0000-4000-8000-000000000002";
+const expectedSid = "s_00000000-0000-4000-8000-000000000002";
+const precedingDuplicate = pageview(
+  "duplicate",
+  "v_00000000-0000-4000-8000-000000000001",
+  "s_00000000-0000-4000-8000-000000000001"
+);
+const correctLastHit = pageview("correct", expectedVid, expectedSid);
+const immediateDuplicateReader = {
+  getHitsMatching: async () => [precedingDuplicate, correctLastHit],
+};
+const lastHit = (await immediateDuplicateReader.getHitsMatching()).at(-1);
+assert.equal(lastHit?.vid, expectedVid, "最後のHitは正しいvidを持つ");
+assert.equal(lastHit?.sid, expectedSid, "最後のHitは正しいsidを持つ");
+await assert.rejects(
+  expectVisitPageviewExactlyOnce(
+    immediateDuplicateReader,
+    "cursor",
+    "先行する重複pageview",
+    { observationMs: 20, pollIntervalMs: 2, timeoutMs: 20 }
+  ),
+  /got=2 want=1/,
+  "最後のHitが正しい場合も先行する重複Hitを検出する"
+);
+
+let lateDuplicateReads = 0;
+const lateDuplicateReader = {
+  getHitsMatching: async () => {
+    lateDuplicateReads += 1;
+    return lateDuplicateReads === 1
+      ? [correctLastHit]
+      : [correctLastHit, precedingDuplicate];
+  },
+};
+await assert.rejects(
+  expectVisitPageviewExactlyOnce(
+    lateDuplicateReader,
+    "cursor",
+    "遅延する重複pageview",
+    { observationMs: 60, pollIntervalMs: 5, timeoutMs: 20 }
+  ),
+  /got=2 want=1/,
+  "settle観測中に届く重複Hitを検出する"
+);
 
 console.log("cookie helpers regression: OK");

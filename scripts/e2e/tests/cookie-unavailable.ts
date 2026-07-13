@@ -1,11 +1,10 @@
 import { readDocumentCookie } from "../browser/index.js";
 import { createE2eSession } from "../harness/session.js";
 import type { E2eContext } from "../harness/types.js";
-import { expectAnonIdsPresent, quiesceBeacons } from "../tracking/index.js";
+import { expectAnonIdsPresent } from "../tracking/index.js";
 import { snapshotTdCookies, visitAndGetPageview } from "./cookie-helpers.js";
 
 export async function testCookieUnavailable(ctx: E2eContext): Promise<void> {
-  await quiesceBeacons(ctx.tracking);
   await ctx.page.context().clearCookies();
   await visitAndGetPageview(ctx, "/");
   const before = await snapshotTdCookies(ctx.page);

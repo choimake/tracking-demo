@@ -231,36 +231,43 @@ Playwright Test
 
 件数保証は次の4区分で表す。複合シナリオは区間ごとの保証を併記する。
 
-| シナリオ                         | 件数保証                                                                        |
-| -------------------------------- | ------------------------------------------------------------------------------- |
-| `tag-load.ts`                    | 初回pageviewを正確に1件                                                         |
-| `url-reach.ts`                   | URL到達イベントを正確に1件                                                      |
-| `click-trigger.ts`               | クリックイベントを正確に1件                                                     |
-| `scroll-trigger.ts`              | スクロールイベントを正確に1件                                                   |
-| `time-on-page.ts`                | 滞在イベントを正確に1件                                                         |
-| `exit-intent.ts`                 | 非離脱操作は観測期間中0件。離脱操作は正確に1件                                  |
-| `spa-history.ts`                 | pageviewを正確に2件。購入イベントを正確に1件。同一パス操作は観測期間中0件       |
-| `gtm-dedup.ts`                   | 各遷移のpageviewを正確に1件。同一tick遷移の購入イベントはsettle時点で正確に+1件 |
-| `datalayer-manual.ts`            | 手動pageviewを正確に1件                                                         |
-| `datalayer-queue.ts`             | pageviewを正確に1件。購入イベントを正確に1件                                    |
-| `double-tag-guard.ts`            | 初回と二重設置後のpageviewを正確に1件                                           |
-| `disabled-event.ts`              | 無効イベントを観測期間中0件                                                     |
-| `spa-popstate.ts`                | 戻る操作のpageviewを正確に1件。購入イベントを正確に1件                          |
-| `time-on-page-cancel.ts`         | 滞在イベントを観測期間中0件                                                     |
-| `fire-semantics.ts`              | クリックイベントを正確に2件。スクロールイベントを正確に1件                      |
-| `url-normalize.ts`               | 各URL到達イベントを正確に1件                                                    |
-| `exit-intent-mobile.ts`          | 離脱イベントを観測期間中0件                                                     |
-| `hash-navigation.ts`             | hash変更後のpageviewを観測期間中0件                                             |
-| `query-only.ts`                  | query-only遷移後のpageviewを観測期間中0件                                       |
-| `cookie-*.ts`                    | 各Actのpageviewを最低1件。SPA購入完了イベントを正確に1件                        |
-| `replace-state.ts`               | パス変更後のpageviewを正確に1件                                                 |
-| `reload-pageview.ts`             | reload後のpageviewを正確に1件                                                   |
-| `history-traversal.ts`           | back/forward各操作のpageviewを正確に1件。4操作の合計を正確に4件                 |
-| `page-leave-timer.ts`            | ページ離脱後の旧滞在イベントを観測期間中0件                                     |
-| `config-http-500.ts`             | Config要求を正確に1回。全Hitを観測期間中0件                                     |
-| `collect-sendbeacon-fallback.ts` | fallback fetchとpageview Hitを正確に1件                                         |
-| `collect-http-500.ts`            | Collect要求を正確に1回。全Hitを観測期間中0件                                    |
-| `tracker-script-http-404.ts`     | tracker.js要求を正確に1回。Config/Collect要求と全Hitを観測期間中0件             |
+| シナリオ                          | 件数保証                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------- |
+| `tag-load.ts`                     | 初回pageviewを正確に1件                                                         |
+| `url-reach.ts`                    | URL到達イベントを正確に1件                                                      |
+| `click-trigger.ts`                | クリックイベントを正確に1件                                                     |
+| `scroll-trigger.ts`               | スクロールイベントを正確に1件                                                   |
+| `time-on-page.ts`                 | 滞在イベントを正確に1件                                                         |
+| `exit-intent.ts`                  | 非離脱操作は観測期間中0件。離脱操作は正確に1件                                  |
+| `spa-history.ts`                  | pageviewを正確に2件。購入イベントを正確に1件。同一パス操作は観測期間中0件       |
+| `gtm-dedup.ts`                    | 各遷移のpageviewを正確に1件。同一tick遷移の購入イベントはsettle時点で正確に+1件 |
+| `datalayer-manual.ts`             | 手動pageviewを正確に1件                                                         |
+| `datalayer-queue.ts`              | pageviewを正確に1件。購入イベントを正確に1件                                    |
+| `double-tag-guard.ts`             | 初回と二重設置後のpageviewを正確に1件                                           |
+| `disabled-event.ts`               | 無効イベントを観測期間中0件                                                     |
+| `spa-popstate.ts`                 | 戻る操作のpageviewを正確に1件。購入イベントを正確に1件                          |
+| `time-on-page-cancel.ts`          | 滞在イベントを観測期間中0件                                                     |
+| `fire-semantics.ts`               | クリックイベントを正確に2件。スクロールイベントを正確に1件                      |
+| `url-normalize.ts`                | 各URL到達イベントを正確に1件                                                    |
+| `exit-intent-mobile.ts`           | 離脱イベントを観測期間中0件                                                     |
+| `hash-navigation.ts`              | hash変更後のpageviewを観測期間中0件                                             |
+| `query-only.ts`                   | query-only遷移後のpageviewを観測期間中0件                                       |
+| `cookie-issuance.ts`              | Cookie発行visitのpageviewを正確に1件                                            |
+| `cookie-navigation-continuity.ts` | 初回とMPAを各1件。SPA初回と購入完了を合計2件。購入イベントを1件                 |
+| `cookie-rolling-expiration.ts`    | 初回、sid期限更新、vid期限更新のpageviewを各1件。合計3件                        |
+| `cookie-session-reset.ts`         | 初回とsid削除後のpageviewを各1件。合計2件                                       |
+| `cookie-client-reset.ts`          | 初回とvid/sid削除後のpageviewを各1件。合計2件                                   |
+| `cookie-invalid-values.ts`        | 初回と4種類の回復visitのpageviewを各1件。合計5件                                |
+| `cookie-unavailable.ts`           | 通常contextで1件。Cookie利用不可contextの2回のvisitで各1件。合計3件             |
+| `cookie-multitab.ts`              | 同時初期化2操作で正確に2件。収束後のvisitで正確に1件。合計3件                   |
+| `replace-state.ts`                | パス変更後のpageviewを正確に1件                                                 |
+| `reload-pageview.ts`              | reload後のpageviewを正確に1件                                                   |
+| `history-traversal.ts`            | back/forward各操作のpageviewを正確に1件。4操作の合計を正確に4件                 |
+| `page-leave-timer.ts`             | ページ離脱後の旧滞在イベントを観測期間中0件                                     |
+| `config-http-500.ts`              | Config要求を正確に1回。全Hitを観測期間中0件                                     |
+| `collect-sendbeacon-fallback.ts`  | fallback fetchとpageview Hitを正確に1件                                         |
+| `collect-http-500.ts`             | Collect要求を正確に1回。全Hitを観測期間中0件                                    |
+| `tracker-script-http-404.ts`      | tracker.js要求を正確に1回。Config/Collect要求と全Hitを観測期間中0件             |
 
 ### `browser/` — ページ操作
 

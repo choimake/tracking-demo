@@ -1,7 +1,6 @@
 import { setTdCookie } from "../browser/index.js";
 import { DEMO_SITE_ORIGIN } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
-import { quiesceBeacons } from "../tracking/index.js";
 import {
   SHORT_MAX_AGE_SEC,
   SID_MAX_AGE_SEC,
@@ -13,7 +12,6 @@ import {
 export async function testCookieRollingExpiration(
   ctx: E2eContext
 ): Promise<void> {
-  await quiesceBeacons(ctx.tracking);
   await ctx.page.context().clearCookies();
   const first = await visitAndGetPageview(ctx, "/");
   for (const spec of [
