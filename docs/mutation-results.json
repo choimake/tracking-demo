@@ -1,0 +1,1235 @@
+{
+  "runId": "mutation-2026-07-13T01-24-00-185Z",
+  "gitShaBaseline": "c2840506e0e3f315b644859333eea83ee6c95029",
+  "catalogSha256": "6f2007c6b653dd4a3e1bdd469e2602bd9855bdb3d04a5d1bd299516977c698c3",
+  "nodeVersion": "v22.23.1",
+  "playwrightVersion": "1.61.1",
+  "chromiumVersion": "149.0.7827.55",
+  "baselineResult": "green",
+  "startedAt": "2026-07-13T01:24:00.185Z",
+  "endedAt": "2026-07-13T03:17:16.580Z",
+  "totalDurationMs": 6796394,
+  "mutants": [
+    {
+      "mutantId": "M-TR01",
+      "file": "src/tracker/tracker.ts",
+      "operator": "guard-removal",
+      "class": "primary",
+      "expectedKillers": ["S11"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S11"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:25:51.530Z",
+          "endedAt": "2026-07-13T01:27:39.993Z",
+          "durationMs": 108463
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR02",
+      "file": "src/tracker/tracker.ts",
+      "operator": "field-removal",
+      "class": "primary",
+      "expectedKillers": ["S01", "S18"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": [
+            "S01",
+            "S02",
+            "S03",
+            "S04",
+            "S05",
+            "S06",
+            "S07",
+            "S08",
+            "S09",
+            "S10",
+            "S11",
+            "S13",
+            "S15",
+            "S16",
+            "S20",
+            "S21",
+            "S22",
+            "S23",
+            "S24",
+            "S25",
+            "S26",
+            "S27",
+            "S28",
+            "S29",
+            "S30",
+            "S33"
+          ],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:27:40.038Z",
+          "endedAt": "2026-07-13T01:29:13.602Z",
+          "durationMs": 93564
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR03",
+      "file": "src/tracker/tracker.ts",
+      "operator": "guard-removal",
+      "class": "primary",
+      "expectedKillers": ["S04", "S15"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S15"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:29:13.649Z",
+          "endedAt": "2026-07-13T01:31:03.135Z",
+          "durationMs": 109486
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR04",
+      "file": "src/tracker/tracker.ts",
+      "operator": "wrong-call",
+      "class": "primary",
+      "expectedKillers": ["S15"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S15"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:31:03.184Z",
+          "endedAt": "2026-07-13T01:32:54.883Z",
+          "durationMs": 111699
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR05",
+      "file": "src/tracker/tracker.ts",
+      "operator": "boundary-shift",
+      "class": "primary",
+      "expectedKillers": ["S04"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S04"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:32:54.929Z",
+          "endedAt": "2026-07-13T01:34:49.202Z",
+          "durationMs": 114273
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR06",
+      "file": "src/tracker/tracker.ts",
+      "operator": "wrong-api",
+      "class": "primary",
+      "expectedKillers": ["S03"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S03", "S15"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:34:49.252Z",
+          "endedAt": "2026-07-13T01:36:44.219Z",
+          "durationMs": 114967
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR07",
+      "file": "src/tracker/tracker.ts",
+      "operator": "guard-removal",
+      "class": "primary",
+      "expectedKillers": ["S06"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S06"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:36:44.261Z",
+          "endedAt": "2026-07-13T01:38:31.780Z",
+          "durationMs": 107519
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR08",
+      "file": "src/tracker/tracker.ts",
+      "operator": "wrong-branch",
+      "class": "primary",
+      "expectedKillers": ["S17"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S17"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:38:31.829Z",
+          "endedAt": "2026-07-13T01:40:20.718Z",
+          "durationMs": 108889
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR09",
+      "file": "src/tracker/tracker.ts",
+      "operator": "guard-removal",
+      "class": "primary",
+      "expectedKillers": ["S07", "S08"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S07", "S18", "S19"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:40:20.823Z",
+          "endedAt": "2026-07-13T01:42:06.895Z",
+          "durationMs": 106072
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR10",
+      "file": "src/tracker/tracker.ts",
+      "operator": "call-removal",
+      "class": "primary",
+      "expectedKillers": ["S13"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S13", "S30"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:42:06.948Z",
+          "endedAt": "2026-07-13T01:44:01.821Z",
+          "durationMs": 114873
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR11",
+      "file": "src/tracker/tracker.ts",
+      "operator": "boundary-shift",
+      "class": "primary",
+      "expectedKillers": ["S08", "S09"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S08"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:44:01.869Z",
+          "endedAt": "2026-07-13T01:45:53.687Z",
+          "durationMs": 111818
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR12",
+      "file": "src/tracker/tracker.ts",
+      "operator": "boundary-shift",
+      "class": "primary",
+      "expectedKillers": ["S08", "S09"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S08", "S09"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:45:53.722Z",
+          "endedAt": "2026-07-13T01:47:51.614Z",
+          "durationMs": 117892
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR13",
+      "file": "src/tracker/tracker.ts",
+      "operator": "guard-removal",
+      "class": "primary",
+      "expectedKillers": ["S08"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S08"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:47:51.664Z",
+          "endedAt": "2026-07-13T01:49:43.610Z",
+          "durationMs": 111946
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR14",
+      "file": "src/tracker/tracker.ts",
+      "operator": "negation",
+      "class": "primary",
+      "expectedKillers": ["S10"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S10"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:49:43.659Z",
+          "endedAt": "2026-07-13T01:51:31.624Z",
+          "durationMs": 107965
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR15",
+      "file": "src/tracker/tracker.ts",
+      "operator": "cleanup-removal",
+      "class": "primary",
+      "expectedKillers": ["S14"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S14"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:51:31.672Z",
+          "endedAt": "2026-07-13T01:53:21.123Z",
+          "durationMs": 109451
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR16",
+      "file": "src/tracker/tracker.ts",
+      "operator": "arithmetic",
+      "class": "primary",
+      "expectedKillers": ["S05", "S14"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S14", "S31"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:53:21.183Z",
+          "endedAt": "2026-07-13T01:55:07.102Z",
+          "durationMs": 105919
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR17",
+      "file": "src/tracker/tracker.ts",
+      "operator": "normalize-removal",
+      "class": "primary",
+      "expectedKillers": ["S16"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S16"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:55:07.160Z",
+          "endedAt": "2026-07-13T01:57:00.061Z",
+          "durationMs": 112901
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR18",
+      "file": "src/tracker/tracker.ts",
+      "operator": "side-effect-removal",
+      "class": "primary",
+      "expectedKillers": ["S22"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": [
+            "S20",
+            "S21",
+            "S22",
+            "S23",
+            "S25",
+            "S26",
+            "S27"
+          ],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:57:00.113Z",
+          "endedAt": "2026-07-13T01:58:47.733Z",
+          "durationMs": 107620
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR19",
+      "file": "src/tracker/tracker.ts",
+      "operator": "guard-removal",
+      "class": "primary",
+      "expectedKillers": ["S25"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S25"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T01:58:47.790Z",
+          "endedAt": "2026-07-13T02:00:43.591Z",
+          "durationMs": 115801
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR20",
+      "file": "src/tracker/tracker.ts",
+      "operator": "call-removal",
+      "class": "primary",
+      "expectedKillers": ["S07", "S13"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S07", "S13", "S14", "S16", "S21", "S28"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:00:43.638Z",
+          "endedAt": "2026-07-13T02:02:41.271Z",
+          "durationMs": 117633
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR21",
+      "file": "src/tracker/tracker.ts",
+      "operator": "wrong-argument",
+      "class": "primary",
+      "expectedKillers": ["S02", "S03", "S06", "S15"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": [
+            "S02",
+            "S03",
+            "S04",
+            "S05",
+            "S06",
+            "S07",
+            "S08",
+            "S09",
+            "S10",
+            "S11",
+            "S13",
+            "S15",
+            "S16",
+            "S18",
+            "S19",
+            "S21",
+            "S28",
+            "S30"
+          ],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:02:41.324Z",
+          "endedAt": "2026-07-13T02:04:45.113Z",
+          "durationMs": 123789
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TG01",
+      "file": "src/shared/trigger.ts",
+      "operator": "transform-removal",
+      "class": "primary",
+      "expectedKillers": ["S16"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S16"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:04:45.170Z",
+          "endedAt": "2026-07-13T02:06:37.986Z",
+          "durationMs": 112816
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TG02",
+      "file": "src/shared/trigger.ts",
+      "operator": "transform-removal",
+      "class": "primary",
+      "expectedKillers": ["S16"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S16"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:06:38.032Z",
+          "endedAt": "2026-07-13T02:08:31.149Z",
+          "durationMs": 113117
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TG03",
+      "file": "src/shared/trigger.ts",
+      "operator": "transform-removal",
+      "class": "primary",
+      "expectedKillers": ["S16"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S16"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:08:31.199Z",
+          "endedAt": "2026-07-13T02:10:25.979Z",
+          "durationMs": 114780
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-SV01",
+      "file": "src/server.ts",
+      "operator": "filter-removal",
+      "class": "primary",
+      "expectedKillers": ["S12"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S12"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:10:26.027Z",
+          "endedAt": "2026-07-13T02:12:16.950Z",
+          "durationMs": 110923
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-SV02",
+      "file": "src/server.ts",
+      "operator": "guard-removal",
+      "class": "primary",
+      "expectedKillers": ["S12"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S12"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:12:16.999Z",
+          "endedAt": "2026-07-13T02:14:04.817Z",
+          "durationMs": 107818
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-SV03",
+      "file": "src/server.ts",
+      "operator": "wrong-branch",
+      "class": "primary",
+      "expectedKillers": ["S12"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S12"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:14:04.864Z",
+          "endedAt": "2026-07-13T02:15:55.729Z",
+          "durationMs": 110865
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-SV04",
+      "file": "src/server.ts",
+      "operator": "config-change",
+      "class": "primary",
+      "expectedKillers": ["S01"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T02:15:55.781Z",
+          "endedAt": "2026-07-13T02:18:56.211Z",
+          "durationMs": 180430
+        },
+        {
+          "attemptNumber": 2,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T02:18:56.229Z",
+          "endedAt": "2026-07-13T02:21:56.671Z",
+          "durationMs": 180442
+        },
+        {
+          "attemptNumber": 3,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T02:21:56.685Z",
+          "endedAt": "2026-07-13T02:24:57.142Z",
+          "durationMs": 180457
+        }
+      ],
+      "finalResult": "timeout",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": true,
+      "exclusionReason": "mutant-suspected: green-after-restore",
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-SV05",
+      "file": "src/server.ts",
+      "operator": "negation",
+      "class": "primary",
+      "expectedKillers": ["S01", "S18"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T02:26:48.566Z",
+          "endedAt": "2026-07-13T02:29:48.995Z",
+          "durationMs": 180429
+        },
+        {
+          "attemptNumber": 2,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T02:29:49.017Z",
+          "endedAt": "2026-07-13T02:32:49.476Z",
+          "durationMs": 180459
+        },
+        {
+          "attemptNumber": 3,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T02:32:49.497Z",
+          "endedAt": "2026-07-13T02:35:49.946Z",
+          "durationMs": 180449
+        }
+      ],
+      "finalResult": "timeout",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": true,
+      "exclusionReason": "mutant-suspected: green-after-restore",
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR26",
+      "file": "src/tracker/tracker.ts",
+      "operator": "branch-removal",
+      "class": "primary",
+      "expectedKillers": ["S33"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S33", "S34"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:37:41.007Z",
+          "endedAt": "2026-07-13T02:39:35.507Z",
+          "durationMs": 114500
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR25",
+      "file": "src/tracker/tracker.ts",
+      "operator": "call-removal",
+      "class": "primary",
+      "expectedKillers": ["S28"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S28"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:39:35.567Z",
+          "endedAt": "2026-07-13T02:41:29.805Z",
+          "durationMs": 114238
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR22",
+      "file": "src/tracker/tracker.ts",
+      "operator": "identifier-swap",
+      "class": "primary",
+      "expectedKillers": ["S20"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S20", "S22", "S23", "S25", "S27"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:41:29.860Z",
+          "endedAt": "2026-07-13T02:43:21.152Z",
+          "durationMs": 111292
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR23",
+      "file": "src/tracker/tracker.ts",
+      "operator": "condition-negation",
+      "class": "primary",
+      "expectedKillers": ["S20", "S21", "S25"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T02:43:21.215Z",
+          "endedAt": "2026-07-13T02:46:21.646Z",
+          "durationMs": 180431
+        },
+        {
+          "attemptNumber": 2,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T02:46:21.663Z",
+          "endedAt": "2026-07-13T02:49:22.108Z",
+          "durationMs": 180445
+        },
+        {
+          "attemptNumber": 3,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T02:49:22.122Z",
+          "endedAt": "2026-07-13T02:52:22.567Z",
+          "durationMs": 180445
+        }
+      ],
+      "finalResult": "timeout",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": true,
+      "exclusionReason": "mutant-suspected: green-after-restore",
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR24",
+      "file": "src/tracker/tracker.ts",
+      "operator": "state-retention",
+      "class": "primary",
+      "expectedKillers": ["S26"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "survived",
+          "exitStatus": "pass",
+          "failedScenarioIds": [],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:54:13.401Z",
+          "endedAt": "2026-07-13T02:56:03.842Z",
+          "durationMs": 110441
+        }
+      ],
+      "finalResult": "survived",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": "expectedKillersが検出しないギャップまたは等価変異"
+    },
+    {
+      "mutantId": "M-TR27",
+      "file": "src/tracker/tracker.ts",
+      "operator": "failure-state-corruption",
+      "class": "primary",
+      "expectedKillers": ["S32"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S32"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:56:03.897Z",
+          "endedAt": "2026-07-13T02:57:54.711Z",
+          "durationMs": 110814
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR28",
+      "file": "src/tracker/tracker.ts",
+      "operator": "call-removal",
+      "class": "primary",
+      "expectedKillers": ["S07"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": ["S07", "S13", "S14", "S16", "S21"],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:57:54.757Z",
+          "endedAt": "2026-07-13T02:59:47.821Z",
+          "durationMs": 113064
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR29",
+      "file": "src/tracker/tracker.ts",
+      "operator": "field-removal",
+      "class": "primary",
+      "expectedKillers": ["S20"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": [
+            "S01",
+            "S02",
+            "S03",
+            "S04",
+            "S05",
+            "S06",
+            "S07",
+            "S08",
+            "S09",
+            "S10",
+            "S11",
+            "S13",
+            "S15",
+            "S16",
+            "S20",
+            "S21",
+            "S22",
+            "S24",
+            "S25",
+            "S26",
+            "S27",
+            "S28",
+            "S29",
+            "S30",
+            "S33"
+          ],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T02:59:47.874Z",
+          "endedAt": "2026-07-13T03:01:21.451Z",
+          "durationMs": 93577
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR30",
+      "file": "src/tracker/tracker.ts",
+      "operator": "field-removal",
+      "class": "primary",
+      "expectedKillers": ["S20"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": [
+            "S01",
+            "S02",
+            "S03",
+            "S04",
+            "S05",
+            "S06",
+            "S07",
+            "S08",
+            "S09",
+            "S10",
+            "S11",
+            "S13",
+            "S15",
+            "S16",
+            "S20",
+            "S21",
+            "S22",
+            "S23",
+            "S24",
+            "S25",
+            "S26",
+            "S27",
+            "S28",
+            "S29",
+            "S30",
+            "S33"
+          ],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T03:01:21.499Z",
+          "endedAt": "2026-07-13T03:02:55.122Z",
+          "durationMs": 93623
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR31",
+      "file": "src/tracker/tracker.ts",
+      "operator": "value-swap",
+      "class": "primary",
+      "expectedKillers": ["S20"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T03:02:55.186Z",
+          "endedAt": "2026-07-13T03:05:55.615Z",
+          "durationMs": 180429
+        },
+        {
+          "attemptNumber": 2,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T03:05:55.628Z",
+          "endedAt": "2026-07-13T03:08:56.074Z",
+          "durationMs": 180446
+        },
+        {
+          "attemptNumber": 3,
+          "result": "timeout",
+          "exitStatus": null,
+          "failedScenarioIds": [],
+          "errorExcerpt": "E2E soft-timeout 180000ms",
+          "startedAt": "2026-07-13T03:08:56.087Z",
+          "endedAt": "2026-07-13T03:11:56.526Z",
+          "durationMs": 180439
+        }
+      ],
+      "finalResult": "timeout",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": true,
+      "exclusionReason": "mutant-suspected: green-after-restore",
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-TR32",
+      "file": "src/tracker/tracker.ts",
+      "operator": "duplicate-call",
+      "class": "primary",
+      "expectedKillers": ["S01", "S29"],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "killed",
+          "exitStatus": "fail",
+          "failedScenarioIds": [
+            "S01",
+            "S02",
+            "S07",
+            "S11",
+            "S21",
+            "S29",
+            "S33",
+            "S34"
+          ],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T03:13:47.829Z",
+          "endedAt": "2026-07-13T03:15:25.681Z",
+          "durationMs": 97852
+        }
+      ],
+      "finalResult": "killed",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": null
+    },
+    {
+      "mutantId": "M-CS03",
+      "file": "src/server.ts",
+      "operator": "guard-removal",
+      "class": "control-survived",
+      "expectedKillers": [],
+      "attempts": [
+        {
+          "attemptNumber": 1,
+          "result": "survived",
+          "exitStatus": "pass",
+          "failedScenarioIds": [],
+          "errorExcerpt": null,
+          "startedAt": "2026-07-13T03:15:25.742Z",
+          "endedAt": "2026-07-13T03:17:16.540Z",
+          "durationMs": 110798
+        }
+      ],
+      "finalResult": "survived",
+      "unexpectedKill": false,
+      "unexpectedFailedScenarioIds": [],
+      "excludedFromKillRate": false,
+      "exclusionReason": null,
+      "survivorReason": "全 E2E シナリオは正しい ws-001 のみを送るため到達しない経路"
+    }
+  ]
+}
