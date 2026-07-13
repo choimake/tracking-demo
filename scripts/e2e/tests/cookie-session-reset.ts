@@ -4,7 +4,7 @@ import { ANON_SID_RE } from "../tracking/index.js";
 import { visitAndGetPageview } from "./cookie-helpers.js";
 
 export async function testCookieSessionReset(ctx: E2eContext): Promise<void> {
-  await ctx.page.context().clearCookies();
+  await ctx.clearCookies();
   const first = await visitAndGetPageview(ctx, "/");
   await deleteTdCookies(ctx.page, ["_td_sid"]);
   const reset = await visitAndGetPageview(ctx, "/products");

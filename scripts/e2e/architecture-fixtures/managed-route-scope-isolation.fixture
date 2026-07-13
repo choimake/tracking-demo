@@ -1,0 +1,7 @@
+declare const managedSession: {
+  cookies(): Promise<unknown[]>;
+  newPage(): Promise<unknown>;
+  route(pattern: string, handler: () => void): Promise<string>;
+};
+
+await managedSession.route("**/api/config", async () => undefined);

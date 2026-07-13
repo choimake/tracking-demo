@@ -1,13 +1,12 @@
 import { readDocumentCookie } from "../browser/index.js";
-import { createE2eSession } from "../harness/session.js";
 import type { E2eContext } from "../harness/types.js";
 import { expectAnonIdsPresent } from "../tracking/index.js";
 import { snapshotTdCookies, visitAndGetPageview } from "./cookie-helpers.js";
 
 export async function testCookieUnavailable(ctx: E2eContext): Promise<void> {
-  await ctx.page.context().clearCookies();
+  await ctx.clearCookies();
   await visitAndGetPageview(ctx, "/");
-  const before = await snapshotTdCookies(ctx.page);
+  const before = await snapshotTdCookies(ctx);
   if (!before.vid || !before.sid) throw new Error("汚染検証用Cookieがない");
   const documentCookieBefore = await readDocumentCookie(ctx.page);
   if (
@@ -19,33 +18,31 @@ export async function testCookieUnavailable(ctx: E2eContext): Promise<void> {
     );
   }
 
-  const session = await createE2eSession(ctx.browser, {
-    browserName: ctx.browserName,
-    correlationId: ctx.correlationId,
-    contextFactory: ctx.createBrowserContext,
-    userAgent: ctx.userAgent,
-  });
-  try {
-    // context.addInitScript は tsx の __name 変換を避けるため文字列で実行する。
-    await session.context.addInitScript(`(() => {
-      Object.defineProperty(Document.prototype, "cookie", {
-        configurable: true,
-        get: () => "",
-        set: () => undefined,
-      });
-    })()`);
-    await session.context.clearCookies();
-    const first = await visitAndGetPageview(ctx, "/", session.page);
-    const second = await visitAndGetPageview(ctx, "/products", session.page);
-    expectAnonIdsPresent(first);
-    expectAnonIdsPresent(second);
-    if (first.vid === second.vid || first.sid === second.sid) {
-      throw new Error("Cookie無効相当で匿名IDが継続した");
+  // initScripts は tsx の __name 変換を避けるため文字列で実行する。
+  await ctx.withSession(
+    {
+      initScripts: [
+        `(() => {
+          Object.defineProperty(Document.prototype, "cookie", {
+            configurable: true,
+            get: () => "",
+            set: () => undefined,
+          });
+        })()`,
+      ],
+    },
+    async (session) => {
+      await session.clearCookies();
+      const first = await visitAndGetPageview(ctx, "/", session.page);
+      const second = await visitAndGetPageview(ctx, "/products", session.page);
+      expectAnonIdsPresent(first);
+      expectAnonIdsPresent(second);
+      if (first.vid === second.vid || first.sid === second.sid) {
+        throw new Error("Cookie無効相当で匿名IDが継続した");
+      }
     }
-  } finally {
-    await session.context.close();
-  }
-  const after = await snapshotTdCookies(ctx.page);
+  );
+  const after = await snapshotTdCookies(ctx);
   if (after.vid !== before.vid || after.sid !== before.sid) {
     throw new Error("Cookie無効化用contextがシナリオcontextを汚染した");
   }

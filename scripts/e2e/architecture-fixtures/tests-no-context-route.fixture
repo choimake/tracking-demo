@@ -1,0 +1,5 @@
+declare const context: {
+  route(pattern: string, handler: () => void): Promise<void>;
+};
+
+await context.route("**/api/config", async () => undefined);

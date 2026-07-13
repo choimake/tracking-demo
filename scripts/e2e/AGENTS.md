@@ -69,7 +69,10 @@ E2Eコーディング規則の自動検査では、担当の正本を [`architec
 ### シナリオごと context の扱い
 
 - 常にシナリオごとに BrowserContext を開閉する（Cookie 等の隔離のため。録画の有無は問わない）
-- 副作用は自シナリオの page 内に閉じる。Cookie 無効化などの副作用は独立 `BrowserContext` で行い、終了後にシナリオ page が無傷であることを assert する（例: `cookie-identity.ts` (h)）
+- 追加contextは `E2eContext.withSession` で作る。追加pageはmanaged sessionの `newPage` で作る
+- routeはmanaged sessionの `route` で登録する。runtimeはcallback終了時に未解除routeをすべて解除する
+- シナリオはBrowserContext、page、videoを直接解放しない。runtimeが生成数と解放数を照合する
+- 副作用は自シナリオの page 内に閉じる。Cookie 無効化は独立contextで行い、終了後にシナリオ page が無傷であることを assert する（例: `cookie-unavailable.ts`）
 - フィクスチャやトグルしたイベント状態は teardown で戻す
 
 ## 禁止事項

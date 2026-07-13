@@ -20,8 +20,8 @@ export async function testCollectSendBeaconFallback(
 ): Promise<void> {
   const { browserName, page, trackerLogs, tracking } = ctx;
   await forceSendBeaconFalse(page);
-  const configProbe = await installEmptyConfig(page);
-  const collectProbe = await observeCollectRequests(page);
+  const configProbe = await installEmptyConfig(ctx, page);
+  const collectProbe = await observeCollectRequests(ctx, page);
   const pageErrorProbe = observePageErrors(page);
   const hitCursor = await tracking.captureHitCursor();
   const trackerLogStart = trackerLogs.length;

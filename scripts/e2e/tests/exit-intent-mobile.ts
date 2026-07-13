@@ -1,11 +1,6 @@
 import { runExitIntentMobileAct } from "../browser/index.js";
-import {
-  EXIT_INTENT_MOBILE_CHECK_DELAY_MS,
-  parseRecordVideoMode,
-} from "../harness/config.js";
-import { createE2eSession } from "../harness/session.js";
+import { EXIT_INTENT_MOBILE_CHECK_DELAY_MS } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
-import { finalizeScenarioVideo } from "../harness/video.js";
 import {
   quiesceBeacons,
   expectNoHitsDuringObservation,
@@ -28,40 +23,14 @@ export async function testExitIntentMobile(ctx: E2eContext): Promise<void> {
     return;
   }
 
-  // デスクトップ外側: 従来どおり内側にモバイル session を作る
-  // (createE2eSession 内で browserName に応じて isMobile を分岐)
-  const { page, context } = await createE2eSession(ctx.browser, {
-    browserName: ctx.browserName,
-    correlationId: ctx.correlationId,
-    contextFactory: ctx.createBrowserContext,
-    mobile: true,
-    recordVideoDir: ctx.recordVideoDir,
-    userAgent: ctx.userAgent,
-  });
-  let ok = false;
-  try {
-    await runExitIntentMobileAct(page);
-    await assertNoExitIntent(ctx, hitCursor);
-    ok = true;
-  } finally {
-    try {
-      await context.close();
-    } catch (error) {
-      console.error(`  context.close failed: ${String(error)}`);
+  // デスクトップ外側では、内側にmanaged mobile sessionを作る。
+  await ctx.withSession(
+    { mobile: true, recordScenarioVideo: true },
+    async ({ page }) => {
+      await runExitIntentMobileAct(page);
+      await assertNoExitIntent(ctx, hitCursor);
     }
-    // 内側 Act の動画を scenarioVideoPath へ確定(外側の空動画で上書きされないよう先に書く)
-    if (ctx.scenarioVideoPath && ctx.recordVideoDir) {
-      const mode = parseRecordVideoMode();
-      if (mode) {
-        await finalizeScenarioVideo({
-          mode,
-          ok,
-          page,
-          videoPath: ctx.scenarioVideoPath,
-        });
-      }
-    }
-  }
+  );
 }
 
 async function assertNoExitIntent(

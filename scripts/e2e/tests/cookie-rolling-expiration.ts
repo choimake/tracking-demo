@@ -12,7 +12,7 @@ import {
 export async function testCookieRollingExpiration(
   ctx: E2eContext
 ): Promise<void> {
-  await ctx.page.context().clearCookies();
+  await ctx.clearCookies();
   const first = await visitAndGetPageview(ctx, "/");
   for (const spec of [
     { name: "_td_sid" as const, value: first.sid, maxAge: SID_MAX_AGE_SEC },
@@ -20,7 +20,7 @@ export async function testCookieRollingExpiration(
   ]) {
     await setTdCookie(ctx.page, spec.name, spec.value, SHORT_MAX_AGE_SEC);
     const shortenedAt = Date.now() / 1000;
-    const shortened = (await ctx.page.context().cookies(DEMO_SITE_ORIGIN)).find(
+    const shortened = (await ctx.cookies(DEMO_SITE_ORIGIN)).find(
       (cookie) => cookie.name === spec.name
     );
     if (!shortened) throw new Error(`${spec.name} 短縮後にCookieがない`);
@@ -35,7 +35,7 @@ export async function testCookieRollingExpiration(
     const hit = await visitAndGetPageview(ctx, "/products");
     if (hit.vid !== first.vid || hit.sid !== first.sid)
       throw new Error(`${spec.name} 再延長時に値が変わった`);
-    const renewed = (await ctx.page.context().cookies(DEMO_SITE_ORIGIN)).find(
+    const renewed = (await ctx.cookies(DEMO_SITE_ORIGIN)).find(
       (cookie) => cookie.name === spec.name
     );
     if (!renewed) throw new Error(`${spec.name} 再延長後にCookieがない`);

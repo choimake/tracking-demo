@@ -6,7 +6,7 @@ import type { BrowserName } from "../harness/config.js";
 import {
   setupE2eFixtures,
   teardownE2eFixtures,
-  createE2eSession,
+  createManagedE2eRuntime,
 } from "../harness/session.js";
 import type { E2eContext } from "../harness/types.js";
 import { e2eScenarios } from "../scenarios.js";
@@ -59,21 +59,29 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
       const name = `[${browserName}] ${scenario.name}`;
       process.stderr.write(`[BENCH] ${name}\n`);
       const correlationId = `${benchRunId}/${browserName}/${scenarioIndex}`;
-      const session = await createE2eSession(browser, {
+      const runtime = await createManagedE2eRuntime({
         browserName,
+        contextFactory: (options) => browser!.newContext(options),
         correlationId,
+        mobile: false,
         userAgent,
       });
       const ctx: E2eContext = {
-        browser,
         browserName,
+        clearCookies: runtime.session.clearCookies,
+        cookies: runtime.session.cookies,
         correlationId,
         fixtures,
         mobile: false,
-        page: session.page,
-        trackerLogs: session.trackerLogs,
-        tracking: session.tracking,
+        newPage: runtime.session.newPage,
+        page: runtime.session.page,
+        route: runtime.session.route,
+        trackerLogs: runtime.trackerLogs,
+        tracking: runtime.tracking,
+        unroute: runtime.session.unroute,
         userAgent,
+        withSession: (options, callback) =>
+          runtime.withSession(options, callback),
       };
       try {
         await scenario.run(ctx);
@@ -94,9 +102,7 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
         });
         process.stderr.write(`  FAIL ${(error as Error).message}\n`);
       } finally {
-        await session.context.close().catch((error) => {
-          process.stderr.write(`  context.close failed: ${String(error)}\n`);
-        });
+        await runtime.close();
       }
     }
   } finally {

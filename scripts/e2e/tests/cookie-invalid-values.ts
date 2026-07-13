@@ -3,7 +3,7 @@ import type { E2eContext } from "../harness/types.js";
 import { assertValidIdentity, visitAndGetPageview } from "./cookie-helpers.js";
 
 export async function testCookieInvalidValues(ctx: E2eContext): Promise<void> {
-  await ctx.page.context().clearCookies();
+  await ctx.clearCookies();
   const first = await visitAndGetPageview(ctx, "/");
   await setTdCookie(ctx.page, "_td_sid", "not-a-valid-sid");
   const sidRecovered = await visitAndGetPageview(ctx, "/products");

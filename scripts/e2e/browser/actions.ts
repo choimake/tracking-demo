@@ -1,13 +1,12 @@
-import type { Page } from "playwright";
-
 import {
   DEMO_SITE_ORIGIN,
   DEFAULT_WAIT_TIMEOUT_MS,
   sleep,
 } from "../harness/config.js";
+import type { E2ePage, ManagedSession } from "../harness/types.js";
 
 /** demo-site のページへ遷移する(path は先頭スラッシュ付き。例: '/', '/products') */
-export async function gotoDemoPage(page: Page, path: string): Promise<void> {
+export async function gotoDemoPage(page: E2ePage, path: string): Promise<void> {
   // Firefox では networkidle がハングしやすい。
   // 「初期化完了」ではなく pageview 送信後まで待ち、Act 前の Hit カーソルを確定できるようにする。
   const pageviewDone = page.waitForEvent("console", {
@@ -19,7 +18,7 @@ export async function gotoDemoPage(page: Page, path: string): Promise<void> {
 }
 
 /** products.html の「カートに入れる」ボタン(クリックトリガー: click:.add-to-cart)をクリック */
-export async function clickAddToCart(page: Page): Promise<void> {
+export async function clickAddToCart(page: E2ePage): Promise<void> {
   await page.getByRole("button", { name: "カートに入れる" }).first().click();
 }
 
@@ -27,7 +26,7 @@ export async function clickAddToCart(page: Page): Promise<void> {
  * `.add-to-cart` ボタン内の子要素をクリックする(closest vs matches 殺傷用)。
  * closest('.add-to-cart') なら発火、matches なら未発火。
  */
-export async function clickAddToCartChild(page: Page): Promise<void> {
+export async function clickAddToCartChild(page: E2ePage): Promise<void> {
   await page
     .getByRole("button", { name: "カートに入れる" })
     .first()
@@ -36,7 +35,7 @@ export async function clickAddToCartChild(page: Page): Promise<void> {
 }
 
 /** ページ最下部までスクロールし、スクロール率トリガーを発火させる */
-export async function scrollToBottom(page: Page): Promise<void> {
+export async function scrollToBottom(page: E2ePage): Promise<void> {
   await page.evaluate(() =>
     window.scrollTo(0, document.documentElement.scrollHeight)
   );
@@ -49,7 +48,7 @@ export async function scrollToBottom(page: Page): Promise<void> {
  * page.evaluate に渡す関数は tsx の __name 変換を避けるため文字列で実行する。
  */
 export async function scrollToExactPercent(
-  page: Page,
+  page: E2ePage,
   percent: number
 ): Promise<number> {
   if (!Number.isInteger(percent) || percent < 0 || percent > 100) {
@@ -142,12 +141,12 @@ export async function scrollToExactPercent(
 }
 
 /** ページ先頭までスクロールする(再スクロールでの再発火なしを検証するため) */
-export async function scrollToTop(page: Page): Promise<void> {
+export async function scrollToTop(page: E2ePage): Promise<void> {
   await page.evaluate(() => window.scrollTo(0, 0));
 }
 
 /** カーソルがビューポート上端の外へ出る動きを合成イベントで再現し、離脱インテントを発火させる */
-export async function simulateExitIntent(page: Page): Promise<void> {
+export async function simulateExitIntent(page: E2ePage): Promise<void> {
   // page.evaluate に渡す関数は tsx の __name 変換を避けるため文字列で実行する
   await page.evaluate(`(() => {
     const event = new MouseEvent("mouseout", {
@@ -168,7 +167,7 @@ export async function simulateExitIntent(page: Page): Promise<void> {
  * 離脱インテントにならない mouseout を合成する(clientY > 0 ガード殺傷用)。
  * relatedTarget は null、clientY は正(ビューポート内)。
  */
-export async function simulateNonExitMouseout(page: Page): Promise<void> {
+export async function simulateNonExitMouseout(page: E2ePage): Promise<void> {
   await page.evaluate(`(() => {
     const event = new MouseEvent("mouseout", {
       bubbles: true,
@@ -185,7 +184,7 @@ export async function simulateNonExitMouseout(page: Page): Promise<void> {
 }
 
 /** spa.html の「注文完了(SPA遷移でURL到達)」ボタンをクリック(pushState による疑似遷移) */
-export async function clickSpaOrderComplete(page: Page): Promise<void> {
+export async function clickSpaOrderComplete(page: E2ePage): Promise<void> {
   await page
     .getByRole("button", { name: "注文完了(SPA遷移でURL到達)" })
     .click();
@@ -196,21 +195,24 @@ export async function clickSpaOrderComplete(page: Page): Promise<void> {
  * tracker.js が history.pushState 自体をパッチして onHistoryChange を呼ぶため、
  * ここでは素の pushState を呼ぶだけでよい(手動で popstate も発火すると二重処理になる)
  */
-export async function spaPushState(page: Page, path: string): Promise<void> {
+export async function spaPushState(page: E2ePage, path: string): Promise<void> {
   await page.evaluate((p) => {
     history.pushState({}, "", p);
   }, path);
 }
 
 /** SPA上で任意パスへ history.replaceState する。 */
-export async function spaReplaceState(page: Page, path: string): Promise<void> {
+export async function spaReplaceState(
+  page: E2ePage,
+  path: string
+): Promise<void> {
   await page.evaluate((p) => {
     history.replaceState({}, "", p);
   }, path);
 }
 
 /** 現在のデモページを reload し、reload 後の pageview 送信まで待つ。 */
-export async function reloadDemoPage(page: Page): Promise<void> {
+export async function reloadDemoPage(page: E2ePage): Promise<void> {
   const pageviewDone = page.waitForEvent("console", {
     predicate: (m) => m.text().includes("[tracker] ページビュー:"),
     timeout: DEFAULT_WAIT_TIMEOUT_MS,
@@ -220,25 +222,25 @@ export async function reloadDemoPage(page: Page): Promise<void> {
 }
 
 /** 同一ドキュメントの履歴を back 2回連続で移動する。 */
-export async function goBackTwice(page: Page): Promise<void> {
+export async function goBackTwice(page: E2ePage): Promise<void> {
   await page.goBack();
   await page.goBack();
 }
 
 /** 同一ドキュメントの履歴を forward 2回連続で移動する。 */
-export async function goForwardTwice(page: Page): Promise<void> {
+export async function goForwardTwice(page: E2ePage): Promise<void> {
   await page.goForward();
   await page.goForward();
 }
 
 /** 計測タグがない about:blank へ移動し、現在の計測ページから離脱する。 */
-export async function leaveTrackedPage(page: Page): Promise<void> {
+export async function leaveTrackedPage(page: E2ePage): Promise<void> {
   await page.goto("about:blank", { waitUntil: "load" });
 }
 
 /** location.hash だけを変更する。hashchange はブラウザが発火する。 */
 export async function changeLocationHash(
-  page: Page,
+  page: E2ePage,
   hash: string
 ): Promise<void> {
   await page.evaluate((value) => {
@@ -248,7 +250,7 @@ export async function changeLocationHash(
 
 /** 現在の pathname を維持し、history.pushState で query だけを変更する。 */
 export async function changeQueryOnly(
-  page: Page,
+  page: E2ePage,
   query: string
 ): Promise<void> {
   await page.evaluate((value) => {
@@ -260,7 +262,7 @@ export async function changeQueryOnly(
  * 現在の pathname で history.replaceState する(同一パス早期 return 殺傷用)。
  * 正規実装では追加 pageview なし。早期 return 削除変異では +1 になる。
  */
-export async function spaReplaceStateSamePath(page: Page): Promise<void> {
+export async function spaReplaceStateSamePath(page: E2ePage): Promise<void> {
   await page.evaluate(() => {
     history.replaceState({}, "", location.pathname);
   });
@@ -268,7 +270,7 @@ export async function spaReplaceStateSamePath(page: Page): Promise<void> {
 
 /** document.cookie で匿名識別 Cookie をセットする。 */
 export async function setTdCookie(
-  page: Page,
+  page: E2ePage,
   name: "_td_vid" | "_td_sid",
   value: string,
   maxAge = 60
@@ -283,7 +285,7 @@ export async function setTdCookie(
 
 /** エンコードせずに匿名識別 Cookie をセットする。壊れたpercent encodingの検証専用。 */
 export async function setRawTdCookie(
-  page: Page,
+  page: E2ePage,
   name: "_td_vid" | "_td_sid",
   value: string,
   path = "/"
@@ -298,7 +300,7 @@ export async function setRawTdCookie(
 
 /** document.cookie から指定した匿名識別 Cookie を削除する。 */
 export async function deleteTdCookies(
-  page: Page,
+  page: E2ePage,
   names: ("_td_vid" | "_td_sid")[]
 ): Promise<void> {
   await page.evaluate((cookieNames) => {
@@ -308,25 +310,20 @@ export async function deleteTdCookies(
   }, names);
 }
 
-/** 同じ BrowserContext にタブを追加する。 */
-export async function openSiblingTab(page: Page): Promise<Page> {
-  return page.context().newPage();
-}
-
 /** 現在のページから document.cookie を直接読み取る。 */
-export async function readDocumentCookie(page: Page): Promise<string> {
+export async function readDocumentCookie(page: E2ePage): Promise<string> {
   return page.evaluate(() => document.cookie);
 }
 
 /** spa.html の「dataLayer で手動ページビュー送信」ボタンをクリック */
-export async function clickManualPageview(page: Page): Promise<void> {
+export async function clickManualPageview(page: E2ePage): Promise<void> {
   await page
     .getByRole("button", { name: "dataLayer で手動ページビュー送信" })
     .click();
 }
 
 /** tdDataLayer.push({event:'tracker.pageview'}) のみを単独で発火する */
-export async function pushTdDataLayerPageview(page: Page): Promise<void> {
+export async function pushTdDataLayerPageview(page: E2ePage): Promise<void> {
   await page.evaluate(() => {
     (
       window as unknown as { tdDataLayer?: { push: (i: unknown) => void } }
@@ -337,7 +334,7 @@ export async function pushTdDataLayerPageview(page: Page): Promise<void> {
 }
 
 /** SPA遷移がページリロードを伴っていないことを検証するためのマーカーをセットする */
-export async function setNoReloadMarker(page: Page): Promise<void> {
+export async function setNoReloadMarker(page: E2ePage): Promise<void> {
   await page.evaluate(() => {
     (window as unknown as { __no_reload_marker?: number }).__no_reload_marker =
       1;
@@ -346,7 +343,7 @@ export async function setNoReloadMarker(page: Page): Promise<void> {
 
 /** setNoReloadMarker でセットしたマーカーを読み出す(リロードされていれば undefined に戻る) */
 export async function getNoReloadMarker(
-  page: Page
+  page: E2ePage
 ): Promise<number | undefined> {
   return page.evaluate(
     () =>
@@ -356,17 +353,18 @@ export async function getNoReloadMarker(
 
 /** tracker.js の読み込みを delayMs だけ遅延させるルートを設置する(ロード前キューの検証用) */
 export async function delayTrackerScriptRoute(
-  page: Page,
+  session: ManagedSession,
+  page: E2ePage,
   delayMs: number
 ): Promise<void> {
-  await page.route("**/tracker.js*", async (route) => {
+  await session.route(page, "**/tracker.js*", async (route) => {
     await sleep(delayMs);
     await route.continue();
   });
 }
 
 /** tracker.js 読み込み前に tdDataLayer へ pageview push を積んでおく(キュー再生の検証用) */
-export async function preloadTdDataLayerQueue(page: Page): Promise<void> {
+export async function preloadTdDataLayerQueue(page: E2ePage): Promise<void> {
   await page.addInitScript(() => {
     (window as unknown as { tdDataLayer?: unknown[] }).tdDataLayer = [
       { event: "tracker.pageview" },
@@ -381,7 +379,7 @@ export async function preloadTdDataLayerQueue(page: Page): Promise<void> {
  * リンクを含まない見出し(h1)を対象にする。
  * pageview コンソール待ちはしない(素の goto のまま)
  */
-export async function runExitIntentMobileAct(page: Page): Promise<void> {
+export async function runExitIntentMobileAct(page: E2ePage): Promise<void> {
   await page.goto(`${DEMO_SITE_ORIGIN}/`, { waitUntil: "load" });
   await page.locator("h1").tap();
   await page.evaluate(() => window.scrollTo(0, 200));

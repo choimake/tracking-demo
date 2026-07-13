@@ -13,8 +13,8 @@ import { expectNoHitsDuringObservation } from "../tracking/index.js";
 export async function testCollectHttp500(ctx: E2eContext): Promise<void> {
   const { page, trackerLogs, tracking } = ctx;
   await forceSendBeaconFalse(page);
-  const configProbe = await installEmptyConfig(page);
-  const collectProbe = await installCollectHttp500(page);
+  const configProbe = await installEmptyConfig(ctx, page);
+  const collectProbe = await installCollectHttp500(ctx, page);
   const pageErrorProbe = observePageErrors(page);
   const hitCursor = await tracking.captureHitCursor();
   const trackerLogStart = trackerLogs.length;

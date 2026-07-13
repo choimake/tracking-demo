@@ -11,13 +11,8 @@ import {
   parseRecordVideoMode,
   toScenarioSlug,
 } from "../harness/config.js";
-import { createE2eSession } from "../harness/session.js";
-import type {
-  E2eBrowserContextFactory,
-  E2eContext,
-  E2eFixtures,
-} from "../harness/types.js";
-import { finalizeOrDiscardVideo } from "../harness/video.js";
+import { createManagedE2eRuntime } from "../harness/session.js";
+import type { E2eContext, E2eFixtures } from "../harness/types.js";
 import { e2eScenarios } from "../scenarios.js";
 import {
   attachFailureDiagnostics,
@@ -110,29 +105,32 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
       await fs.mkdir(recordVideoDir, { recursive: true });
     }
     const fixtures = parseGlobalFixtures(process.env.E2E_FIXTURES);
-    const createBrowserContext: E2eBrowserContextFactory = (options) =>
-      browser.newContext(options);
-    const session = await createE2eSession(browser, {
+    const runtime = await createManagedE2eRuntime({
       browserName: typedBrowserName,
       correlationId,
-      contextFactory: createBrowserContext,
+      contextFactory: (options) => browser.newContext(options),
       mobile,
       recordVideoDir,
+      recordVideoMode: recordVideoMode ?? undefined,
+      scenarioVideoPath,
       userAgent: baseUserAgent,
     });
     const context: E2eContext = {
-      browser,
       browserName: typedBrowserName,
+      clearCookies: runtime.session.clearCookies,
+      cookies: runtime.session.cookies,
       correlationId,
-      createBrowserContext,
       fixtures,
       mobile,
-      page: session.page,
-      recordVideoDir,
-      scenarioVideoPath,
-      trackerLogs: session.trackerLogs,
-      tracking: session.tracking,
+      newPage: runtime.session.newPage,
+      page: runtime.session.page,
+      route: runtime.session.route,
+      trackerLogs: runtime.trackerLogs,
+      tracking: runtime.tracking,
+      unroute: runtime.session.unroute,
       userAgent: baseUserAgent,
+      withSession: (options, callback) =>
+        runtime.withSession(options, callback),
     };
 
     try {
@@ -141,17 +139,10 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
       const failed = testInfo.status !== testInfo.expectedStatus;
       const stackLogPath = process.env.E2E_STACK_LOG_PATH;
       await runScenarioFixtureTeardown({
-        cleanupVideo:
-          recordVideoMode && scenarioVideoPath
-            ? () =>
-                finalizeOrDiscardVideo({
-                  mode: recordVideoMode,
-                  ok: testInfo.status === testInfo.expectedStatus,
-                  page: session.page,
-                  videoPath: scenarioVideoPath,
-                })
-            : undefined,
-        closeBrowserContext: () => session.context.close(),
+        cleanupVideo: recordVideoMode
+          ? () => runtime.finalizeVideo(!failed)
+          : undefined,
+        closeBrowserContext: () => runtime.close(),
         failureDiagnostics: failed
           ? () =>
               attachFailureDiagnostics({

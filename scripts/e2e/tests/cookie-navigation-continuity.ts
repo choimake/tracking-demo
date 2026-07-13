@@ -21,7 +21,7 @@ import {
 export async function testCookieNavigationContinuity(
   ctx: E2eContext
 ): Promise<void> {
-  await ctx.page.context().clearCookies();
+  await ctx.clearCookies();
   const first = await visitAndGetPageview(ctx, "/");
   const mpa = await visitAndGetPageview(ctx, "/products");
   assertPageviewIdentity(ctx, mpa, {

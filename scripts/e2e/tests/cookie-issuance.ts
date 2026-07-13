@@ -11,12 +11,12 @@ import {
 } from "./cookie-helpers.js";
 
 export async function testCookieIssuance(ctx: E2eContext): Promise<void> {
-  await ctx.page.context().clearCookies();
+  await ctx.clearCookies();
   const issuedAt = Date.now() / 1000;
   const hit = await visitAndGetPageview(ctx, "/");
   assertValidIdentity(hit.vid, hit.sid);
   assertPageviewIdentity(ctx, hit, { sid: hit.sid, vid: hit.vid });
-  const cookies = await ctx.page.context().cookies(DEMO_SITE_ORIGIN);
+  const cookies = await ctx.cookies(DEMO_SITE_ORIGIN);
   const vid = cookies.find((cookie) => cookie.name === "_td_vid");
   const sid = cookies.find((cookie) => cookie.name === "_td_sid");
   if (!vid || vid.value !== hit.vid || !sid || sid.value !== hit.sid) {

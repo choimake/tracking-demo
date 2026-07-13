@@ -1,4 +1,4 @@
-import type { Cookie, Page } from "playwright";
+import type { Cookie } from "playwright";
 
 import { gotoDemoPage } from "../browser/index.js";
 import {
@@ -8,7 +8,7 @@ import {
   WORKSPACE_ID,
 } from "../harness/config.js";
 import type { BrowserName } from "../harness/config.js";
-import type { E2eContext } from "../harness/types.js";
+import type { E2eContext, E2ePage, ManagedSession } from "../harness/types.js";
 import {
   ANON_SID_RE,
   ANON_VID_RE,
@@ -65,11 +65,13 @@ export function assertCookieExpires(
   }
 }
 
-export async function snapshotTdCookies(page: Page): Promise<{
+export async function snapshotTdCookies(
+  session: Pick<ManagedSession, "cookies">
+): Promise<{
   sid: string | undefined;
   vid: string | undefined;
 }> {
-  const cookies = await page.context().cookies(DEMO_SITE_ORIGIN);
+  const cookies = await session.cookies(DEMO_SITE_ORIGIN);
   return {
     sid: cookies.find((cookie) => cookie.name === "_td_sid")?.value,
     vid: cookies.find((cookie) => cookie.name === "_td_vid")?.value,
@@ -79,7 +81,7 @@ export async function snapshotTdCookies(page: Page): Promise<{
 export async function visitAndGetPageview(
   ctx: E2eContext,
   path: string,
-  page: Page = ctx.page
+  page: E2ePage = ctx.page
 ) {
   await quiesceBeacons(ctx.tracking);
   const cursor = await ctx.tracking.captureHitCursor();

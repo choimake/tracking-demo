@@ -43,6 +43,31 @@ const customRuleFixtures: CustomRuleFixture[] = [
     target: "scripts/e2e/tests/violation.ts",
   },
   {
+    fixture: "tests-no-page-route.fixture",
+    rule: "tests-no-raw-route",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
+    fixture: "tests-no-context-route.fixture",
+    rule: "tests-no-raw-route",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
+    fixture: "tests-no-context-route-alias.fixture",
+    rule: "tests-no-raw-route",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
+    fixture: "tests-no-derived-page-route.fixture",
+    rule: "tests-no-raw-route",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
+    fixture: "tests-no-route-method-alias.fixture",
+    rule: "tests-no-raw-route",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
     fixture: "anon-vid-regex.fixture",
     rule: "anon-id-regex-single-source",
     target: "scripts/e2e/tracking/duplicate.ts",
@@ -122,6 +147,17 @@ try {
   assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
 } finally {
   fs.rmSync(methodScopeRoot, { force: true, recursive: true });
+}
+
+const routeScopeRoot = writeFixtureRoot(
+  "managed-route-scope-isolation.fixture",
+  "scripts/e2e/tests/managed-route.ts"
+);
+try {
+  const result = runCustomCheck(routeScopeRoot);
+  assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+} finally {
+  fs.rmSync(routeScopeRoot, { force: true, recursive: true });
 }
 
 const allowedRoot = writeFixtureRoot(
@@ -244,5 +280,5 @@ for (const fixture of deepImportFixtures) {
 }
 
 console.log(
-  `E2E architecture regression check: OK (${customRuleFixtures.length + deepImportFixtures.length} violation fixtures, regression-timeout exclusion, method-alias scope isolation, allowlist allow/missing-reason/stale/second-violation)`
+  `E2E architecture regression check: OK (${customRuleFixtures.length + deepImportFixtures.length} violation fixtures, regression-timeout exclusion, method-alias/managed-route scope isolation, allowlist allow/missing-reason/stale/second-violation)`
 );

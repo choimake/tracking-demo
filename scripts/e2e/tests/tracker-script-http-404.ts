@@ -12,9 +12,9 @@ import { expectNoHitsDuringObservation } from "../tracking/index.js";
 /** tracker.js 404では初期化せず、API要求とHitを発生させない。 */
 export async function testTrackerScriptHttp404(ctx: E2eContext): Promise<void> {
   const { page, trackerLogs, tracking } = ctx;
-  const trackerProbe = await installTrackerScriptHttp404(page);
-  const configProbe = await observeConfigRequests(page);
-  const collectProbe = await observeCollectRequests(page);
+  const trackerProbe = await installTrackerScriptHttp404(ctx, page);
+  const configProbe = await observeConfigRequests(ctx, page);
+  const collectProbe = await observeCollectRequests(ctx, page);
   const pageErrorProbe = observePageErrors(page);
   const hitCursor = await tracking.captureHitCursor();
   const trackerLogStart = trackerLogs.length;

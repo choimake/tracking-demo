@@ -1,6 +1,7 @@
-import type { Page, Request, Route } from "playwright";
+import type { Request, Route } from "playwright";
 
 import { DEMO_SITE_ORIGIN } from "../harness/config.js";
+import type { E2ePage, ManagedSession } from "../harness/types.js";
 
 const CONFIG_ROUTE_PATTERN = "**/api/config?*";
 const COLLECT_ROUTE_PATTERN = "**/api/collect";
@@ -38,7 +39,8 @@ export async function disposeRequestProbes(
 }
 
 async function installRoute(
-  page: Page,
+  session: ManagedSession,
+  page: E2ePage,
   pattern: string,
   handle: (route: Route) => Promise<void>
 ): Promise<RequestProbe> {
@@ -47,16 +49,19 @@ async function installRoute(
     requests.push(route.request());
     await handle(route);
   };
-  await page.route(pattern, handler);
+  const routeId = await session.route(page, pattern, handler);
   return {
     requests,
-    dispose: () => page.unroute(pattern, handler),
+    dispose: () => session.unroute(routeId),
   };
 }
 
 /** Config API を HTTP 500 に固定する。 */
-export async function installConfigHttp500(page: Page): Promise<RequestProbe> {
-  return installRoute(page, CONFIG_ROUTE_PATTERN, (route) =>
+export async function installConfigHttp500(
+  session: ManagedSession,
+  page: E2ePage
+): Promise<RequestProbe> {
+  return installRoute(session, page, CONFIG_ROUTE_PATTERN, (route) =>
     route.fulfill({
       body: JSON.stringify({ error: "E2E injected config failure" }),
       headers: CORS_HEADERS,
@@ -66,8 +71,11 @@ export async function installConfigHttp500(page: Page): Promise<RequestProbe> {
 }
 
 /** Config をイベント0件で応答し、初回 pageview 以外の自動送信を止める。 */
-export async function installEmptyConfig(page: Page): Promise<RequestProbe> {
-  return installRoute(page, CONFIG_ROUTE_PATTERN, (route) =>
+export async function installEmptyConfig(
+  session: ManagedSession,
+  page: E2ePage
+): Promise<RequestProbe> {
+  return installRoute(session, page, CONFIG_ROUTE_PATTERN, (route) =>
     route.fulfill({
       body: JSON.stringify({ events: [] }),
       headers: CORS_HEADERS,
@@ -78,14 +86,20 @@ export async function installEmptyConfig(page: Page): Promise<RequestProbe> {
 
 /** Collect API の要求を観測し、実サーバーへ継続する。 */
 export async function observeCollectRequests(
-  page: Page
+  session: ManagedSession,
+  page: E2ePage
 ): Promise<RequestProbe> {
-  return installRoute(page, COLLECT_ROUTE_PATTERN, (route) => route.continue());
+  return installRoute(session, page, COLLECT_ROUTE_PATTERN, (route) =>
+    route.continue()
+  );
 }
 
 /** Collect API を HTTP 500 に固定する。 */
-export async function installCollectHttp500(page: Page): Promise<RequestProbe> {
-  return installRoute(page, COLLECT_ROUTE_PATTERN, (route) =>
+export async function installCollectHttp500(
+  session: ManagedSession,
+  page: E2ePage
+): Promise<RequestProbe> {
+  return installRoute(session, page, COLLECT_ROUTE_PATTERN, (route) =>
     route.fulfill({
       body: JSON.stringify({ error: "E2E injected collect failure" }),
       headers: CORS_HEADERS,
@@ -96,9 +110,10 @@ export async function installCollectHttp500(page: Page): Promise<RequestProbe> {
 
 /** tracker.js を HTTP 404 に固定する。 */
 export async function installTrackerScriptHttp404(
-  page: Page
+  session: ManagedSession,
+  page: E2ePage
 ): Promise<RequestProbe> {
-  return installRoute(page, TRACKER_SCRIPT_ROUTE_PATTERN, (route) =>
+  return installRoute(session, page, TRACKER_SCRIPT_ROUTE_PATTERN, (route) =>
     route.fulfill({
       body: "",
       headers: { "access-control-allow-origin": "*" },
@@ -108,11 +123,16 @@ export async function installTrackerScriptHttp404(
 }
 
 /** 対象 API の要求がないことを観測する。予期せぬ要求は実サーバーへ継続する。 */
-export async function observeConfigRequests(page: Page): Promise<RequestProbe> {
-  return installRoute(page, CONFIG_ROUTE_PATTERN, (route) => route.continue());
+export async function observeConfigRequests(
+  session: ManagedSession,
+  page: E2ePage
+): Promise<RequestProbe> {
+  return installRoute(session, page, CONFIG_ROUTE_PATTERN, (route) =>
+    route.continue()
+  );
 }
 
-export function observePageErrors(page: Page): PageErrorProbe {
+export function observePageErrors(page: E2ePage): PageErrorProbe {
   const errors: Error[] = [];
   const handler = (error: Error): void => {
     errors.push(error);
@@ -125,7 +145,7 @@ export function observePageErrors(page: Page): PageErrorProbe {
 }
 
 /** sendBeacon を false 応答に固定し、tracker の fetch fallback を選択させる。 */
-export async function forceSendBeaconFalse(page: Page): Promise<void> {
+export async function forceSendBeaconFalse(page: E2ePage): Promise<void> {
   // page.addInitScript は tsx の __name 変換を避けるため文字列で実行する。
   await page.addInitScript(`(() => {
     Object.defineProperty(Navigator.prototype, "sendBeacon", {
@@ -136,7 +156,9 @@ export async function forceSendBeaconFalse(page: Page): Promise<void> {
 }
 
 /** Config 失敗後の非破壊性を確認する識別要素をロード前 queue に積む。 */
-export async function preloadFailureQueueSentinel(page: Page): Promise<void> {
+export async function preloadFailureQueueSentinel(
+  page: E2ePage
+): Promise<void> {
   await page.addInitScript(() => {
     (window as unknown as { tdDataLayer?: unknown[] }).tdDataLayer = [
       { event: "e2e.config-failure-sentinel" },
@@ -146,14 +168,14 @@ export async function preloadFailureQueueSentinel(page: Page): Promise<void> {
 
 /** tracker の初期化完了を待たずにデモページを開く。 */
 export async function gotoDemoPageWithoutTrackerWait(
-  page: Page,
+  page: E2ePage,
   path: string
 ): Promise<void> {
   await page.goto(`${DEMO_SITE_ORIGIN}${path}`, { waitUntil: "load" });
 }
 
 /** Config 失敗後も queue が識別要素を保持し、push 可能であることを確認する。 */
-export async function inspectFailureQueue(page: Page): Promise<{
+export async function inspectFailureQueue(page: E2ePage): Promise<{
   pushAddedItem: boolean;
   sentinelPresent: boolean;
 }> {

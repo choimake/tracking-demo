@@ -15,7 +15,7 @@ import {
 export async function testConfigHttp500(ctx: E2eContext): Promise<void> {
   const { page, trackerLogs, tracking } = ctx;
   await preloadFailureQueueSentinel(page);
-  const configProbe = await installConfigHttp500(page);
+  const configProbe = await installConfigHttp500(ctx, page);
   const pageErrorProbe = observePageErrors(page);
   const hitCursor = await tracking.captureHitCursor();
   const trackerLogStart = trackerLogs.length;

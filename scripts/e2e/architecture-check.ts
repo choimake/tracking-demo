@@ -6,7 +6,7 @@ import ts from "typescript";
 
 /**
  * E2Eコーディング規則の自動検査における担当の正本。
- * このファイルはページ操作、匿名ID正規表現、待機定数を検査する。
+ * このファイルはページ操作、raw route、匿名ID正規表現、待機定数を検査する。
  * deep importはdependency-cruiserのe2e-tests-*-barrel-import規則が検査する。
  * `npm run e2e:architecture-check`は両方の検査を実行する。
  */
@@ -16,6 +16,7 @@ export const ARCHITECTURE_RULES = [
   "tests-no-locator",
   "tests-no-get-by-role",
   "tests-no-page-evaluate",
+  "tests-no-raw-route",
   "anon-id-regex-single-source",
   "timeout-constant-in-config",
 ] as const;
@@ -305,6 +306,82 @@ function isPageEvaluateReference(
   );
 }
 
+function isRawRouteReceiver(
+  expression: ts.Expression,
+  pageAliases: ReadonlySet<ts.Symbol>,
+  checker: ts.TypeChecker
+): boolean {
+  if (isPageReference(expression, pageAliases, checker)) return true;
+  const receiverType = checker.getTypeAtLocation(expression);
+  const hasMember = (name: string): boolean =>
+    receiverType.getProperty(name) !== undefined;
+  if (
+    hasMember("route") &&
+    ((hasMember("context") && hasMember("mainFrame")) ||
+      (hasMember("browser") && hasMember("newPage") && hasMember("cookies")))
+  ) {
+    return true;
+  }
+  if (ts.isIdentifier(expression)) {
+    return (
+      expression.text === "context" || expression.text === "browserContext"
+    );
+  }
+  if (ts.isCallExpression(expression)) {
+    const member = accessedMember(expression.expression);
+    if (member?.name === "page") return true;
+    return (
+      (member?.name === "context" || member?.name === "mainFrame") &&
+      isPageReference(member.receiver, pageAliases, checker)
+    );
+  }
+  return false;
+}
+
+function collectRawRouteAliases(
+  sourceFile: ts.SourceFile,
+  pageAliases: ReadonlySet<ts.Symbol>,
+  checker: ts.TypeChecker
+): ReadonlySet<ts.Symbol> {
+  const aliases = new Set<ts.Symbol>();
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
+      const member = accessedMember(node.initializer);
+      if (
+        member?.name === "route" &&
+        isRawRouteReceiver(member.receiver, pageAliases, checker)
+      ) {
+        addIdentifierSymbol(node.name, aliases, checker);
+      }
+    }
+    if (
+      ts.isBindingElement(node) &&
+      ts.isIdentifier(node.name) &&
+      ts.isObjectBindingPattern(node.parent) &&
+      ts.isVariableDeclaration(node.parent.parent) &&
+      node.parent.parent.initializer &&
+      isRawRouteReceiver(node.parent.parent.initializer, pageAliases, checker)
+    ) {
+      const propertyName = node.propertyName;
+      const extractedName =
+        propertyName &&
+        (ts.isIdentifier(propertyName) || ts.isStringLiteralLike(propertyName))
+          ? propertyName.text
+          : node.name.text;
+      if (extractedName === "route") {
+        addIdentifierSymbol(node.name, aliases, checker);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return aliases;
+}
+
 function collectPageEvaluateAliases(
   sourceFile: ts.SourceFile,
   pageAliases: ReadonlySet<ts.Symbol>,
@@ -365,6 +442,11 @@ function visitSourceFile(
 ): ArchitectureViolation[] {
   const violations: ArchitectureViolation[] = [];
   const pageAliases = collectPageAliases(sourceFile, checker);
+  const rawRouteAliases = collectRawRouteAliases(
+    sourceFile,
+    pageAliases,
+    checker
+  );
   const pageEvaluateAliases = collectPageEvaluateAliases(
     sourceFile,
     pageAliases,
@@ -399,6 +481,16 @@ function visitSourceFile(
     if (isTestSource && ts.isCallExpression(node)) {
       if (
         ts.isIdentifier(node.expression) &&
+        hasIdentifierSymbol(node.expression, rawRouteAliases, checker)
+      ) {
+        addViolation(
+          node.expression,
+          "tests-no-raw-route",
+          "testsではraw page.routeまたはcontext.routeから抽出したメソッドを呼び出せない"
+        );
+      }
+      if (
+        ts.isIdentifier(node.expression) &&
         hasIdentifierSymbol(node.expression, pageEvaluateAliases, checker)
       ) {
         addViolation(
@@ -431,6 +523,16 @@ function visitSourceFile(
             member.nameNode,
             "tests-no-page-evaluate",
             "testsではpage.evaluateを呼び出せない"
+          );
+        }
+        if (
+          member.name === "route" &&
+          isRawRouteReceiver(member.receiver, pageAliases, checker)
+        ) {
+          addViolation(
+            member.nameNode,
+            "tests-no-raw-route",
+            "testsではraw page.routeまたはcontext.routeを呼び出せない"
           );
         }
       }
