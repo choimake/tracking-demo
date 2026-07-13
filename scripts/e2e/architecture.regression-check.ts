@@ -18,6 +18,26 @@ interface CustomRuleFixture {
 
 const customRuleFixtures: CustomRuleFixture[] = [
   {
+    fixture: "fixed-wait-abort-signal.fixture",
+    rule: "fixed-wait-registration",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
+    fixture: "fixed-wait-sleep.fixture",
+    rule: "fixed-wait-registration",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
+    fixture: "fixed-wait-playwright.fixture",
+    rule: "fixed-wait-registration",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
+    fixture: "fixed-wait-set-timeout.fixture",
+    rule: "fixed-wait-registration",
+    target: "scripts/e2e/tests/violation.ts",
+  },
+  {
     fixture: "tests-no-locator.fixture",
     rule: "tests-no-locator",
     target: "scripts/e2e/tests/violation.ts",
@@ -125,6 +145,149 @@ for (const fixture of customRuleFixtures) {
   } finally {
     fs.rmSync(root, { force: true, recursive: true });
   }
+}
+
+const registeredWaitRoot = writeFixtureRoot(
+  "fixed-wait-registered.fixture",
+  "scripts/e2e/tests/registered.ts",
+  [
+    {
+      classification: "polling",
+      contractId: "FIXTURE-POLL-001",
+      durationMs: 100,
+      file: "scripts/e2e/tests/registered.ts",
+      reason: "登録済みpolling待機を許可するfixture",
+      rule: "fixed-wait-registration",
+      toleranceMs: 100,
+      waitId: "fixture-registered-wait",
+    },
+  ]
+);
+try {
+  const result = runCustomCheck(registeredWaitRoot);
+  assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+} finally {
+  fs.rmSync(registeredWaitRoot, { force: true, recursive: true });
+}
+
+const outOfRangeWaitRoot = writeFixtureRoot(
+  "fixed-wait-out-of-range.fixture",
+  "scripts/e2e/tests/out-of-range.ts",
+  [
+    {
+      classification: "polling",
+      contractId: "FIXTURE-POLL-001",
+      durationMs: 100,
+      file: "scripts/e2e/tests/out-of-range.ts",
+      reason: "許容幅外の待機を拒否するfixture",
+      rule: "fixed-wait-registration",
+      toleranceMs: 100,
+      waitId: "fixture-registered-wait",
+    },
+  ]
+);
+try {
+  const result = runCustomCheck(outOfRangeWaitRoot);
+  assert.notEqual(result.status, 0, "許容幅外の固定待機を受理した");
+  assert.match(`${result.stdout}${result.stderr}`, /fixed-wait-registration/);
+} finally {
+  fs.rmSync(outOfRangeWaitRoot, { force: true, recursive: true });
+}
+
+const duplicateWaitIdEntry = {
+  classification: "polling",
+  contractId: "FIXTURE-POLL-001",
+  durationMs: 100,
+  reason: "wait ID重複を拒否するfixture",
+  rule: "fixed-wait-registration",
+  toleranceMs: 100,
+  waitId: "fixture-registered-wait",
+};
+const duplicateWaitIdRoot = writeFixtureRoot(
+  "fixed-wait-registered.fixture",
+  "scripts/e2e/tests/duplicate-wait-id.ts",
+  [
+    {
+      ...duplicateWaitIdEntry,
+      file: "scripts/e2e/tests/duplicate-wait-id.ts",
+    },
+    {
+      ...duplicateWaitIdEntry,
+      file: "scripts/e2e/tracking/duplicate-wait-id.ts",
+    },
+  ]
+);
+try {
+  const result = runCustomCheck(duplicateWaitIdRoot);
+  assert.notEqual(result.status, 0, "別fileの同一wait ID登録を受理した");
+  assert.match(`${result.stdout}${result.stderr}`, /固定待機waitId/);
+} finally {
+  fs.rmSync(duplicateWaitIdRoot, { force: true, recursive: true });
+}
+
+const missingWaitMetadataRoot = writeFixtureRoot(
+  "fixed-wait-registered.fixture",
+  "scripts/e2e/tests/missing-wait-metadata.ts",
+  [
+    {
+      file: "scripts/e2e/tests/missing-wait-metadata.ts",
+      reason: "metadata不足を拒否するfixture",
+      rule: "fixed-wait-registration",
+    },
+  ]
+);
+try {
+  const result = runCustomCheck(missingWaitMetadataRoot);
+  assert.notEqual(result.status, 0, "metadataのない固定待機登録を受理した");
+  assert.match(`${result.stdout}${result.stderr}`, /classification/);
+} finally {
+  fs.rmSync(missingWaitMetadataRoot, { force: true, recursive: true });
+}
+
+const mismatchedDefinitionRoot = fs.mkdtempSync(
+  path.join(os.tmpdir(), "e2e-wait-definition-")
+);
+try {
+  const actualAllowlistPath = path.join(
+    ROOT,
+    "scripts/e2e/architecture-allowlist.json"
+  );
+  const mismatchedAllowlist = JSON.parse(
+    fs.readFileSync(actualAllowlistPath, "utf8")
+  ) as Array<Record<string, unknown>>;
+  const target = mismatchedAllowlist.find(
+    (entry) => entry.waitId === "tracking-condition-poll"
+  );
+  assert(target, "定義不一致fixtureの対象登録がない");
+  target.durationMs = 201;
+  const mismatchedAllowlistPath = path.join(
+    mismatchedDefinitionRoot,
+    "architecture-allowlist.json"
+  );
+  fs.writeFileSync(
+    mismatchedAllowlistPath,
+    `${JSON.stringify(mismatchedAllowlist, null, 2)}\n`
+  );
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--import",
+      "tsx",
+      CHECK_PATH,
+      "--root",
+      ROOT,
+      "--allowlist",
+      mismatchedAllowlistPath,
+    ],
+    { cwd: ROOT, encoding: "utf8" }
+  );
+  assert.notEqual(result.status, 0, "固定待機定義と異なる登録を受理した");
+  assert.match(
+    `${result.stdout}${result.stderr}`,
+    /固定待機定義とallowlistが不一致/
+  );
+} finally {
+  fs.rmSync(mismatchedDefinitionRoot, { force: true, recursive: true });
 }
 
 const regressionTimeoutRoot = writeFixtureRoot(

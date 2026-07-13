@@ -12,6 +12,7 @@ type AssertionsApi = Pick<
   | "expectNoHitsDuringObservation"
   | "expectTagCheckContainsHit"
   | "quiesceBeacons"
+  | "waitForCondition"
 >;
 
 const hit = (id: string): HitRecord => ({
@@ -30,6 +31,19 @@ const hit = (id: string): HitRecord => ({
 export async function runAssertionsRegressionContract(
   assertions: AssertionsApi
 ): Promise<void> {
+  await assert.rejects(
+    assertions.waitForCondition(
+      "pageviewCount === 1",
+      async () => ({ actual: { pageviewCount: 0 }, ready: false }),
+      10
+    ),
+    (error: unknown) =>
+      error instanceof Error &&
+      error.message.includes("condition=pageviewCount === 1") &&
+      error.message.includes('finalObserved={"pageviewCount":0}'),
+    "timeoutは未成立条件と最終観測値を報告する"
+  );
+
   const excessiveEventCount = { getEventCount7d: async () => 2 };
   await assert.rejects(
     assertions.expectEventCountExactlyIncreasedBy(

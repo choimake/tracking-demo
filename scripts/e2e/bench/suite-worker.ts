@@ -67,11 +67,13 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
         userAgent,
       });
       const ctx: E2eContext = {
+        advanceClockBy: runtime.session.advanceClockBy,
         browserName,
         clearCookies: runtime.session.clearCookies,
         cookies: runtime.session.cookies,
         correlationId,
         fixtures,
+        installClock: runtime.session.installClock,
         mobile: false,
         newPage: runtime.session.newPage,
         page: runtime.session.page,

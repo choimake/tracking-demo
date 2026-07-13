@@ -5,7 +5,7 @@ import {
   QUIESCE_MAX_WAIT_MS,
   QUIESCE_POLL_INTERVAL_MS,
   QUIESCE_STABLE_DURATION_MS,
-  sleep,
+  registeredWait,
 } from "../harness/config.js";
 import type { HitFilter, HitRecord, TrackingClient } from "./client.js";
 
@@ -27,24 +27,40 @@ interface QuiesceOptions {
 
 const E2E_ASSERTIONS_STARTED_AT_MS = Date.now();
 
-/** sendBeacon は非同期なので、期待値になるまで最大 timeoutMs ポーリングする */
-export async function waitForCondition(
+export interface WaitObservation<T> {
+  actual: T;
+  ready: boolean;
+}
+
+class WaitTimeoutError extends Error {}
+
+function observedValue(value: unknown): string {
+  const serialized = JSON.stringify(value);
+  return serialized === undefined ? String(value) : serialized;
+}
+
+/** 条件が成立するまで観測し、timeout時は最終観測値を報告する。 */
+export async function waitForCondition<T>(
   label: string,
-  fn: () => Promise<boolean>,
+  fn: () => Promise<WaitObservation<T>>,
   timeoutMs = DEFAULT_WAIT_TIMEOUT_MS
-): Promise<void> {
+): Promise<T> {
   const deadline = Date.now() + timeoutMs;
+  let lastObserved: T | "未観測" = "未観測";
   while (Date.now() < deadline) {
-    if (await fn()) {
+    const observation = await fn();
+    lastObserved = observation.actual;
+    if (observation.ready) {
       console.log(`  ✓ ${label}`);
-      return;
+      return observation.actual;
     }
-    await sleep(
+    await registeredWait(
+      "tracking-condition-poll",
       Math.min(WAIT_POLL_INTERVAL_MS, Math.max(0, deadline - Date.now()))
     );
   }
-  throw new Error(
-    `✕ FAILED: ${label}: actual=condition false expected=condition true`
+  throw new WaitTimeoutError(
+    `待機timeout: condition=${label}; timeoutMs=${timeoutMs}; finalObserved=${observedValue(lastObserved)}`
   );
 }
 
@@ -56,7 +72,14 @@ async function observeUntilDeadline(
   const deadline = Date.now() + observationMs;
   while (Date.now() < deadline) {
     await observe();
-    await sleep(Math.min(pollIntervalMs, Math.max(0, deadline - Date.now())));
+    await registeredWait(
+      "tracking-observation-poll",
+      Math.min(
+        pollIntervalMs,
+        WAIT_POLL_INTERVAL_MS,
+        Math.max(0, deadline - Date.now())
+      )
+    );
   }
   await observe();
 }
@@ -93,7 +116,14 @@ export async function quiesceBeacons(
   let previousHitIds = await hitIds();
   let stableSince = Date.now();
   while (Date.now() < deadline) {
-    await sleep(pollIntervalMs);
+    await registeredWait(
+      "tracking-quiesce-poll",
+      Math.min(
+        pollIntervalMs,
+        QUIESCE_POLL_INTERVAL_MS,
+        Math.max(0, deadline - Date.now())
+      )
+    );
     const currentHitIds = await hitIds();
     if (currentHitIds !== previousHitIds) {
       previousHitIds = currentHitIds;
@@ -128,17 +158,17 @@ export async function expectEventCountExactlyIncreasedBy(
             `イベント件数が期待値を超過: got=${actualCount} want=${expectedCount}`
           );
         }
-        return actualCount === expectedCount;
+        return {
+          actual: { actualCount, expectedCount },
+          ready: actualCount === expectedCount,
+        };
       },
       timeoutMs
     );
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.startsWith(`✕ FAILED: ${label}:`)
-    ) {
+    if (error instanceof WaitTimeoutError) {
       throw new Error(
-        `イベント件数が期待値へ未到達: got=${lastActualCount ?? "未取得"} want=${expectedCount}`,
+        `イベント件数が期待値へ未到達: got=${lastActualCount ?? "未取得"} want=${expectedCount}; ${error.message}`,
         { cause: error }
       );
     }
@@ -167,17 +197,17 @@ export async function expectHitCountAtLeast(
       label,
       async () => {
         lastActualCount = (await tracking.getHitsMatching(filter)).length;
-        return lastActualCount >= minCount;
+        return {
+          actual: { actualCount: lastActualCount, minCount },
+          ready: lastActualCount >= minCount,
+        };
       },
       timeoutMs
     );
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.startsWith(`✕ FAILED: ${label}:`)
-    ) {
+    if (error instanceof WaitTimeoutError) {
       throw new Error(
-        `Hit 件数が期待値へ未到達: got=${lastActualCount ?? "未取得"} min=${minCount}`,
+        `Hit 件数が期待値へ未到達: got=${lastActualCount ?? "未取得"} min=${minCount}; ${error.message}`,
         { cause: error }
       );
     }
@@ -328,17 +358,19 @@ export async function expectTrackerLogContains(
   try {
     await waitForCondition(
       label,
-      async () =>
-        trackerLogs.slice(sinceIndex).some((l) => l.includes(substring)),
+      async () => {
+        const logs = trackerLogs.slice(sinceIndex);
+        return {
+          actual: logs,
+          ready: logs.some((line) => line.includes(substring)),
+        };
+      },
       timeoutMs
     );
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.startsWith(`✕ FAILED: ${label}:`)
-    ) {
+    if (error instanceof WaitTimeoutError) {
       throw new Error(
-        `tracker log が期待文字列を含みません: actual=${JSON.stringify(trackerLogs.slice(sinceIndex))} expectedSubstring=${JSON.stringify(substring)}`,
+        `tracker log が期待文字列を含みません: actual=${JSON.stringify(trackerLogs.slice(sinceIndex))} expectedSubstring=${JSON.stringify(substring)}; ${error.message}`,
         { cause: error }
       );
     }

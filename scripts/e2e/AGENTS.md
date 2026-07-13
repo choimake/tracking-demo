@@ -56,7 +56,9 @@ E2Eコーディング規則の自動検査では、担当の正本を [`architec
 
 - `browser/actions.ts` では、クリック可能な UI に `getByRole` を優先する
 - オリジン・UAトークン等の定数は `harness/config.ts` に置く
-- `sleep` は `harness/config.ts` に置き、`tracking` から re-export しない
+- `registeredWait` と `registeredAbortSignal` の実装は `harness/config.ts` に置き、`tracking` から re-export しない
+- 固定待機を直接呼ばない。許可する待機は登録済み待機APIを使い、`architecture-allowlist.json`へ分類・理由・contract ID・基準時間・許容幅を登録する
+- 待機の分類とClockの適用範囲は [`wait-strategy.md`](./wait-strategy.md) を正本とする
 - 正規表現の直前に、マッチの意図とマッチする具体値の例をコメントで記載する
 
 ### 実行と隔離状態

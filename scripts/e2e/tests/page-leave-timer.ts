@@ -1,7 +1,6 @@
 import { gotoDemoPage, leaveTrackedPage } from "../browser/index.js";
 import {
   BEACON_SETTLE_MS,
-  sleep,
   TIME_ON_PAGE_CANCEL_BOUNCE_INTERVAL_MS,
   TIME_ON_PAGE_TRIGGER_SECONDS,
 } from "../harness/config.js";
@@ -15,10 +14,14 @@ import {
 export async function testPageLeaveTimerCancel(ctx: E2eContext): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   const hitCursor = await ctx.tracking.captureHitCursor();
+  await ctx.installClock();
   await gotoDemoPage(ctx.page, "/products");
 
-  await sleep(TIME_ON_PAGE_CANCEL_BOUNCE_INTERVAL_MS);
+  await ctx.advanceClockBy(TIME_ON_PAGE_CANCEL_BOUNCE_INTERVAL_MS);
   await leaveTrackedPage(ctx.page);
+  await ctx.advanceClockBy(
+    TIME_ON_PAGE_TRIGGER_SECONDS * 1000 + BEACON_SETTLE_MS
+  );
 
   await expectNoHitsDuringObservation(
     ctx.tracking,
@@ -28,8 +31,6 @@ export async function testPageLeaveTimerCancel(ctx: E2eContext): Promise<void> {
       type: "event",
     },
     "ページ離脱後の旧 time-on-page timer",
-    {
-      observationMs: TIME_ON_PAGE_TRIGGER_SECONDS * 1000 + BEACON_SETTLE_MS,
-    }
+    { observationMs: BEACON_SETTLE_MS }
   );
 }

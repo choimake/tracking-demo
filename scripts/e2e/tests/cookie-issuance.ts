@@ -1,4 +1,4 @@
-import { DEMO_SITE_ORIGIN } from "../harness/config.js";
+import { getDemoSiteOrigin } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   SID_MAX_AGE_SEC,
@@ -16,7 +16,7 @@ export async function testCookieIssuance(ctx: E2eContext): Promise<void> {
   const hit = await visitAndGetPageview(ctx, "/");
   assertValidIdentity(hit.vid, hit.sid);
   assertPageviewIdentity(ctx, hit, { sid: hit.sid, vid: hit.vid });
-  const cookies = await ctx.cookies(DEMO_SITE_ORIGIN);
+  const cookies = await ctx.cookies(getDemoSiteOrigin());
   const vid = cookies.find((cookie) => cookie.name === "_td_vid");
   const sid = cookies.find((cookie) => cookie.name === "_td_sid");
   if (!vid || vid.value !== hit.vid || !sid || sid.value !== hit.sid) {

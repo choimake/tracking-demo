@@ -2,10 +2,10 @@ import type { Cookie } from "playwright";
 
 import { gotoDemoPage } from "../browser/index.js";
 import {
-  DEMO_SITE_ORIGIN,
   E2E_CORRELATION_UA_PREFIX,
   UA_TOKEN,
   WORKSPACE_ID,
+  getDemoSiteOrigin,
 } from "../harness/config.js";
 import type { BrowserName } from "../harness/config.js";
 import type { E2eContext, E2ePage, ManagedSession } from "../harness/types.js";
@@ -71,7 +71,7 @@ export async function snapshotTdCookies(
   sid: string | undefined;
   vid: string | undefined;
 }> {
-  const cookies = await session.cookies(DEMO_SITE_ORIGIN);
+  const cookies = await session.cookies(getDemoSiteOrigin());
   return {
     sid: cookies.find((cookie) => cookie.name === "_td_sid")?.value,
     vid: cookies.find((cookie) => cookie.name === "_td_vid")?.value,
@@ -95,7 +95,7 @@ export async function visitAndGetPageview(
         sid: DUPLICATE_PAGEVIEW_SID,
         type: "pageview",
         ua: `${ctx.userAgent} ${E2E_CORRELATION_UA_PREFIX}${ctx.correlationId}`,
-        url: `${DEMO_SITE_ORIGIN}${path}`,
+        url: `${getDemoSiteOrigin()}${path}`,
         vid: DUPLICATE_PAGEVIEW_VID,
         ws: WORKSPACE_ID,
       }),
@@ -110,7 +110,13 @@ export async function visitAndGetPageview(
         eventId: null,
         type: "pageview",
       });
-      return pageviews.length >= 2;
+      return {
+        actual: {
+          hitCount: pageviews.length,
+          hitIds: pageviews.map((hit) => hit.id),
+        },
+        ready: pageviews.length >= 2,
+      };
     });
   }
 

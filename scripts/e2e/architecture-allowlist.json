@@ -3,5 +3,105 @@
     "file": "scripts/e2e/tests/gtm-dedup.ts",
     "rule": "tests-no-page-evaluate",
     "reason": "pushStateとtdDataLayer.pushを同一tickで実行しないと検証意図が変わるため"
+  },
+  {
+    "classification": "polling",
+    "contractId": "E2E-POLL-CONDITION-001",
+    "durationMs": 200,
+    "file": "scripts/e2e/tracking/assertions.ts",
+    "reason": "Hit・件数・ログの成立条件を再観測する間隔を制御するため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 200,
+    "waitId": "tracking-condition-poll"
+  },
+  {
+    "classification": "polling",
+    "contractId": "E2E-POLL-OBSERVATION-001",
+    "durationMs": 200,
+    "file": "scripts/e2e/tracking/assertions.ts",
+    "reason": "負のcontractと正確件数を観測期限まで再確認するため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 200,
+    "waitId": "tracking-observation-poll"
+  },
+  {
+    "classification": "polling",
+    "contractId": "E2E-TRACKING-FETCH-001",
+    "durationMs": 5000,
+    "file": "scripts/e2e/tracking/client.ts",
+    "reason": "計測APIのfetch待ちへ既定5000msの上限を設定するため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 5000,
+    "waitId": "tracking-fetch-deadline"
+  },
+  {
+    "classification": "polling",
+    "contractId": "E2E-POLL-QUIESCE-001",
+    "durationMs": 350,
+    "file": "scripts/e2e/tracking/assertions.ts",
+    "reason": "Hit ID列が安定期間を満たしたことを再観測するため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 350,
+    "waitId": "tracking-quiesce-poll"
+  },
+  {
+    "classification": "polling",
+    "contractId": "E2E-STACK-HEALTH-001",
+    "durationMs": 200,
+    "file": "scripts/e2e/harness/stack.ts",
+    "reason": "起動したサーバーのhealth応答を成立まで再観測するため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 200,
+    "waitId": "stack-health-poll"
+  },
+  {
+    "classification": "polling",
+    "contractId": "E2E-STACK-HEALTH-001",
+    "durationMs": 5000,
+    "file": "scripts/e2e/harness/stack.ts",
+    "reason": "health fetchの1回の応答待ちを全体起動期限内に収めるため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 5000,
+    "waitId": "stack-health-request-deadline"
+  },
+  {
+    "classification": "polling",
+    "contractId": "E2E-STACK-STOP-001",
+    "durationMs": 5000,
+    "file": "scripts/e2e/harness/stack.ts",
+    "reason": "SIGTERM後のexit event待機へ5000msの上限を設定するため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 0,
+    "waitId": "stack-stop-term-deadline"
+  },
+  {
+    "classification": "polling",
+    "contractId": "E2E-STACK-STOP-001",
+    "durationMs": 5000,
+    "file": "scripts/e2e/harness/stack.ts",
+    "reason": "SIGKILL後のexit event待機へ5000msの上限を設定するため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 0,
+    "waitId": "stack-stop-kill-deadline"
+  },
+  {
+    "classification": "polling",
+    "contractId": "E2E-ROUTE-GATE-001",
+    "durationMs": 5000,
+    "file": "scripts/e2e/browser/actions.ts",
+    "reason": "tracker.js要求のroute到達待ちへ5000msの上限を設定するため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 0,
+    "waitId": "tracker-route-interception-deadline"
+  },
+  {
+    "classification": "product-contract-time-boundary",
+    "contractId": "TRACKER-PAGEVIEW-DEDUP-001",
+    "durationMs": 1100,
+    "file": "scripts/e2e/tests/datalayer-manual.ts",
+    "reason": "同一パスの手動pageviewを1000msの重複排除窓より100ms後に送信するため",
+    "rule": "fixed-wait-registration",
+    "toleranceMs": 100,
+    "waitId": "datalayer-manual-dedup-boundary"
   }
 ]

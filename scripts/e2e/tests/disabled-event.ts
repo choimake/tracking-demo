@@ -1,10 +1,9 @@
 import { gotoDemoPage } from "../browser/index.js";
 import {
-  TRACKING_ORIGIN,
-  DEMO_SITE_ORIGIN,
-  DISABLED_EVENT_RECEIVE_CHECK_DELAY_MS,
+  BEACON_SETTLE_MS,
   DISABLED_EVENT_BROWSER_CHECK_DELAY_MS,
-  sleep,
+  getDemoSiteOrigin,
+  getTrackingOrigin,
 } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import { expectNoHitsDuringObservation } from "../tracking/index.js";
@@ -18,8 +17,8 @@ export async function testDisabledEventStopsTracking(
   // ブラウザマトリクスで後続エンジンの time-on-page が動くよう、必ず有効に戻す
   await tracking.toggleEvent(timeOnPageEventId, false);
   try {
-    const disabledEventCheckUrl = `${DEMO_SITE_ORIGIN}/__disabled_check_${Date.now()}`;
-    const res = await fetch(`${TRACKING_ORIGIN}/api/collect`, {
+    const disabledEventCheckUrl = `${getDemoSiteOrigin()}/__disabled_check_${Date.now()}`;
+    const res = await fetch(`${getTrackingOrigin()}/api/collect`, {
       body: JSON.stringify({
         ws: "ws-001",
         eventId: timeOnPageEventId,
@@ -33,7 +32,6 @@ export async function testDisabledEventStopsTracking(
     if (res.status !== 202 || body.ok !== false) {
       throw new Error(`受信側が破棄しなかった (HTTP ${res.status})`);
     }
-    await sleep(DISABLED_EVENT_RECEIVE_CHECK_DELAY_MS);
     if (
       (await tracking.getHitsForEvent(timeOnPageEventId)).some(
         (h) => h.url === disabledEventCheckUrl
@@ -45,13 +43,15 @@ export async function testDisabledEventStopsTracking(
 
     // 直前テストの滞在タイマーが残っていると誤検知するため、遷移後のログだけ見る
     const hitCursor = await tracking.captureHitCursor();
+    await ctx.installClock();
     await gotoDemoPage(page, "/");
     const trackerLogsCountBefore = trackerLogs.length;
+    await ctx.advanceClockBy(DISABLED_EVENT_BROWSER_CHECK_DELAY_MS);
     await expectNoHitsDuringObservation(
       tracking,
       { afterHitId: hitCursor, eventId: timeOnPageEventId, type: "event" },
       "無効イベントのブラウザ発火",
-      { observationMs: DISABLED_EVENT_BROWSER_CHECK_DELAY_MS }
+      { observationMs: BEACON_SETTLE_MS }
     );
     if (
       trackerLogs

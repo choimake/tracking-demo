@@ -1,6 +1,6 @@
 import type { Request, Route } from "playwright";
 
-import { DEMO_SITE_ORIGIN } from "../harness/config.js";
+import { getDemoSiteOrigin } from "../harness/config.js";
 import type { E2ePage, ManagedSession } from "../harness/types.js";
 
 const CONFIG_ROUTE_PATTERN = "**/api/config?*";
@@ -171,7 +171,7 @@ export async function gotoDemoPageWithoutTrackerWait(
   page: E2ePage,
   path: string
 ): Promise<void> {
-  await page.goto(`${DEMO_SITE_ORIGIN}${path}`, { waitUntil: "load" });
+  await page.goto(`${getDemoSiteOrigin()}${path}`, { waitUntil: "load" });
 }
 
 /** Config 失敗後も queue が識別要素を保持し、push 可能であることを確認する。 */

@@ -1,5 +1,9 @@
 import { gotoDemoPage } from "../browser/index.js";
-import { TRACKING_ORIGIN, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
+import {
+  UA_TOKEN,
+  WORKSPACE_ID,
+  getTrackingOrigin,
+} from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   expectPageviewCountExactly,
@@ -20,7 +24,9 @@ export async function testDuplicateTagGuard(ctx: E2eContext): Promise<void> {
   );
   const pageviewCountBefore = await tracking.getPageviewCountAfter(hitCursor);
   const trackerLogsCountBefore = trackerLogs.length;
-  await page.addScriptTag({ url: `${TRACKING_ORIGIN}/tracker.js?id=ws-001` });
+  await page.addScriptTag({
+    url: `${getTrackingOrigin()}/tracker.js?id=ws-001`,
+  });
   await expectPageviewCountExactly(
     tracking,
     hitCursor,

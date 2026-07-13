@@ -78,6 +78,10 @@ export interface ManagedSession {
   clearCookies(): Promise<void>;
   /** 当該contextのCookieを取得する。 */
   cookies(urls?: string | readonly string[]): Promise<Cookie[]>;
+  /** primary pageへPlaywright Clockを導入し、自動進行を停止する。 */
+  installClock(): Promise<void>;
+  /** 停止中のClockを指定ミリ秒だけ進める。自動進行は再開しない。 */
+  advanceClockBy(durationMs: number): Promise<void>;
   /** routeをID付きで登録する。runtimeがsession終了時に未解除routeを解除する。 */
   route(
     page: E2ePage,

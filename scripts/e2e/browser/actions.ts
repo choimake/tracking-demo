@@ -1,7 +1,7 @@
 import {
-  DEMO_SITE_ORIGIN,
   DEFAULT_WAIT_TIMEOUT_MS,
-  sleep,
+  getDemoSiteOrigin,
+  registeredAbortSignal,
 } from "../harness/config.js";
 import type { E2ePage, ManagedSession } from "../harness/types.js";
 
@@ -13,7 +13,7 @@ export async function gotoDemoPage(page: E2ePage, path: string): Promise<void> {
     predicate: (m) => m.text().includes("[tracker] ページビュー:"),
     timeout: DEFAULT_WAIT_TIMEOUT_MS,
   });
-  await page.goto(`${DEMO_SITE_ORIGIN}${path}`, { waitUntil: "load" });
+  await page.goto(`${getDemoSiteOrigin()}${path}`, { waitUntil: "load" });
   await pageviewDone;
 }
 
@@ -351,25 +351,69 @@ export async function getNoReloadMarker(
   );
 }
 
-/** tracker.js の読み込みを delayMs だけ遅延させるルートを設置する(ロード前キューの検証用) */
-export async function delayTrackerScriptRoute(
+/** tracker.js要求をrouteで停止し、先行queueを維持したまま読み込みを再開する。 */
+export async function gotoDemoPageWithPreloadedDataLayerQueue(
   session: ManagedSession,
   page: E2ePage,
-  delayMs: number
+  path: string
 ): Promise<void> {
-  await session.route(page, "**/tracker.js*", async (route) => {
-    await sleep(delayMs);
-    await route.continue();
-  });
-}
-
-/** tracker.js 読み込み前に tdDataLayer へ pageview push を積んでおく(キュー再生の検証用) */
-export async function preloadTdDataLayerQueue(page: E2ePage): Promise<void> {
   await page.addInitScript(() => {
     (window as unknown as { tdDataLayer?: unknown[] }).tdDataLayer = [
       { event: "tracker.pageview" },
     ];
   });
+  let requestCount = 0;
+  let releaseRoute!: () => void;
+  let reportIntercepted!: () => void;
+  const intercepted = new Promise<void>((resolve) => {
+    reportIntercepted = resolve;
+  });
+  const released = new Promise<void>((resolve) => {
+    releaseRoute = resolve;
+  });
+  await session.route(page, "**/tracker.js*", async (route) => {
+    requestCount += 1;
+    reportIntercepted();
+    await released;
+    await route.continue();
+  });
+  const navigation = gotoDemoPage(page, path);
+  let interceptionError: unknown;
+  try {
+    await Promise.race([
+      intercepted,
+      new Promise<never>((_resolve, reject) => {
+        registeredAbortSignal(
+          "tracker-route-interception-deadline"
+        ).addEventListener(
+          "abort",
+          () => {
+            reject(
+              new Error(
+                `tracker.js要求の停止待ちがtimeout: condition=requestCount >= 1; finalObserved=${JSON.stringify({ requestCount })}`
+              )
+            );
+          },
+          { once: true }
+        );
+      }),
+    ]);
+  } catch (error) {
+    interceptionError = error;
+  } finally {
+    releaseRoute();
+  }
+  if (interceptionError !== undefined) {
+    void navigation.catch(() => undefined);
+    throw interceptionError;
+  }
+  try {
+    await navigation;
+  } catch (navigationError) {
+    if (interceptionError === undefined) {
+      throw navigationError;
+    }
+  }
 }
 
 /**
@@ -380,7 +424,7 @@ export async function preloadTdDataLayerQueue(page: E2ePage): Promise<void> {
  * pageview コンソール待ちはしない(素の goto のまま)
  */
 export async function runExitIntentMobileAct(page: E2ePage): Promise<void> {
-  await page.goto(`${DEMO_SITE_ORIGIN}/`, { waitUntil: "load" });
+  await page.goto(`${getDemoSiteOrigin()}/`, { waitUntil: "load" });
   await page.locator("h1").tap();
   await page.evaluate(() => window.scrollTo(0, 200));
   await page.locator("h1").tap();

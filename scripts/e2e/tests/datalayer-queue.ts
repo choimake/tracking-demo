@@ -1,11 +1,6 @@
-import {
-  gotoDemoPage,
-  delayTrackerScriptRoute,
-  preloadTdDataLayerQueue,
-} from "../browser/index.js";
+import { gotoDemoPageWithPreloadedDataLayerQueue } from "../browser/index.js";
 import {
   BEACON_SETTLE_MS,
-  TRACKER_SCRIPT_DELAY_MS,
   QUEUE_REPLAY_WAIT_TIMEOUT_MS,
   UA_TOKEN,
   WORKSPACE_ID,
@@ -27,17 +22,18 @@ export async function testDataLayerQueueReplay(ctx: E2eContext): Promise<void> {
   const purchaseCountBefore =
     await ctx.tracking.getEventCount7d(EVENT_ID_PURCHASE);
   const delayedScriptPage = await ctx.newPage();
-  await delayTrackerScriptRoute(
+  const hitCursor = await ctx.tracking.captureHitCursor();
+  await gotoDemoPageWithPreloadedDataLayerQueue(
     ctx,
     delayedScriptPage,
-    TRACKER_SCRIPT_DELAY_MS
+    "/order/complete"
   );
-  await preloadTdDataLayerQueue(delayedScriptPage);
-  const hitCursor = await ctx.tracking.captureHitCursor();
-  await gotoDemoPage(delayedScriptPage, "/order/complete");
   await waitForCondition(
     "先行 push の再生分の pageview を受信",
-    async () => (await ctx.tracking.getPageviewCountAfter(hitCursor)) >= 1,
+    async () => {
+      const pageviewCount = await ctx.tracking.getPageviewCountAfter(hitCursor);
+      return { actual: { pageviewCount }, ready: pageviewCount >= 1 };
+    },
     QUEUE_REPLAY_WAIT_TIMEOUT_MS
   );
   await expectPageviewCountExactly(

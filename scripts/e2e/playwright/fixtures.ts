@@ -116,11 +116,13 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
       userAgent: baseUserAgent,
     });
     const context: E2eContext = {
+      advanceClockBy: runtime.session.advanceClockBy,
       browserName: typedBrowserName,
       clearCookies: runtime.session.clearCookies,
       cookies: runtime.session.cookies,
       correlationId,
       fixtures,
+      installClock: runtime.session.installClock,
       mobile,
       newPage: runtime.session.newPage,
       page: runtime.session.page,

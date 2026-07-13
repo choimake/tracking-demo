@@ -1,0 +1,6 @@
+declare const page: { waitForTimeout(ms: number): Promise<void> };
+
+export async function violation(): Promise<void> {
+  const wait = page.waitForTimeout;
+  await wait(100);
+}

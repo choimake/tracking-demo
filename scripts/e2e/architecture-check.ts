@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
+import { REGISTERED_WAIT_DEFINITIONS } from "./harness/config.js";
+
 /**
  * E2Eコーディング規則の自動検査における担当の正本。
  * このファイルはページ操作、raw route、匿名ID正規表現、待機定数を検査する。
@@ -19,14 +21,20 @@ export const ARCHITECTURE_RULES = [
   "tests-no-raw-route",
   "anon-id-regex-single-source",
   "timeout-constant-in-config",
+  "fixed-wait-registration",
 ] as const;
 
 export type ArchitectureRule = (typeof ARCHITECTURE_RULES)[number];
 
 export interface ArchitectureAllowlistEntry {
+  classification?: "polling" | "product-contract-time-boundary";
+  contractId?: string;
+  durationMs?: number;
   file: string;
   reason: string;
   rule: ArchitectureRule;
+  toleranceMs?: number;
+  waitId?: string;
 }
 
 interface ArchitectureViolation {
@@ -34,7 +42,9 @@ interface ArchitectureViolation {
   file: string;
   line: number;
   message: string;
+  requestedMs?: number;
   rule: ArchitectureRule;
+  waitId?: string;
 }
 
 interface ArchitectureResult {
@@ -85,11 +95,13 @@ function parseAllowlist(value: unknown): ArchitectureAllowlistEntry[] {
       throw new Error(`allowlist[${index}]はオブジェクトにする`);
     }
     const record = candidate as Record<string, unknown>;
+    const isWaitRegistration = record.rule === "fixed-wait-registration";
     const keys = Object.keys(record).toSorted();
-    if (keys.join(",") !== "file,reason,rule") {
-      throw new Error(
-        `allowlist[${index}]はfile、rule、reasonだけを持つ必要がある`
-      );
+    const expectedKeys = isWaitRegistration
+      ? "classification,contractId,durationMs,file,reason,rule,toleranceMs,waitId"
+      : "file,reason,rule";
+    if (keys.join(",") !== expectedKeys) {
+      throw new Error(`allowlist[${index}]のキーは${expectedKeys}にする`);
     }
     if (typeof record.file !== "string" || record.file.trim() === "") {
       throw new Error(`allowlist[${index}].fileは空でない文字列にする`);
@@ -106,16 +118,69 @@ function parseAllowlist(value: unknown): ArchitectureAllowlistEntry[] {
     if (typeof record.reason !== "string" || record.reason.trim() === "") {
       throw new Error(`allowlist[${index}].reasonは空でない文字列にする`);
     }
+    if (isWaitRegistration) {
+      if (
+        record.classification !== "polling" &&
+        record.classification !== "product-contract-time-boundary"
+      ) {
+        throw new Error(
+          `allowlist[${index}].classificationはpollingまたはproduct-contract-time-boundaryにする`
+        );
+      }
+      if (
+        typeof record.contractId !== "string" ||
+        record.contractId.trim() === ""
+      ) {
+        throw new Error(`allowlist[${index}].contractIdは空でない文字列にする`);
+      }
+      if (typeof record.waitId !== "string" || record.waitId.trim() === "") {
+        throw new Error(`allowlist[${index}].waitIdは空でない文字列にする`);
+      }
+      if (
+        typeof record.durationMs !== "number" ||
+        !Number.isInteger(record.durationMs) ||
+        record.durationMs < 0
+      ) {
+        throw new Error(`allowlist[${index}].durationMsは0以上の整数にする`);
+      }
+      if (
+        typeof record.toleranceMs !== "number" ||
+        !Number.isInteger(record.toleranceMs) ||
+        record.toleranceMs < 0
+      ) {
+        throw new Error(`allowlist[${index}].toleranceMsは0以上の整数にする`);
+      }
+    }
     return {
+      classification: record.classification as
+        | "polling"
+        | "product-contract-time-boundary"
+        | undefined,
+      contractId:
+        typeof record.contractId === "string"
+          ? record.contractId.trim()
+          : undefined,
+      durationMs:
+        typeof record.durationMs === "number" ? record.durationMs : undefined,
       file: normalizePath(record.file),
       reason: record.reason.trim(),
       rule: record.rule as ArchitectureRule,
+      toleranceMs:
+        typeof record.toleranceMs === "number" ? record.toleranceMs : undefined,
+      waitId:
+        typeof record.waitId === "string" ? record.waitId.trim() : undefined,
     };
   });
 
-  const keys = entries.map((entry) => `${entry.file}\0${entry.rule}`);
+  const keys = entries.map((entry) =>
+    entry.rule === "fixed-wait-registration"
+      ? `${entry.rule}\0${entry.waitId}`
+      : `${entry.file}\0${entry.rule}`
+  );
   if (new Set(keys).size !== keys.length) {
-    throw new Error("allowlistに同じfileとruleの組み合わせを重複登録できない");
+    throw new Error(
+      "allowlistに同じ固定待機waitIdまたは同じfileとruleを重複登録できない"
+    );
   }
   return entries;
 }
@@ -435,6 +500,158 @@ function collectPageEvaluateAliases(
   return aliases;
 }
 
+type FixedWaitCallName =
+  | "abortSignalTimeout"
+  | "registeredAbortSignal"
+  | "registeredWait"
+  | "setTimeout"
+  | "sleep"
+  | "waitForTimeout";
+
+function collectFixedWaitCallAliases(
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker
+): ReadonlyMap<ts.Symbol, FixedWaitCallName> {
+  const aliases = new Map<ts.Symbol, FixedWaitCallName>();
+  const directNames = new Set<FixedWaitCallName>([
+    "abortSignalTimeout",
+    "registeredAbortSignal",
+    "registeredWait",
+    "setTimeout",
+    "sleep",
+    "waitForTimeout",
+  ]);
+  const canonicalName = (
+    expression: ts.Expression
+  ): FixedWaitCallName | undefined => {
+    if (ts.isIdentifier(expression)) {
+      if (directNames.has(expression.text as FixedWaitCallName)) {
+        return expression.text as FixedWaitCallName;
+      }
+      const symbol = checker.getSymbolAtLocation(expression);
+      return symbol ? aliases.get(symbol) : undefined;
+    }
+    if (ts.isCallExpression(expression)) {
+      const calledMember = accessedMember(expression.expression);
+      if (calledMember?.name === "bind") {
+        return canonicalName(calledMember.receiver);
+      }
+    }
+    const member = accessedMember(expression);
+    if (member?.name === "waitForTimeout") return "waitForTimeout";
+    if (member?.name === "setTimeout") return "setTimeout";
+    if (member?.name === "timeout") return "abortSignalTimeout";
+    return undefined;
+  };
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const visit = (node: ts.Node): void => {
+      if (ts.isImportSpecifier(node)) {
+        const importedName = (node.propertyName ?? node.name).text;
+        if (directNames.has(importedName as FixedWaitCallName)) {
+          const symbol = checker.getSymbolAtLocation(node.name);
+          if (symbol && !aliases.has(symbol)) {
+            aliases.set(symbol, importedName as FixedWaitCallName);
+            changed = true;
+          }
+        }
+      }
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.initializer
+      ) {
+        const name = canonicalName(node.initializer);
+        const symbol = checker.getSymbolAtLocation(node.name);
+        if (name && symbol && aliases.get(symbol) !== name) {
+          aliases.set(symbol, name);
+          changed = true;
+        }
+      }
+      if (
+        ts.isBinaryExpression(node) &&
+        node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        ts.isIdentifier(node.left)
+      ) {
+        const name = canonicalName(node.right);
+        const symbol = checker.getSymbolAtLocation(node.left);
+        if (name && symbol && aliases.get(symbol) !== name) {
+          aliases.set(symbol, name);
+          changed = true;
+        }
+      }
+      if (
+        ts.isBindingElement(node) &&
+        ts.isIdentifier(node.name) &&
+        ts.isObjectBindingPattern(node.parent)
+      ) {
+        const propertyName = node.propertyName;
+        const extractedName =
+          propertyName &&
+          (ts.isIdentifier(propertyName) ||
+            ts.isStringLiteralLike(propertyName))
+            ? propertyName.text
+            : node.name.text;
+        if (
+          extractedName === "setTimeout" ||
+          extractedName === "timeout" ||
+          extractedName === "waitForTimeout"
+        ) {
+          const symbol = checker.getSymbolAtLocation(node.name);
+          if (symbol && !aliases.has(symbol)) {
+            aliases.set(
+              symbol,
+              extractedName === "timeout" ? "abortSignalTimeout" : extractedName
+            );
+            changed = true;
+          }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+  }
+  return aliases;
+}
+
+function isRegisteredWaitPrimitive(node: ts.Node): boolean {
+  let current: ts.Node | undefined = node;
+  while (current) {
+    if (
+      ts.isVariableDeclaration(current) &&
+      ts.isIdentifier(current.name) &&
+      (current.name.text === "registeredWait" ||
+        current.name.text === "registeredAbortSignal")
+    ) {
+      return true;
+    }
+    if (
+      ts.isFunctionDeclaration(current) &&
+      (current.name?.text === "registeredWait" ||
+        current.name?.text === "registeredAbortSignal")
+    ) {
+      return true;
+    }
+    current = current.parent;
+  }
+  return false;
+}
+
+function staticNumericValue(expression: ts.Expression): number | undefined {
+  if (ts.isNumericLiteral(expression)) return Number(expression.text);
+  if (ts.isParenthesizedExpression(expression)) {
+    return staticNumericValue(expression.expression);
+  }
+  if (ts.isPrefixUnaryExpression(expression)) {
+    const operand = staticNumericValue(expression.operand);
+    if (operand === undefined) return undefined;
+    if (expression.operator === ts.SyntaxKind.PlusToken) return operand;
+    if (expression.operator === ts.SyntaxKind.MinusToken) return -operand;
+  }
+  return undefined;
+}
+
 function visitSourceFile(
   sourceFile: ts.SourceFile,
   file: string,
@@ -452,7 +669,15 @@ function visitSourceFile(
     pageAliases,
     checker
   );
+  const fixedWaitCallAliases = collectFixedWaitCallAliases(sourceFile, checker);
   const isTestSource = file.startsWith(`${E2E_DIR}/tests/`);
+  const isFixedWaitLayer = [
+    "browser",
+    "harness",
+    "playwright",
+    "tests",
+    "tracking",
+  ].some((layer) => file.startsWith(`${E2E_DIR}/${layer}/`));
   // regression-checkは検査インフラであり、E2Eの検証意図を置く層ではない。
   const isTimeoutForbiddenLayer =
     !file.endsWith(".regression-check.ts") &&
@@ -463,7 +688,9 @@ function visitSourceFile(
   const addViolation = (
     node: ts.Node,
     rule: ArchitectureRule,
-    message: string
+    message: string,
+    waitId?: string,
+    requestedMs?: number
   ): void => {
     const position = sourceFile.getLineAndCharacterOfPosition(
       node.getStart(sourceFile)
@@ -474,10 +701,62 @@ function visitSourceFile(
       line: position.line + 1,
       message,
       rule,
+      requestedMs,
+      waitId,
     });
   };
 
   const visit = (node: ts.Node): void => {
+    if (isFixedWaitLayer && ts.isCallExpression(node)) {
+      const member = accessedMember(node.expression);
+      const identifierName = ts.isIdentifier(node.expression)
+        ? (fixedWaitCallAliases.get(
+            checker.getSymbolAtLocation(node.expression) as ts.Symbol
+          ) ?? node.expression.text)
+        : undefined;
+      if (
+        identifierName === "registeredWait" ||
+        identifierName === "registeredAbortSignal"
+      ) {
+        const waitId = node.arguments[0];
+        if (!waitId || !ts.isStringLiteralLike(waitId)) {
+          addViolation(
+            node.expression,
+            "fixed-wait-registration",
+            "registeredWaitの第1引数は登録済みwait IDの文字列リテラルにする"
+          );
+        } else {
+          addViolation(
+            node.expression,
+            "fixed-wait-registration",
+            `固定待機はwait ID=${waitId.text}の登録が必要`,
+            waitId.text,
+            node.arguments[1]
+              ? staticNumericValue(node.arguments[1])
+              : undefined
+          );
+        }
+      } else if (
+        identifierName === "abortSignalTimeout" ||
+        identifierName === "sleep" ||
+        (identifierName === "setTimeout" &&
+          !(
+            file === `${E2E_DIR}/harness/config.ts` &&
+            isRegisteredWaitPrimitive(node)
+          )) ||
+        identifierName === "waitForTimeout" ||
+        member?.name === "setTimeout" ||
+        (member?.name === "timeout" && !isRegisteredWaitPrimitive(node)) ||
+        member?.name === "waitForTimeout"
+      ) {
+        addViolation(
+          member?.nameNode ?? node.expression,
+          "fixed-wait-registration",
+          "固定待機はregisteredWaitと理由付き登録へ置き換える"
+        );
+      }
+    }
+
     if (isTestSource && ts.isCallExpression(node)) {
       if (
         ts.isIdentifier(node.expression) &&
@@ -640,7 +919,13 @@ export function checkArchitecture({
       (entry, entryIndex) =>
         !usedAllowlistEntries.has(entryIndex) &&
         entry.file === violation.file &&
-        entry.rule === violation.rule
+        entry.rule === violation.rule &&
+        entry.waitId === violation.waitId &&
+        (violation.requestedMs === undefined ||
+          (entry.durationMs !== undefined &&
+            entry.toleranceMs !== undefined &&
+            Math.abs(violation.requestedMs - entry.durationMs) <=
+              entry.toleranceMs))
     );
     if (index === -1) return true;
     usedAllowlistEntries.add(index);
@@ -651,8 +936,47 @@ export function checkArchitecture({
   );
   const errors = staleEntries.map(
     (entry) =>
-      `未使用のallowlist登録: file=${entry.file} rule=${entry.rule} reason=${entry.reason}`
+      `未使用のallowlist登録: file=${entry.file} rule=${entry.rule} waitId=${entry.waitId ?? "なし"} reason=${entry.reason}`
   );
+
+  const sourceRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../.."
+  );
+  if (absoluteRoot === sourceRoot) {
+    const registrations = allowlist.filter(
+      (entry) => entry.rule === "fixed-wait-registration"
+    );
+    const registrationById = new Map(
+      registrations.map((entry) => [entry.waitId, entry])
+    );
+    for (const [waitId, definition] of Object.entries(
+      REGISTERED_WAIT_DEFINITIONS
+    )) {
+      const entry = registrationById.get(waitId);
+      if (!entry) {
+        errors.push(`固定待機定義にallowlist登録がない: waitId=${waitId}`);
+        continue;
+      }
+      for (const [key, actual, expected] of [
+        ["classification", entry.classification, definition.classification],
+        ["contractId", entry.contractId, definition.contractId],
+        ["durationMs", entry.durationMs, definition.durationMs],
+        ["reason", entry.reason, definition.reason],
+        ["toleranceMs", entry.toleranceMs, definition.toleranceMs],
+      ] as const) {
+        if (actual !== expected) {
+          errors.push(
+            `固定待機定義とallowlistが不一致: waitId=${waitId} field=${key} actual=${String(actual)} expected=${String(expected)}`
+          );
+        }
+      }
+      registrationById.delete(waitId);
+    }
+    for (const waitId of registrationById.keys()) {
+      errors.push(`allowlist登録に固定待機定義がない: waitId=${waitId}`);
+    }
+  }
 
   return {
     allowlistCount: allowlist.length,

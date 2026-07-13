@@ -302,6 +302,8 @@ Playwright Test
 - `assertions.ts` — 4区分の件数helper、`quiesceBeacons`、`waitForNewHit`、`expectHitPayload`（末尾で `expectAnonIdsPresent`）、匿名ID正規表現
 - `seed-events.ts` — `EVENT_ID_PURCHASE` 等の定数
 
+固定待機の分類、登録規則、Clockの適用範囲は [`wait-strategy.md`](./wait-strategy.md) を参照する。
+
 テストからは `import { EVENT_ID_CART, quiesceBeacons } from '../tracking/index.js'` で使う。
 
 ### `harness/` — 実行の仕組み

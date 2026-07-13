@@ -1,10 +1,5 @@
 import { gotoDemoPage, clickManualPageview } from "../browser/index.js";
-import {
-  MANUAL_PUSH_GAP_MS,
-  UA_TOKEN,
-  WORKSPACE_ID,
-  sleep,
-} from "../harness/config.js";
+import { UA_TOKEN, WORKSPACE_ID, registeredWait } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   quiesceBeacons,
@@ -19,7 +14,7 @@ export async function testDataLayerManualPageview(
 ): Promise<void> {
   await quiesceBeacons(ctx.tracking);
   await gotoDemoPage(ctx.page, "/spa");
-  await sleep(MANUAL_PUSH_GAP_MS);
+  await registeredWait("datalayer-manual-dedup-boundary");
   const hitCursor = await ctx.tracking.captureHitCursor();
   await clickManualPageview(ctx.page);
   await expectPageviewCountExactly(

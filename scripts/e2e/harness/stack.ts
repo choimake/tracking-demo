@@ -7,6 +7,12 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  DEFAULT_WAIT_TIMEOUT_MS,
+  registeredAbortSignal,
+  registeredWait,
+} from "./config.js";
+
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../.."
@@ -14,7 +20,6 @@ const ROOT = path.resolve(
 const DATA_DIR = path.join(ROOT, "data");
 const TSX_CLI = createRequire(import.meta.url).resolve("tsx/cli");
 const STARTUP_TIMEOUT_MS = 30_000;
-const STOP_TIMEOUT_MS = 5000;
 const PORT_BIND_RETRY_COUNT = 3;
 
 /** cleanup が完了しなかった run 専用 DB を次回起動時に回収する期限 */
@@ -151,7 +156,13 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
   let lastError: unknown = new Error("未接続");
   while (Date.now() - started < timeoutMs) {
     try {
-      const response = await fetch(url);
+      const remainingMs = Math.max(0, timeoutMs - (Date.now() - started));
+      const response = await fetch(url, {
+        signal: registeredAbortSignal(
+          "stack-health-request-deadline",
+          Math.min(DEFAULT_WAIT_TIMEOUT_MS, remainingMs)
+        ),
+      });
       if (response.ok) {
         return;
       }
@@ -159,7 +170,10 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
     } catch (error) {
       lastError = error;
     }
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await registeredWait(
+      "stack-health-poll",
+      Math.min(200, Math.max(0, timeoutMs - (Date.now() - started)))
+    );
   }
   throw new Error(`health timeout: ${url}; last=${String(lastError)}`);
 }
@@ -192,9 +206,7 @@ async function stopChild(child: ChildProcess): Promise<void> {
   signalChild(child, "SIGTERM");
   const stoppedAfterTerm = await Promise.race([
     exited.then(() => true),
-    new Promise<false>((resolve) =>
-      setTimeout(() => resolve(false), STOP_TIMEOUT_MS)
-    ),
+    registeredWait("stack-stop-term-deadline").then(() => false as const),
   ]);
   if (stoppedAfterTerm) {
     return;
@@ -202,12 +214,12 @@ async function stopChild(child: ChildProcess): Promise<void> {
   signalChild(child, "SIGKILL");
   const stoppedAfterKill = await Promise.race([
     exited.then(() => true),
-    new Promise<false>((resolve) =>
-      setTimeout(() => resolve(false), STOP_TIMEOUT_MS)
-    ),
+    registeredWait("stack-stop-kill-deadline").then(() => false as const),
   ]);
   if (!stoppedAfterKill) {
-    throw new Error(`E2E stack process did not stop: pid=${child.pid}`);
+    throw new Error(
+      `E2E stack停止待ちがtimeout: condition=SIGKILL後にchild exit eventを受信; finalObserved=${JSON.stringify({ exitCode: child.exitCode, pid: child.pid, signalCode: child.signalCode })}`
+    );
   }
 }
 

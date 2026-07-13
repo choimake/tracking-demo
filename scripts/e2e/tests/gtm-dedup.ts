@@ -1,11 +1,5 @@
 import { gotoDemoPage, pushTdDataLayerPageview } from "../browser/index.js";
-import {
-  BEACON_SETTLE_MS,
-  DEDUP_WINDOW_EXCEEDED_WAIT_MS,
-  UA_TOKEN,
-  WORKSPACE_ID,
-  sleep,
-} from "../harness/config.js";
+import { BEACON_SETTLE_MS, UA_TOKEN, WORKSPACE_ID } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   EVENT_ID_PURCHASE,
@@ -27,10 +21,10 @@ export async function testGtmHistoryChangeDedup(
   const initialCursor = await tracking.captureHitCursor();
   await gotoDemoPage(page, "/spa");
   // 初期PVの着弾を待ってから、遷移用の Hit カーソルを取得する。
-  await waitForCondition(
-    "SPA 初期 pageview 着弾",
-    async () => (await tracking.getPageviewCountAfter(initialCursor)) >= 1
-  );
+  await waitForCondition("SPA 初期 pageview 着弾", async () => {
+    const pageviewCount = await tracking.getPageviewCountAfter(initialCursor);
+    return { actual: { pageviewCount }, ready: pageviewCount >= 1 };
+  });
   const transitionCursor = await tracking.captureHitCursor();
 
   // GTM の History Change トリガー設置を模す: pushState 直後(同一tick)に
@@ -49,10 +43,17 @@ export async function testGtmHistoryChangeDedup(
   });
   await waitForCondition(
     "自動検知+手動pushの同一遷移: pageview 1件・購入完了 +1件(二重計上なし)",
-    async () =>
-      (await tracking.getPageviewCountAfter(transitionCursor)) === 1 &&
-      (await tracking.getEventCount7d(EVENT_ID_PURCHASE)) ===
-        purchaseCountBeforeInitial + 1
+    async () => {
+      const pageviewCount =
+        await tracking.getPageviewCountAfter(transitionCursor);
+      const purchaseCount = await tracking.getEventCount7d(EVENT_ID_PURCHASE);
+      return {
+        actual: { pageviewCount, purchaseCount },
+        ready:
+          pageviewCount === 1 &&
+          purchaseCount === purchaseCountBeforeInitial + 1,
+      };
+    }
   );
 
   await expectPageviewCountExactly(
@@ -88,17 +89,23 @@ export async function testGtmHistoryChangeDedup(
     workspaceId: WORKSPACE_ID,
   });
 
-  await sleep(DEDUP_WINDOW_EXCEEDED_WAIT_MS);
+  // 直前の1500ms観測で1000msの重複排除窓を超えている。
   const purchaseCountBeforeManualResend =
     await tracking.getEventCount7d(EVENT_ID_PURCHASE);
   const resendCursor = await tracking.captureHitCursor();
   await pushTdDataLayerPageview(page);
   await waitForCondition(
     "1000ms超の手動再送: 新しいpageview 1件・購入完了 +1件として処理される",
-    async () =>
-      (await tracking.getPageviewCountAfter(resendCursor)) === 1 &&
-      (await tracking.getEventCount7d(EVENT_ID_PURCHASE)) ===
-        purchaseCountBeforeManualResend + 1
+    async () => {
+      const pageviewCount = await tracking.getPageviewCountAfter(resendCursor);
+      const purchaseCount = await tracking.getEventCount7d(EVENT_ID_PURCHASE);
+      return {
+        actual: { pageviewCount, purchaseCount },
+        ready:
+          pageviewCount === 1 &&
+          purchaseCount === purchaseCountBeforeManualResend + 1,
+      };
+    }
   );
   await expectPageviewCountExactly(
     tracking,

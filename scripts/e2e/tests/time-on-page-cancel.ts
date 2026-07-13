@@ -3,7 +3,6 @@ import {
   BEACON_SETTLE_MS,
   TIME_ON_PAGE_CANCEL_BOUNCE_COUNT,
   TIME_ON_PAGE_CANCEL_BOUNCE_INTERVAL_MS,
-  sleep,
 } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
@@ -21,9 +20,10 @@ export async function testTimeOnPageCancel(ctx: E2eContext): Promise<void> {
   const { timeOnPageEventId } = ctx.fixtures;
   const hitCursor = await ctx.tracking.captureHitCursor();
 
+  await ctx.installClock();
   await gotoDemoPage(ctx.page, "/spa");
   for (let i = 0; i < TIME_ON_PAGE_CANCEL_BOUNCE_COUNT; i++) {
-    await sleep(TIME_ON_PAGE_CANCEL_BOUNCE_INTERVAL_MS);
+    await ctx.advanceClockBy(TIME_ON_PAGE_CANCEL_BOUNCE_INTERVAL_MS);
     await spaPushState(ctx.page, `/spa/bounce-${i}`);
   }
   const totalBounceMs =

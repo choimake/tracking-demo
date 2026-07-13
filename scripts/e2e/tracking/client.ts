@@ -1,7 +1,8 @@
 import {
   DEFAULT_WAIT_TIMEOUT_MS,
   E2E_CORRELATION_UA_PREFIX,
-  TRACKING_ORIGIN,
+  getTrackingOrigin,
+  registeredAbortSignal,
 } from "../harness/config.js";
 
 export interface EventSummary {
@@ -202,11 +203,11 @@ function parseDeleteResult(value: unknown): void {
   }
 }
 
-/** 計測サーバー(TRACKING_ORIGIN)の管理APIへのアクセスをまとめたクライアント */
+/** 計測サーバーの管理APIへのアクセスをまとめたクライアント */
 export class TrackingClient {
   constructor(
     private readonly correlationId?: string,
-    private readonly trackingOrigin = TRACKING_ORIGIN,
+    private readonly trackingOrigin = getTrackingOrigin(),
     private readonly requestTimeoutMs = DEFAULT_WAIT_TIMEOUT_MS
   ) {}
 
@@ -215,7 +216,10 @@ export class TrackingClient {
     opts: RequestInit = {}
   ): Promise<T> {
     const method = opts.method ?? "GET";
-    const timeoutSignal = AbortSignal.timeout(this.requestTimeoutMs);
+    const timeoutSignal = registeredAbortSignal(
+      "tracking-fetch-deadline",
+      this.requestTimeoutMs
+    );
     const signal = opts.signal
       ? AbortSignal.any([opts.signal, timeoutSignal])
       : timeoutSignal;

@@ -50,7 +50,13 @@ export async function testFireSemantics(ctx: E2eContext): Promise<void> {
       eventId: EVENT_ID_CART,
       type: "event",
     });
-    return cartHits.length >= 2;
+    return {
+      actual: {
+        hitCount: cartHits.length,
+        hitIds: cartHits.map((hit) => hit.id),
+      },
+      ready: cartHits.length >= 2,
+    };
   });
   expectHitPayload(cartHits.at(-1)!, {
     eventId: EVENT_ID_CART,

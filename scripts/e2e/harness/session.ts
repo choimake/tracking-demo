@@ -6,6 +6,7 @@ import { TrackingClient } from "../tracking/client.js";
 import {
   E2E_CORRELATION_UA_PREFIX,
   MOBILE_VIEWPORT,
+  SCENARIO_TIMEOUT_MS,
   TIME_ON_PAGE_TRIGGER_SECONDS,
 } from "./config.js";
 import type { BrowserName, RecordVideoMode } from "./config.js";
@@ -24,6 +25,15 @@ const TIME_ON_PAGE_TEST_EVENT_NAME = "E2E滞在2秒";
 const JAPANESE_URL_TEST_EVENT_NAME = "E2E日本語URL到達";
 const EXIT_INTENT_TEST_EVENT_NAME = "E2E離脱インテント";
 const FIXTURE_NAME_PREFIX = "__e2e_fixture__";
+
+function clockPauseLeadMs(): number {
+  const configuredTimeoutMs = Number(process.env.E2E_SCENARIO_TIMEOUT_MS);
+  return Number.isFinite(configuredTimeoutMs) &&
+    configuredTimeoutMs > SCENARIO_TIMEOUT_MS
+    ? configuredTimeoutMs
+    : SCENARIO_TIMEOUT_MS;
+}
+
 // fixture接頭辞内の正規表現メタ文字をリテラルへ変換する。例: `fixture.name` は `fixture\.name` になる。
 const FIXTURE_NAME_PREFIX_RE_SOURCE = FIXTURE_NAME_PREFIX.replace(
   /[.*+?^${}()|[\]\\]/g,
@@ -189,6 +199,7 @@ interface ManagedRouteRecord {
 }
 
 interface ManagedSessionRecord {
+  clockInstalled: boolean;
   context: BrowserContext;
   pages: Set<Page>;
   primaryPage: Page;
@@ -290,6 +301,7 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
     recordScenarioVideo: boolean
   ): ManagedSessionRecord {
     const record: ManagedSessionRecord = {
+      clockInstalled: false,
       context: session.context,
       pages: new Set([session.page]),
       primaryPage: session.page,
@@ -306,8 +318,30 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
 
   #capability(record: ManagedSessionRecord): ManagedSession {
     return {
+      advanceClockBy: async (durationMs) => {
+        if (!record.clockInstalled) {
+          throw new Error("Playwright Clockを導入する前に時刻を進められません");
+        }
+        if (!Number.isFinite(durationMs) || durationMs < 0) {
+          throw new Error("Playwright Clockの進行時間は0以上の有限値にします");
+        }
+        await record.primaryPage.clock.runFor(durationMs);
+      },
       clearCookies: () => record.context.clearCookies(),
       cookies: (urls) => record.context.cookies(urls),
+      installClock: async () => {
+        if (record.clockInstalled) {
+          throw new Error("Playwright Clockは同じsessionへ1回だけ導入できます");
+        }
+        const pauseAtMs = Date.now();
+        // pauseAtの過去指定を避けるため、scenario上限以上前から導入する。
+        // primary pageはabout:blankであり、この前進中に製品timerは存在しない。
+        await record.primaryPage.clock.install({
+          time: pauseAtMs - clockPauseLeadMs(),
+        });
+        await record.primaryPage.clock.pauseAt(pauseAtMs);
+        record.clockInstalled = true;
+      },
       newPage: async () => {
         const page = await record.context.newPage();
         record.pages.add(page);

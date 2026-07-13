@@ -1,5 +1,5 @@
 import { setTdCookie } from "../browser/index.js";
-import { DEMO_SITE_ORIGIN } from "../harness/config.js";
+import { getDemoSiteOrigin } from "../harness/config.js";
 import type { E2eContext } from "../harness/types.js";
 import {
   SHORT_MAX_AGE_SEC,
@@ -20,7 +20,7 @@ export async function testCookieRollingExpiration(
   ]) {
     await setTdCookie(ctx.page, spec.name, spec.value, SHORT_MAX_AGE_SEC);
     const shortenedAt = Date.now() / 1000;
-    const shortened = (await ctx.cookies(DEMO_SITE_ORIGIN)).find(
+    const shortened = (await ctx.cookies(getDemoSiteOrigin())).find(
       (cookie) => cookie.name === spec.name
     );
     if (!shortened) throw new Error(`${spec.name} 短縮後にCookieがない`);
@@ -35,7 +35,7 @@ export async function testCookieRollingExpiration(
     const hit = await visitAndGetPageview(ctx, "/products");
     if (hit.vid !== first.vid || hit.sid !== first.sid)
       throw new Error(`${spec.name} 再延長時に値が変わった`);
-    const renewed = (await ctx.cookies(DEMO_SITE_ORIGIN)).find(
+    const renewed = (await ctx.cookies(getDemoSiteOrigin())).find(
       (cookie) => cookie.name === spec.name
     );
     if (!renewed) throw new Error(`${spec.name} 再延長後にCookieがない`);

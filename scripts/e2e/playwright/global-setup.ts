@@ -1,7 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { setupE2eFixtures, teardownE2eFixtures } from "../harness/session.js";
 import { stackEnvRecord, startStack } from "../harness/stack.js";
+import { TrackingClient } from "../tracking/client.js";
 
 const FIXTURES_ENV = "E2E_FIXTURES";
 
@@ -53,12 +55,6 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       throw new Error("E2E_SUITE_FAIL_IMMEDIATELY による意図的な失敗");
     }
 
-    // URL 定数を run 専用 env の設定後に評価するため、動的 import を使う。
-    const [{ setupE2eFixtures, teardownE2eFixtures }, { TrackingClient }] =
-      await Promise.all([
-        import("../harness/session.js"),
-        import("../tracking/client.js"),
-      ]);
     const tracking = new TrackingClient();
     const fixtures = await setupE2eFixtures(tracking);
     process.env[FIXTURES_ENV] = JSON.stringify(fixtures);

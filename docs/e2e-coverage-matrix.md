@@ -94,16 +94,17 @@ ownerは`tracker / E2E`とする。関連仕様は[`spec.md`](../spec.md)と[`sc
 
 ## browser E2E以外の担当
 
-| Contract / 境界                      | 種別                           | 担当層      | 対応                                             | 頻度    |
-| ------------------------------------ | ------------------------------ | ----------- | ------------------------------------------------ | ------- |
-| fixtureの所有権、回収、rollback      | failure / boundary             | integration | `harness/fixture.regression-check.ts`            | quality |
-| observation                          | failure / boundary             | integration | `observation.regression-check.ts`                | quality |
-| Hit相関、assertion                   | positive / negative / boundary | integration | `tracking/*.regression-check.ts`                 | quality |
-| Cookie helper                        | positive / negative / boundary | integration | `tests/cookie-helpers.regression-check.ts`       | quality |
-| scenario選択、順序、seed             | positive / negative / boundary | integration | `harness/scenario-selection.regression-check.ts` | quality |
-| run専用stack、signal、teardown       | failure / boundary             | integration | `harness/stack.regression-check.ts`              | quality |
-| E2E oracleの検出力                   | failure / boundary             | mutation    | primary 40、control-survived 1                   | manual  |
-| URL、trigger、configの純粋な入力境界 | negative / boundary            | unit        | 専用基盤なし。未実装                             | 未設定  |
+| Contract / 境界                    | 種別                           | 担当層      | 対応                                             | 頻度    |
+| ---------------------------------- | ------------------------------ | ----------- | ------------------------------------------------ | ------- |
+| fixtureの所有権、回収、rollback    | failure / boundary             | integration | `harness/fixture.regression-check.ts`            | quality |
+| observation                        | failure / boundary             | integration | `observation.regression-check.ts`                | quality |
+| Hit相関、assertion                 | positive / negative / boundary | integration | `tracking/*.regression-check.ts`                 | quality |
+| Cookie helper                      | positive / negative / boundary | integration | `tests/cookie-helpers.regression-check.ts`       | quality |
+| scenario選択、順序、seed           | positive / negative / boundary | integration | `harness/scenario-selection.regression-check.ts` | quality |
+| run専用stack、signal、teardown     | failure / boundary             | integration | `harness/stack.regression-check.ts`              | quality |
+| E2E oracleの検出力                 | failure / boundary             | mutation    | primary 40、control-survived 1                   | manual  |
+| run専用portの遅延参照              | positive / boundary            | unit        | `harness/config.regression-check.ts`             | quality |
+| URL、trigger、configの他の入力境界 | negative / boundary            | unit        | 専用基盤なし。未実装                             | 未設定  |
 
 ## gapの分類
 

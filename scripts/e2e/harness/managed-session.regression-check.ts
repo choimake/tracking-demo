@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import type { BrowserContext, Page } from "playwright";
 
+import { SCENARIO_TIMEOUT_MS } from "./config.js";
 import { createManagedE2eRuntime } from "./session.js";
 
 interface FakeOptions {
@@ -12,6 +13,17 @@ interface FakeOptions {
 
 function fakePage(options: FakeOptions, pageId: string): Page {
   return {
+    clock: {
+      install: async (clockOptions?: { time?: number | string | Date }) => {
+        options.events.push(`clock-install:${pageId}:${clockOptions?.time}`);
+      },
+      pauseAt: async (time: number | string | Date) => {
+        options.events.push(`clock-pause:${pageId}:${time}`);
+      },
+      runFor: async (durationMs: number) => {
+        options.events.push(`clock-run:${pageId}:${durationMs}`);
+      },
+    },
     on: () => undefined,
     route: async (pattern: string) => {
       options.events.push(`route:${pageId}:${pattern}`);
@@ -61,6 +73,21 @@ function runtimeOptions(options: FakeOptions) {
 async function checkAllResourcesReleased(): Promise<void> {
   const events: string[] = [];
   const runtime = await createManagedE2eRuntime(runtimeOptions({ events }));
+  await assert.rejects(runtime.session.advanceClockBy(1), /導入する前/);
+  const originalScenarioTimeout = process.env.E2E_SCENARIO_TIMEOUT_MS;
+  const configuredScenarioTimeoutMs = SCENARIO_TIMEOUT_MS * 2;
+  process.env.E2E_SCENARIO_TIMEOUT_MS = String(configuredScenarioTimeoutMs);
+  try {
+    await runtime.session.installClock();
+  } finally {
+    if (originalScenarioTimeout === undefined) {
+      delete process.env.E2E_SCENARIO_TIMEOUT_MS;
+    } else {
+      process.env.E2E_SCENARIO_TIMEOUT_MS = originalScenarioTimeout;
+    }
+  }
+  await runtime.session.advanceClockBy(400);
+  await assert.rejects(runtime.session.installClock(), /1回だけ/);
   const sibling = await runtime.session.newPage();
   await runtime.session.route(sibling, "**/outer", async () => undefined);
   await runtime.withSession(
@@ -83,6 +110,23 @@ async function checkAllResourcesReleased(): Promise<void> {
     routes: { generated: 3, released: 3 },
   });
   assert(events.indexOf("unroute:context-1/page-0:**/inner-a") >= 0);
+  const installPrefix = "clock-install:context-0/page-0:";
+  const pausePrefix = "clock-pause:context-0/page-0:";
+  const installIndex = events.findIndex((event) =>
+    event.startsWith(installPrefix)
+  );
+  const pauseIndex = events.findIndex((event) => event.startsWith(pausePrefix));
+  const runIndex = events.indexOf("clock-run:context-0/page-0:400");
+  assert(installIndex >= 0);
+  assert(pauseIndex > installIndex);
+  assert(runIndex > pauseIndex);
+  const installedAtMs = Number(
+    events[installIndex]?.slice(installPrefix.length)
+  );
+  const pausedAtMs = Number(events[pauseIndex]?.slice(pausePrefix.length));
+  assert(Number.isFinite(installedAtMs));
+  assert(Number.isFinite(pausedAtMs));
+  assert.equal(pausedAtMs - installedAtMs, configuredScenarioTimeoutMs);
   assert(
     events.indexOf("unroute:context-1/page-1:**/inner-b") <
       events.indexOf("close:context-1")
