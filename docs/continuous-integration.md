@@ -4,13 +4,15 @@ GitHub ActionsはpushとPull Requestで3系統のworkflowを実行する。
 
 ## workflowの責務
 
-| workflow       | 固定job名     | 責務                                                          |
-| -------------- | ------------- | ------------------------------------------------------------- |
-| `quality.yml`  | `quality`     | 型、静的解析、未使用コード、依存規則、E2E基盤の回帰を検証する |
-| `e2e.yml`      | `browser e2e` | Chromium、Firefox、WebKitで利用者シナリオを検証する           |
-| `gitleaks.yml` | `gitleaks`    | Git履歴に含まれる秘密情報を検出する                           |
+| workflow       | 固定job名     | 責務                                                                          |
+| -------------- | ------------- | ----------------------------------------------------------------------------- |
+| `quality.yml`  | `quality`     | 型、Markdownリンク、静的解析、未使用コード、依存規則、E2E基盤の回帰を検証する |
+| `e2e.yml`      | `browser e2e` | Chromium、Firefox、WebKitで利用者シナリオを検証する                           |
+| `gitleaks.yml` | `gitleaks`    | Git履歴に含まれる秘密情報を検出する                                           |
 
 `quality`は`npm run quality`を実行する。
+このコマンドはリポジトリ内Markdownの相対リンクとアンカーも検査する。
+外部URLにはアクセスしない。
 このコマンドは`e2e:stack-check`を常に実行する。
 `e2e:stack-check`はChromiumで単一シナリオも起動し、スタックの起動と終了を検証する。
 `browser e2e`も同じシナリオをChromiumで実行する。
