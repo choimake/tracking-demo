@@ -95,7 +95,7 @@ git worktree list
 
 - worktree はファイル編集の衝突を防ぐが、ポート・DB・外部サービス・CPU の共有資源は隔離しない
 - `npm start` は計測サーバーに既定ポート 3100、デモサイトに既定ポート 3200 を使う。複数 worktree から同時に起動しない
-- repository 全体へ作用する Git 操作（`git worktree add` / `git worktree remove`、branch 削除）と mutation 実行（`npm run mutation`）を同時に行わない
+- repository 全体へ作用する Git 操作（`git worktree add` / `git worktree remove`、branch 削除）を、他 worktree の長時間検証と同時に行わない
 - ignored/untracked ファイル（`memory/`、`.env` 等）は worktree 間で共有されない
 - 各 worktree で `npm install` を個別に実行する必要がある
 

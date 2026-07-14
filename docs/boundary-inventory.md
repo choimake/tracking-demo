@@ -4,13 +4,13 @@
 
 ## 公開 entry point
 
-| ID                | 所有者                                            | 検証方法                                |
-| ----------------- | ------------------------------------------------- | --------------------------------------- |
-| EP-RUNTIME        | `src/main.ts`                                     | architecture check、E2E                 |
-| EP-SRC-FACADE     | `src/index.ts`                                    | architecture check、contract test       |
-| EP-TRACKER        | `src/tracker/tracker.ts`                          | architecture check、mutation check、E2E |
-| EP-SHARED-TRIGGER | `src/shared/trigger.ts#parseTrigger`              | architecture check、mutation check、E2E |
-| EP-TRACKER-CONFIG | `src/shared/tracker-config.ts#parseTrackerConfig` | architecture check、contract test、E2E  |
+| ID                | 所有者                                            | 検証方法                               |
+| ----------------- | ------------------------------------------------- | -------------------------------------- |
+| EP-RUNTIME        | `src/main.ts`                                     | architecture check、E2E                |
+| EP-SRC-FACADE     | `src/index.ts`                                    | architecture check、contract test      |
+| EP-TRACKER        | `src/tracker/tracker.ts`                          | architecture check、E2E                |
+| EP-SHARED-TRIGGER | `src/shared/trigger.ts#parseTrigger`              | architecture check、E2E                |
+| EP-TRACKER-CONFIG | `src/shared/tracker-config.ts#parseTrackerConfig` | architecture check、contract test、E2E |
 
 <!-- inventory-id: EP-RUNTIME -->
 <!-- inventory-id: EP-SRC-FACADE -->
@@ -22,28 +22,28 @@
 
 ## 外部入力
 
-| 分類     | ID                      | 所有者                          | 検証方法                                |
-| -------- | ----------------------- | ------------------------------- | --------------------------------------- |
-| HTTP     | HTTP-CONFIG-WORKSPACE   | `validateWorkspaceQuery`        | architecture check、contract test       |
-| HTTP     | HTTP-COLLECT-BODY       | `validateCollectInput`          | architecture check、contract test、E2E  |
-| HTTP     | HTTP-WORKSPACE-BODY     | `validateWorkspaceInput`        | architecture check、contract test       |
-| HTTP     | HTTP-REQUEST-ORIGIN     | `validateRequestOrigin`         | architecture check、contract test       |
-| HTTP     | HTTP-EVENT-BODY         | `validateEventInput`            | architecture check、contract test       |
-| HTTP     | HTTP-EVENT-ID           | `validateResourceId`            | architecture check、contract test       |
-| HTTP     | HTTP-TOGGLE-BODY        | `validateToggleInput`           | architecture check、contract test       |
-| HTTP     | HTTP-TAG-CHECK-QUERY    | `validateTagCheckQuery`         | architecture check、contract test       |
-| HTTP     | HTTP-LABEL-BODY         | `validateLabelInput`            | architecture check、contract test       |
-| HTTP     | HTTP-LABEL-ID           | `validateResourceId`            | architecture check、contract test       |
-| HTTP     | HTTP-DEMO-PATH          | `resolveHtmlFile`               | architecture check、E2E                 |
-| 永続化   | PERSISTENCE-DATABASE    | `validatePersistedDatabase`     | architecture check、contract test       |
-| 環境変数 | ENV-TRACKING-SERVER     | `loadTrackingServerEnvironment` | architecture check、contract test       |
-| 環境変数 | ENV-DEMO-SERVER         | `loadDemoServerEnvironment`     | architecture check、contract test       |
-| 環境変数 | ENV-DATABASE            | `loadDatabaseEnvironment`       | architecture check、contract test       |
-| ブラウザ | BROWSER-SCRIPT-CONFIG   | tracker module                  | architecture check、mutation check、E2E |
-| ブラウザ | BROWSER-COOKIE          | `readCookie`                    | architecture check、mutation check、E2E |
-| ブラウザ | BROWSER-CONFIG-RESPONSE | `parseTrackerConfig`            | architecture check、contract test、E2E  |
-| ブラウザ | BROWSER-DATA-LAYER      | `processDataLayerItem`          | architecture check、mutation check、E2E |
-| ブラウザ | BROWSER-CLICK-SELECTOR  | `setupListeners`                | architecture check、mutation check、E2E |
+| 分類     | ID                      | 所有者                          | 検証方法                               |
+| -------- | ----------------------- | ------------------------------- | -------------------------------------- |
+| HTTP     | HTTP-CONFIG-WORKSPACE   | `validateWorkspaceQuery`        | architecture check、contract test      |
+| HTTP     | HTTP-COLLECT-BODY       | `validateCollectInput`          | architecture check、contract test、E2E |
+| HTTP     | HTTP-WORKSPACE-BODY     | `validateWorkspaceInput`        | architecture check、contract test      |
+| HTTP     | HTTP-REQUEST-ORIGIN     | `validateRequestOrigin`         | architecture check、contract test      |
+| HTTP     | HTTP-EVENT-BODY         | `validateEventInput`            | architecture check、contract test      |
+| HTTP     | HTTP-EVENT-ID           | `validateResourceId`            | architecture check、contract test      |
+| HTTP     | HTTP-TOGGLE-BODY        | `validateToggleInput`           | architecture check、contract test      |
+| HTTP     | HTTP-TAG-CHECK-QUERY    | `validateTagCheckQuery`         | architecture check、contract test      |
+| HTTP     | HTTP-LABEL-BODY         | `validateLabelInput`            | architecture check、contract test      |
+| HTTP     | HTTP-LABEL-ID           | `validateResourceId`            | architecture check、contract test      |
+| HTTP     | HTTP-DEMO-PATH          | `resolveHtmlFile`               | architecture check、E2E                |
+| 永続化   | PERSISTENCE-DATABASE    | `validatePersistedDatabase`     | architecture check、contract test      |
+| 環境変数 | ENV-TRACKING-SERVER     | `loadTrackingServerEnvironment` | architecture check、contract test      |
+| 環境変数 | ENV-DEMO-SERVER         | `loadDemoServerEnvironment`     | architecture check、contract test      |
+| 環境変数 | ENV-DATABASE            | `loadDatabaseEnvironment`       | architecture check、contract test      |
+| ブラウザ | BROWSER-SCRIPT-CONFIG   | tracker module                  | architecture check、E2E                |
+| ブラウザ | BROWSER-COOKIE          | `readCookie`                    | architecture check、E2E                |
+| ブラウザ | BROWSER-CONFIG-RESPONSE | `parseTrackerConfig`            | architecture check、contract test、E2E |
+| ブラウザ | BROWSER-DATA-LAYER      | `processDataLayerItem`          | architecture check、E2E                |
+| ブラウザ | BROWSER-CLICK-SELECTOR  | `setupListeners`                | architecture check、E2E                |
 
 <!-- inventory-id: HTTP-CONFIG-WORKSPACE -->
 <!-- inventory-id: HTTP-COLLECT-BODY -->

@@ -55,4 +55,4 @@ Playwright Clockは、time-on-pageの発火時刻を直接検証しないnegativ
 
 ## 失敗注入
 
-時間境界の検出力は既存mutation contractで確認する。dedup境界は `M-TR11`、`M-TR12`、`M-TR13` を使う。timer取消は `M-TR15` を使う。ブラウザを起動しない検証では `npm run mutation:check` でcatalogを検査する。
+時間境界の検出力は browser E2E の該当シナリオで確認する。dedup境界は `scenario-8` を使う。timer取消は `scenario-14` と `scenario-31` を使う。

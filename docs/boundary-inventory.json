@@ -4,26 +4,38 @@
     {
       "id": "EP-RUNTIME",
       "kind": "execution",
-      "owner": { "file": "src/main.ts", "symbol": "<module>" },
+      "owner": {
+        "file": "src/main.ts",
+        "symbol": "<module>"
+      },
       "verification": ["boundary:architecture-check", "e2e"]
     },
     {
       "id": "EP-SRC-FACADE",
       "kind": "module",
-      "owner": { "file": "src/index.ts", "symbol": "<module>" },
+      "owner": {
+        "file": "src/index.ts",
+        "symbol": "<module>"
+      },
       "verification": ["boundary:architecture-check", "boundary:contract-check"]
     },
     {
       "id": "EP-TRACKER",
       "kind": "bundle",
-      "owner": { "file": "src/tracker/tracker.ts", "symbol": "<module>" },
-      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+      "owner": {
+        "file": "src/tracker/tracker.ts",
+        "symbol": "<module>"
+      },
+      "verification": ["boundary:architecture-check", "e2e"]
     },
     {
       "id": "EP-SHARED-TRIGGER",
       "kind": "cross-runtime-module",
-      "owner": { "file": "src/shared/trigger.ts", "symbol": "parseTrigger" },
-      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+      "owner": {
+        "file": "src/shared/trigger.ts",
+        "symbol": "parseTrigger"
+      },
+      "verification": ["boundary:architecture-check", "e2e"]
     },
     {
       "id": "EP-TRACKER-CONFIG",
@@ -43,7 +55,10 @@
     {
       "id": "HTTP-CONFIG-WORKSPACE",
       "kind": "http",
-      "binding": { "method": "get", "path": "/api/config" },
+      "binding": {
+        "method": "get",
+        "path": "/api/config"
+      },
       "owner": {
         "file": "src/boundary/http-validation.ts",
         "symbol": "validateWorkspaceQuery"
@@ -53,7 +68,10 @@
     {
       "id": "HTTP-COLLECT-BODY",
       "kind": "http",
-      "binding": { "method": "post", "path": "/api/collect" },
+      "binding": {
+        "method": "post",
+        "path": "/api/collect"
+      },
       "owner": {
         "file": "src/boundary/http-validation.ts",
         "symbol": "validateCollectInput"
@@ -67,7 +85,10 @@
     {
       "id": "HTTP-WORKSPACE-BODY",
       "kind": "http",
-      "binding": { "method": "put", "path": "/api/workspace" },
+      "binding": {
+        "method": "put",
+        "path": "/api/workspace"
+      },
       "owner": {
         "file": "src/boundary/http-validation.ts",
         "symbol": "validateWorkspaceInput"
@@ -78,8 +99,14 @@
       "id": "HTTP-REQUEST-ORIGIN",
       "kind": "http",
       "binding": [
-        { "method": "get", "path": "/api/workspace" },
-        { "method": "post", "path": "/api/events/:id/test" }
+        {
+          "method": "get",
+          "path": "/api/workspace"
+        },
+        {
+          "method": "post",
+          "path": "/api/events/:id/test"
+        }
       ],
       "owner": {
         "file": "src/boundary/http-validation.ts",
@@ -91,8 +118,14 @@
       "id": "HTTP-EVENT-BODY",
       "kind": "http",
       "binding": [
-        { "method": "post", "path": "/api/events" },
-        { "method": "put", "path": "/api/events/:id" }
+        {
+          "method": "post",
+          "path": "/api/events"
+        },
+        {
+          "method": "put",
+          "path": "/api/events/:id"
+        }
       ],
       "owner": {
         "file": "src/boundary/http-validation.ts",
@@ -104,10 +137,22 @@
       "id": "HTTP-EVENT-ID",
       "kind": "http",
       "binding": [
-        { "method": "put", "path": "/api/events/:id" },
-        { "method": "post", "path": "/api/events/:id/toggle" },
-        { "method": "delete", "path": "/api/events/:id" },
-        { "method": "post", "path": "/api/events/:id/test" }
+        {
+          "method": "put",
+          "path": "/api/events/:id"
+        },
+        {
+          "method": "post",
+          "path": "/api/events/:id/toggle"
+        },
+        {
+          "method": "delete",
+          "path": "/api/events/:id"
+        },
+        {
+          "method": "post",
+          "path": "/api/events/:id/test"
+        }
       ],
       "owner": {
         "file": "src/boundary/http-validation.ts",
@@ -118,7 +163,10 @@
     {
       "id": "HTTP-TOGGLE-BODY",
       "kind": "http",
-      "binding": { "method": "post", "path": "/api/events/:id/toggle" },
+      "binding": {
+        "method": "post",
+        "path": "/api/events/:id/toggle"
+      },
       "owner": {
         "file": "src/boundary/http-validation.ts",
         "symbol": "validateToggleInput"
@@ -128,7 +176,10 @@
     {
       "id": "HTTP-TAG-CHECK-QUERY",
       "kind": "http",
-      "binding": { "method": "get", "path": "/api/tag-check" },
+      "binding": {
+        "method": "get",
+        "path": "/api/tag-check"
+      },
       "owner": {
         "file": "src/boundary/http-validation.ts",
         "symbol": "validateTagCheckQuery"
@@ -138,7 +189,10 @@
     {
       "id": "HTTP-LABEL-BODY",
       "kind": "http",
-      "binding": { "method": "post", "path": "/api/labels" },
+      "binding": {
+        "method": "post",
+        "path": "/api/labels"
+      },
       "owner": {
         "file": "src/boundary/http-validation.ts",
         "symbol": "validateLabelInput"
@@ -148,7 +202,10 @@
     {
       "id": "HTTP-LABEL-ID",
       "kind": "http",
-      "binding": { "method": "delete", "path": "/api/labels/:id" },
+      "binding": {
+        "method": "delete",
+        "path": "/api/labels/:id"
+      },
       "owner": {
         "file": "src/boundary/http-validation.ts",
         "symbol": "validateResourceId"
@@ -158,14 +215,23 @@
     {
       "id": "HTTP-DEMO-PATH",
       "kind": "http",
-      "consumer": { "file": "src/demo-server.ts", "symbol": "<module>" },
-      "owner": { "file": "src/demo-server.ts", "symbol": "resolveHtmlFile" },
+      "consumer": {
+        "file": "src/demo-server.ts",
+        "symbol": "<module>"
+      },
+      "owner": {
+        "file": "src/demo-server.ts",
+        "symbol": "resolveHtmlFile"
+      },
       "verification": ["boundary:architecture-check", "e2e"]
     },
     {
       "id": "PERSISTENCE-DATABASE",
       "kind": "persistence",
-      "consumer": { "file": "src/db.ts", "symbol": "load" },
+      "consumer": {
+        "file": "src/db.ts",
+        "symbol": "load"
+      },
       "owner": {
         "file": "src/boundary/persistence-validation.ts",
         "symbol": "validatePersistedDatabase"
@@ -175,7 +241,10 @@
     {
       "id": "ENV-TRACKING-SERVER",
       "kind": "environment",
-      "consumer": { "file": "src/server.ts", "symbol": "<module>" },
+      "consumer": {
+        "file": "src/server.ts",
+        "symbol": "<module>"
+      },
       "owner": {
         "file": "src/boundary/environment.ts",
         "symbol": "loadTrackingServerEnvironment"
@@ -185,7 +254,10 @@
     {
       "id": "ENV-DEMO-SERVER",
       "kind": "environment",
-      "consumer": { "file": "src/demo-server.ts", "symbol": "<module>" },
+      "consumer": {
+        "file": "src/demo-server.ts",
+        "symbol": "<module>"
+      },
       "owner": {
         "file": "src/boundary/environment.ts",
         "symbol": "loadDemoServerEnvironment"
@@ -195,7 +267,10 @@
     {
       "id": "ENV-DATABASE",
       "kind": "environment",
-      "consumer": { "file": "src/db.ts", "symbol": "<module>" },
+      "consumer": {
+        "file": "src/db.ts",
+        "symbol": "<module>"
+      },
       "owner": {
         "file": "src/boundary/environment.ts",
         "symbol": "loadDatabaseEnvironment"
@@ -206,15 +281,21 @@
       "id": "BROWSER-SCRIPT-CONFIG",
       "kind": "browser",
       "contracts": ["scenario:testTagLoadAndPageview"],
-      "owner": { "file": "src/tracker/tracker.ts", "symbol": "<module>" },
-      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+      "owner": {
+        "file": "src/tracker/tracker.ts",
+        "symbol": "<module>"
+      },
+      "verification": ["boundary:architecture-check", "e2e"]
     },
     {
       "id": "BROWSER-COOKIE",
       "kind": "browser",
       "contracts": ["scenario:testCookieInvalidValues"],
-      "owner": { "file": "src/tracker/tracker.ts", "symbol": "readCookie" },
-      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+      "owner": {
+        "file": "src/tracker/tracker.ts",
+        "symbol": "readCookie"
+      },
+      "verification": ["boundary:architecture-check", "e2e"]
     },
     {
       "id": "BROWSER-CONFIG-RESPONSE",
@@ -227,7 +308,6 @@
       "verification": [
         "boundary:architecture-check",
         "boundary:contract-check",
-        "mutation:check",
         "e2e"
       ]
     },
@@ -239,14 +319,17 @@
         "file": "src/tracker/tracker.ts",
         "symbol": "processDataLayerItem"
       },
-      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+      "verification": ["boundary:architecture-check", "e2e"]
     },
     {
       "id": "BROWSER-CLICK-SELECTOR",
       "kind": "browser",
       "contracts": ["scenario:testClickTrigger"],
-      "owner": { "file": "src/tracker/tracker.ts", "symbol": "setupListeners" },
-      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+      "owner": {
+        "file": "src/tracker/tracker.ts",
+        "symbol": "setupListeners"
+      },
+      "verification": ["boundary:architecture-check", "e2e"]
     }
   ],
   "errorContracts": [
@@ -272,7 +355,10 @@
     {
       "id": "ERROR-TRANSPORT",
       "kind": "transport",
-      "owner": { "file": "src/boundary/errors.ts", "symbol": "TransportError" },
+      "owner": {
+        "file": "src/boundary/errors.ts",
+        "symbol": "TransportError"
+      },
       "conversion": {
         "file": "src/server.ts",
         "symbol": "boundaryErrorMiddleware"
@@ -304,19 +390,19 @@
       "file": "src/tracker/tracker.ts",
       "symbol": "readCookie",
       "reason": "不正なCookie値は欠落として匿名IDを再発行する",
-      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+      "verification": ["boundary:architecture-check", "e2e"]
     },
     {
       "file": "src/tracker/tracker.ts",
       "symbol": "setupListeners",
       "reason": "不正な外部CSS selectorはそのclickだけを無視する",
-      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+      "verification": ["boundary:architecture-check", "e2e"]
     },
     {
       "file": "src/tracker/tracker.ts",
       "symbol": "send",
       "reason": "page unload中のbest-effort fallback失敗は再送できない",
-      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+      "verification": ["boundary:architecture-check", "e2e"]
     }
   ]
 }

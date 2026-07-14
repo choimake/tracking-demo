@@ -15,21 +15,20 @@
 
 ## 判定軸
 
-| 担当層      | リポジトリ内の実体                                | 担当範囲                                                                       |
-| ----------- | ------------------------------------------------- | ------------------------------------------------------------------------------ |
-| unit        | 専用テスト基盤なし                                | URL、trigger、configの純粋な解析と入力境界。必要なケースは未実装として管理する |
-| integration | `scripts/e2e/**/*.regression-check.ts`            | stack、fixture、observation、相関、assertion、helper、scenario選択のcontract   |
-| browser E2E | `scripts/e2e/tests/`                              | tracker.jsの読み込みとページ操作から`/api/collect`までのcontract               |
-| mutation    | `scripts/mutation/`、`docs/mutation-catalog.json` | Chromium E2E oracleの検出力。キュレーションしたmutantを対象とする              |
+| 担当層      | リポジトリ内の実体                     | 担当範囲                                                                       |
+| ----------- | -------------------------------------- | ------------------------------------------------------------------------------ |
+| unit        | 専用テスト基盤なし                     | URL、trigger、configの純粋な解析と入力境界。必要なケースは未実装として管理する |
+| integration | `scripts/e2e/**/*.regression-check.ts` | stack、fixture、observation、相関、assertion、helper、scenario選択のcontract   |
+| browser E2E | `scripts/e2e/tests/`                   | tracker.jsの読み込みとページ操作から`/api/collect`までのcontract               |
 
 | 表記      | 意味                                                                 |
 | --------- | -------------------------------------------------------------------- |
 | C / F / W | Playwrightのchromium / firefox / webkit。`npm run e2e`とCIが実行する |
 | M         | `E2E_MOBILE=1`のmobile emulation。ローカルで手動実行する             |
 | PR / CI   | PR統合前のローカル実行とpush / pull_requestのGitHub Actions          |
-| manual    | mobile、動画、flake反復、mutation、障害調査                          |
+| manual    | mobile、動画、flake反復、障害調査                                    |
 
-nightlyは設定していない。mutationはChromiumだけを手動実行する。
+nightlyは設定していない。
 
 ## 登録済みシナリオ
 
@@ -103,7 +102,6 @@ ownerは`tracker / E2E`とする。関連仕様は[`spec.md`](../spec.md)と[`sc
 | Cookie helper                      | positive / negative / boundary | integration | `tests/cookie-helpers.regression-check.ts`           | quality |
 | scenario選択、順序、seed           | positive / negative / boundary | integration | `harness/scenario-selection.regression-check.ts`     | quality |
 | run専用stack、signal、teardown     | failure / boundary             | integration | `harness/stack.regression-check.ts`                  | quality |
-| E2E oracleの検出力                 | failure / boundary             | mutation    | primary 40、control-survived 1                       | manual  |
 | run専用portの遅延参照              | positive / boundary            | unit        | `harness/config.regression-check.ts`                 | quality |
 | URL、trigger、configの他の入力境界 | negative / boundary            | unit        | 専用基盤なし。未実装                                 | 未設定  |
 
@@ -148,4 +146,4 @@ ownerは`tracker / E2E`とする。関連仕様は[`spec.md`](../spec.md)と[`sc
 - 通常E2Eは登録済みの全シナリオを3ブラウザでCI実行する。Cookie、単一scenario、単一browserを選択できる。
 - 通常順、逆順、seed固定ランダム順を選択できる。`npm run e2e:flake`はCookieをChromiumで20回反復する。
 - 成功時は診断manifestを残さない。失敗時は単一manifestからassertion、最終観測値、Hit、console、page error、スクリーンショット、trace、stack log、videoを追跡できる。
-- mutationカタログはCritical contractと自動照合する。直近の実走結果は[`docs/mutation-report.md`](./mutation-report.md)に記録する。
+- ミューテーションテスト基盤は撤去済みである。経緯は[`mutation-testing-note.md`](./mutation-testing-note.md)を参照する。
