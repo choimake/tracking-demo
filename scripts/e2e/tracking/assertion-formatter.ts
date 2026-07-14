@@ -84,22 +84,3 @@ export function assertionError(
     cause === undefined ? undefined : { cause }
   );
 }
-
-/** Error本文から構造化assertionを取り出す。 */
-export function parseAssertionFailure(
-  message: string
-): AssertionFailureDetails | undefined {
-  let markerIndex = message.indexOf(ASSERTION_FAILURE_MARKER);
-  while (markerIndex >= 0) {
-    const raw = message.slice(markerIndex + ASSERTION_FAILURE_MARKER.length);
-    try {
-      return JSON.parse(raw) as AssertionFailureDetails;
-    } catch {
-      markerIndex = message.indexOf(
-        ASSERTION_FAILURE_MARKER,
-        markerIndex + ASSERTION_FAILURE_MARKER.length
-      );
-    }
-  }
-  return undefined;
-}

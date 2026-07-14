@@ -25,15 +25,12 @@ export default defineConfig({
   },
   reporter: process.env.CI
     ? [
-        [path.join(E2E_DIR, "playwright/failure-diagnostics-reporter.ts")],
         ["github"],
         ["list"],
+        ["html", { open: "never" }],
         ["junit", { outputFile: "test-results/e2e-junit.xml" }],
       ]
-    : [
-        [path.join(E2E_DIR, "playwright/failure-diagnostics-reporter.ts")],
-        ["list"],
-      ],
+    : [["list"], ["html", { open: "never" }]],
   globalSetup: path.join(E2E_DIR, "playwright/global-setup.ts"),
   projects: parseE2eBrowsers().map((browserName) => ({
     name: mobile ? `${browserName}:mobile` : browserName,

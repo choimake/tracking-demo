@@ -1,15 +1,12 @@
 export { TrackingClient } from "./client.js";
 export type { CreateEventInput } from "./client.js";
 export {
-  ASSERTION_FAILURE_MARKER,
   assertionError,
   formatAssertionFailure,
-  parseAssertionFailure,
   recordAssertionHitCursor,
   runWithAssertionContext,
 } from "./assertion-formatter.js";
 export type {
-  AssertionFailureDetails,
   AssertionFailureInput,
   AssertionScenarioContext,
 } from "./assertion-formatter.js";

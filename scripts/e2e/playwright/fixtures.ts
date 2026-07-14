@@ -14,8 +14,6 @@ import {
 import { createManagedE2eRuntime } from "../harness/session.js";
 import type { E2eContext, E2eFixtures } from "../harness/types.js";
 import { e2eScenarios } from "../scenarios.js";
-import { DIAGNOSTIC_CONTEXT_ANNOTATION } from "./failure-diagnostics.js";
-import type { FailureDiagnosticContext } from "./failure-diagnostics.js";
 import {
   attachFailureDiagnostics,
   runScenarioFixtureLifecycle,
@@ -149,24 +147,6 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
     } finally {
       const failed = testInfo.status !== testInfo.expectedStatus;
       const stackLogPath = process.env.E2E_STACK_LOG_PATH;
-      const diagnosticContext: FailureDiagnosticContext = {
-        browser: typedBrowserName,
-        correlationId,
-        hitCursor: runtime.tracking.getDiagnosticHitCursor(),
-        manifestPath: testInfo.outputPath("failure-diagnostics-manifest.json"),
-        repeat: testInfo.repeatEachIndex,
-        scenarioId: scenario.id,
-        scenarioName: testInfo.title,
-        seed: process.env.E2E_SEED ? Number(process.env.E2E_SEED) : null,
-        video:
-          recordVideoMode && scenarioVideoPath
-            ? { mode: recordVideoMode, path: scenarioVideoPath }
-            : null,
-      };
-      testInfo.annotations.push({
-        description: JSON.stringify(diagnosticContext),
-        type: DIAGNOSTIC_CONTEXT_ANNOTATION,
-      });
       const failureDiagnostics = () =>
         attachFailureDiagnostics({
           attachJson: (name, value) =>

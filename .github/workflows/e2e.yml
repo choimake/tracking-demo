@@ -18,11 +18,11 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run e2e
-      - name: Upload failure diagnostics
+      - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-diagnostics
+          name: e2e-playwright-artifacts
           path: |
             test-results/
             playwright-report/
