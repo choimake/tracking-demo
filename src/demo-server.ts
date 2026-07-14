@@ -5,16 +5,15 @@ import path from "node:path";
 // demo-site/ 配下は素の HTML で、<head> に管理画面からコピーした計測タグが貼ってあるだけ。
 import express from "express";
 
+import { loadDemoServerEnvironment } from "./boundary/index.js";
 import { ROOT } from "./paths.js";
 
-const SITE_PORT = Number(process.env.SITE_PORT ?? 3200);
-const TRACKING_ORIGIN =
-  process.env.TRACKING_ORIGIN ?? `http://localhost:${process.env.PORT ?? 3100}`;
+const environment = loadDemoServerEnvironment();
 const SITE_DIR = path.join(ROOT, "demo-site");
 const DEFAULT_TRACKING_ORIGIN = "http://localhost:3100";
 
 function rewriteTrackingOrigin(html: string): string {
-  return html.replaceAll(DEFAULT_TRACKING_ORIGIN, TRACKING_ORIGIN);
+  return html.replaceAll(DEFAULT_TRACKING_ORIGIN, environment.trackingOrigin);
 }
 
 function sendRewrittenHtml(res: express.Response, filePath: string): void {
@@ -78,6 +77,10 @@ app.get(/^\/spa(\/.*)?$/, (_req, res) => {
   sendRewrittenHtml(res, path.join(SITE_DIR, "spa.html"));
 });
 
-app.listen(SITE_PORT, () => {
-  console.log(`デモサイト(顧客LP役): http://localhost:${SITE_PORT}/`);
-});
+export function startDemoServer(): void {
+  app.listen(environment.sitePort, () => {
+    console.log(
+      `デモサイト(顧客LP役): http://localhost:${environment.sitePort}/`
+    );
+  });
+}

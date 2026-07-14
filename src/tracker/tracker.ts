@@ -1,14 +1,12 @@
+import type { TrackerEventConfig } from "../shared/tracker-config.js";
+import { parseTrackerConfig } from "../shared/tracker-config.js";
 // 計測スクリプト。esbuild で IIFE にバンドルして /tracker.js として配信する。
 // 本番では cdn.example.com/tracker.js からの配信を想定。
 // アーキテクチャ: tdDataLayer(dataLayer 方式) + 非同期読み込み + SPA/MPA 両対応。
 import type { ParsedTrigger } from "../shared/trigger.js";
 import { normalizePath, parseTrigger } from "../shared/trigger.js";
 
-interface EventConfig {
-  id: string;
-  name: string;
-  trigger: string;
-}
+type EventConfig = TrackerEventConfig;
 
 interface DataLayerItem {
   event?: string;
@@ -322,8 +320,12 @@ const log = (...args: unknown[]) => console.info("[tracker]", ...args);
       }
       return r.json();
     })
-    .then((config: { events: EventConfig[] }) => {
-      events = config.events
+    .then((config: unknown) => {
+      const parsedConfig = parseTrackerConfig(config);
+      if (!parsedConfig) {
+        throw new Error("config response is invalid");
+      }
+      events = parsedConfig
         .map((cfg) => ({ cfg, parsed: parseTrigger(cfg.trigger) }))
         .filter(
           (e): e is { cfg: EventConfig; parsed: ParsedTrigger } =>

@@ -18,6 +18,14 @@ import type { SuiteWorkerResult } from "../e2e/bench/serial-runner.js";
 import type { StackEnv } from "../e2e/bench/stack.js";
 import { startStack, stackEnvRecord } from "../e2e/bench/stack.js";
 import { e2eScenarios } from "../e2e/scenarios.js";
+import {
+  assertSourceBaseline,
+  captureSourceBaseline,
+  persistAndRethrowSourceRestoreError,
+  restoreSourceFile,
+  runAttemptWithFatalRestore,
+  SourceRestoreError,
+} from "./source-restore.js";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -206,39 +214,11 @@ function loadResumedMutants(
   return doneIds;
 }
 
-const SOURCE_PATHS = execFileSync("git", ["ls-files", "--", "src/"], {
-  cwd: ROOT,
-  encoding: "utf8",
-})
-  .trim()
-  .split("\n")
-  .filter(Boolean);
-const SOURCE_BASELINE = new Map(
-  SOURCE_PATHS.map((file) => [file, fs.readFileSync(path.join(ROOT, file))])
-);
-const SOURCE_STATUS_BASELINE = execFileSync(
-  "git",
-  ["status", "--porcelain", "--", "src/"],
-  { cwd: ROOT, encoding: "utf8" }
-).trim();
+const SOURCE_BASELINE = captureSourceBaseline(ROOT);
 
 /** src/ 配下がmutation開始時の状態と一致することを確認する。 */
 function assertCleanTree(): void {
-  const status = execFileSync("git", ["status", "--porcelain", "--", "src/"], {
-    cwd: ROOT,
-    encoding: "utf8",
-  }).trim();
-  if (status !== SOURCE_STATUS_BASELINE) {
-    throw new Error(
-      `src/ の差分がmutation開始時から変化しました:\n開始時:\n${SOURCE_STATUS_BASELINE}\n現在:\n${status}`
-    );
-  }
-  for (const [file, baseline] of SOURCE_BASELINE) {
-    const current = fs.readFileSync(path.join(ROOT, file));
-    if (!current.equals(baseline)) {
-      throw new Error(`src/ の内容がmutation開始時から変化しました: ${file}`);
-    }
-  }
+  assertSourceBaseline(SOURCE_BASELINE);
 }
 
 function scenarioIdByName(name: string): string | null {
@@ -362,14 +342,6 @@ function applyMutant(m: CatalogMutant): void {
     throw new Error(`${m.id}: apply 時 beforeString 出現=${count}`);
   }
   fs.writeFileSync(abs, src.replace(m.beforeString, m.afterString), "utf8");
-}
-
-function restoreFile(file: string): void {
-  const baseline = SOURCE_BASELINE.get(file);
-  if (!baseline) {
-    throw new Error(`mutation開始時の復元元がありません: ${file}`);
-  }
-  fs.writeFileSync(path.join(ROOT, file), baseline);
 }
 
 function writeResultsAtomic(data: ResultsFile): void {
@@ -547,44 +519,46 @@ async function runOneAttempt(
   const startedAt = new Date().toISOString();
   const t0 = Date.now();
   let stack: Awaited<ReturnType<typeof startStack>> | undefined;
-  try {
-    assertCleanTree();
-    applyMutant(m);
-    stack = await startStack({
-      runId,
-      workerIndex: 0,
-      dbLabel: m.id,
-    });
-    const suite = await runSuiteWorkerKillable(stack.env, E2E_TIMEOUT_MS);
-    const classified = classifyAttempt(m, suite);
-    return {
-      attemptNumber,
-      ...classified,
-      startedAt,
-      endedAt: new Date().toISOString(),
-      durationMs: Date.now() - t0,
-    };
-  } catch (error) {
-    return {
-      attemptNumber,
-      result: "error",
-      exitStatus: null,
-      failedScenarioIds: [],
-      startedAt,
-      endedAt: new Date().toISOString(),
-      durationMs: Date.now() - t0,
-      errorExcerpt: String(error).slice(0, 2000),
-    };
-  } finally {
-    try {
-      restoreFile(m.file);
-    } catch (error) {
-      console.error(`restore failed for ${m.file}:`, error);
-    }
-    if (stack) {
-      await stack.stop().catch(() => {});
-    }
-  }
+  return runAttemptWithFatalRestore({
+    file: m.file,
+    run: async () => {
+      try {
+        assertCleanTree();
+        applyMutant(m);
+        stack = await startStack({
+          runId,
+          workerIndex: 0,
+          dbLabel: m.id,
+        });
+        const suite = await runSuiteWorkerKillable(stack.env, E2E_TIMEOUT_MS);
+        const classified = classifyAttempt(m, suite);
+        return {
+          attemptNumber,
+          ...classified,
+          startedAt,
+          endedAt: new Date().toISOString(),
+          durationMs: Date.now() - t0,
+        };
+      } catch (error) {
+        return {
+          attemptNumber,
+          result: "error",
+          exitStatus: null,
+          failedScenarioIds: [],
+          startedAt,
+          endedAt: new Date().toISOString(),
+          durationMs: Date.now() - t0,
+          errorExcerpt: String(error).slice(0, 2000),
+        };
+      }
+    },
+    restore: () => restoreSourceFile(SOURCE_BASELINE, m.file),
+    cleanup: async () => {
+      if (stack) {
+        await stack.stop().catch(() => {});
+      }
+    },
+  });
 }
 
 async function mutantSuspectedCheck(
@@ -855,7 +829,58 @@ async function main(): Promise<void> {
     const attempts: AttemptRecord[] = [];
     let final: AttemptRecord | undefined;
     for (let a = 1; a <= 1 + MAX_RETRIES; a++) {
-      const attempt = await runOneAttempt(m, runId, a);
+      let attempt: AttemptRecord;
+      try {
+        attempt = await runOneAttempt(m, runId, a);
+      } catch (error) {
+        if (!(error instanceof SourceRestoreError)) {
+          throw error;
+        }
+        persistAndRethrowSourceRestoreError(error, () => {
+          const completedAttempt = error.attempt as AttemptRecord | undefined;
+          const fatalAttempt: AttemptRecord = completedAttempt
+            ? {
+                ...completedAttempt,
+                result: "error",
+                errorExcerpt: `${error.message}: ${String(error.cause)}`.slice(
+                  0,
+                  2000
+                ),
+              }
+            : {
+                attemptNumber: a,
+                result: "error",
+                exitStatus: null,
+                failedScenarioIds: [],
+                startedAt: new Date().toISOString(),
+                endedAt: new Date().toISOString(),
+                durationMs: 0,
+                errorExcerpt: `${error.message}: ${String(error.cause)}`.slice(
+                  0,
+                  2000
+                ),
+              };
+          attempts.push(fatalAttempt);
+          results.mutants.push({
+            mutantId: m.id,
+            file: m.file,
+            operator: m.operator,
+            class: m.class,
+            expectedKillers: m.expectedKillers,
+            attempts,
+            finalResult: "error",
+            unexpectedKill: false,
+            unexpectedFailedScenarioIds: [],
+            excludedFromKillRate: m.class === "primary",
+            exclusionReason: "fatal-restore-failure",
+            survivorReason: null,
+          });
+          results.endedAt = new Date().toISOString();
+          results.totalDurationMs = Date.now() - t0;
+          persistResults(results, filterMode);
+          persistReport(results, filterMode);
+        });
+      }
       attempts.push(attempt);
       console.log(
         `  attempt ${a}: ${attempt.result} failed=[${attempt.failedScenarioIds.join(",")}] ${attempt.durationMs}ms`

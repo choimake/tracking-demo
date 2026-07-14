@@ -2,12 +2,15 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
+import {
+  loadDatabaseEnvironment,
+  validatePersistedDatabase,
+} from "./boundary/index.js";
 import { ROOT } from "./paths.js";
 import type { DbShape, Hit, TrackEvent } from "./types.js";
 
-const DB_FILE = process.env.DB_PATH
-  ? path.resolve(process.env.DB_PATH)
-  : path.join(ROOT, "data", "db.json");
+const databaseEnvironment = loadDatabaseEnvironment(ROOT);
+const DB_FILE = databaseEnvironment.dbPath;
 const DATA_DIR = path.dirname(DB_FILE);
 
 export function newId(prefix: string): string {
@@ -132,67 +135,14 @@ function seed(): DbShape {
   };
 }
 
-// 要素レベルの欠損をデフォルト値で補完する。
-// 手編集や旧形式の db.json(例: labelIds のないイベント)で管理 API が 500 にならないように
-function repair(data: DbShape): DbShape {
-  for (const e of data.events) {
-    if (!Array.isArray(e.labelIds)) {
-      e.labelIds = [];
-    }
-    e.labelIds = e.labelIds.filter((id) => typeof id === "string");
-    if (typeof e.name !== "string") {
-      e.name = "(名称未設定)";
-    }
-    if (typeof e.description !== "string") {
-      e.description = "";
-    }
-    if (typeof e.trigger !== "string") {
-      e.trigger = "";
-    }
-    if (typeof e.enabled !== "boolean") {
-      e.enabled = false;
-    }
-  }
-  for (const l of data.labels) {
-    if (typeof l.name !== "string") {
-      l.name = "(名称未設定)";
-    }
-    if (!/^#[0-9a-fA-F]{6}$/.test(String(l.color))) {
-      l.color = "#8b8d98";
-    }
-  }
-  for (const h of data.hits) {
-    if (typeof h.test !== "boolean") {
-      h.test = false;
-    }
-    if (typeof h.ua !== "string") {
-      h.ua = "";
-    }
-    if (typeof h.vid !== "string") {
-      h.vid = "";
-    }
-    if (typeof h.sid !== "string") {
-      h.sid = "";
-    }
-  }
-  return data;
-}
-
 function load(): DbShape {
   if (fs.existsSync(DB_FILE)) {
     try {
-      const parsed = JSON.parse(
-        fs.readFileSync(DB_FILE, "utf8")
-      ) as Partial<DbShape>;
-      if (
-        parsed.workspace &&
-        Array.isArray(parsed.events) &&
-        Array.isArray(parsed.labels) &&
-        Array.isArray(parsed.hits)
-      ) {
-        return repair(parsed as DbShape);
-      }
-      throw new Error("db.json の形式が不正");
+      const result = validatePersistedDatabase(
+        JSON.parse(fs.readFileSync(DB_FILE, "utf8")) as unknown
+      );
+      if (result.ok) return result.value;
+      throw result.error;
     } catch {
       const bak = `${DB_FILE}.bak`;
       fs.renameSync(DB_FILE, bak);
@@ -217,7 +167,7 @@ function writeDb(): void {
 }
 
 let saveTimer: NodeJS.Timeout | null = null;
-const SAVE_DEBOUNCE_MS = Number(process.env.DB_SAVE_DEBOUNCE_MS ?? 100);
+const SAVE_DEBOUNCE_MS = databaseEnvironment.saveDebounceMs;
 export function save(): void {
   if (saveTimer) {
     return;

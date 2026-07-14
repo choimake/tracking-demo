@@ -1,3 +1,14 @@
+const boundaryInventory = require("./docs/boundary-inventory.json");
+
+const publicModulePattern = boundaryInventory.entryPoints
+  .filter((entry) => entry.kind === "module")
+  .map((entry) => entry.owner.file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+  .join("|");
+const crossRuntimePattern = boundaryInventory.entryPoints
+  .filter((entry) => entry.kind === "cross-runtime-module")
+  .map((entry) => entry.owner.file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+  .join("|");
+
 /** @type {import("dependency-cruiser").IConfiguration} */
 module.exports = {
   forbidden: [
@@ -37,6 +48,28 @@ module.exports = {
       to: {
         dependencyTypes: ["npm-dev"],
         pathNot: "node_modules/@types/",
+      },
+    },
+    {
+      name: "src-public-entry-point-only",
+      severity: "error",
+      comment:
+        "src外はinventoryで許可したsrc module entry pointだけをimportする",
+      from: { pathNot: "^src/" },
+      to: {
+        path: "^src/",
+        pathNot: `^(?:${publicModulePattern})$`,
+      },
+    },
+    {
+      name: "tracker-cross-runtime-entry-point-only",
+      severity: "error",
+      comment:
+        "trackerはinventoryで許可したcross-runtime moduleだけをimportする",
+      from: { path: "^src/tracker/" },
+      to: {
+        path: "^src/",
+        pathNot: `^(?:src/tracker/|${crossRuntimePattern})`,
       },
     },
     {

@@ -1,0 +1,322 @@
+{
+  "version": 1,
+  "entryPoints": [
+    {
+      "id": "EP-RUNTIME",
+      "kind": "execution",
+      "owner": { "file": "src/main.ts", "symbol": "<module>" },
+      "verification": ["boundary:architecture-check", "e2e"]
+    },
+    {
+      "id": "EP-SRC-FACADE",
+      "kind": "module",
+      "owner": { "file": "src/index.ts", "symbol": "<module>" },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "EP-TRACKER",
+      "kind": "bundle",
+      "owner": { "file": "src/tracker/tracker.ts", "symbol": "<module>" },
+      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+    },
+    {
+      "id": "EP-SHARED-TRIGGER",
+      "kind": "cross-runtime-module",
+      "owner": { "file": "src/shared/trigger.ts", "symbol": "parseTrigger" },
+      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+    },
+    {
+      "id": "EP-TRACKER-CONFIG",
+      "kind": "cross-runtime-module",
+      "owner": {
+        "file": "src/shared/tracker-config.ts",
+        "symbol": "parseTrackerConfig"
+      },
+      "verification": [
+        "boundary:architecture-check",
+        "boundary:contract-check",
+        "e2e"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "HTTP-CONFIG-WORKSPACE",
+      "kind": "http",
+      "binding": { "method": "get", "path": "/api/config" },
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateWorkspaceQuery"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "HTTP-COLLECT-BODY",
+      "kind": "http",
+      "binding": { "method": "post", "path": "/api/collect" },
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateCollectInput"
+      },
+      "verification": [
+        "boundary:architecture-check",
+        "boundary:contract-check",
+        "e2e"
+      ]
+    },
+    {
+      "id": "HTTP-WORKSPACE-BODY",
+      "kind": "http",
+      "binding": { "method": "put", "path": "/api/workspace" },
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateWorkspaceInput"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "HTTP-REQUEST-ORIGIN",
+      "kind": "http",
+      "binding": [
+        { "method": "get", "path": "/api/workspace" },
+        { "method": "post", "path": "/api/events/:id/test" }
+      ],
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateRequestOrigin"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "HTTP-EVENT-BODY",
+      "kind": "http",
+      "binding": [
+        { "method": "post", "path": "/api/events" },
+        { "method": "put", "path": "/api/events/:id" }
+      ],
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateEventInput"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "HTTP-EVENT-ID",
+      "kind": "http",
+      "binding": [
+        { "method": "put", "path": "/api/events/:id" },
+        { "method": "post", "path": "/api/events/:id/toggle" },
+        { "method": "delete", "path": "/api/events/:id" },
+        { "method": "post", "path": "/api/events/:id/test" }
+      ],
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateResourceId"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "HTTP-TOGGLE-BODY",
+      "kind": "http",
+      "binding": { "method": "post", "path": "/api/events/:id/toggle" },
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateToggleInput"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "HTTP-TAG-CHECK-QUERY",
+      "kind": "http",
+      "binding": { "method": "get", "path": "/api/tag-check" },
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateTagCheckQuery"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "HTTP-LABEL-BODY",
+      "kind": "http",
+      "binding": { "method": "post", "path": "/api/labels" },
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateLabelInput"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "HTTP-LABEL-ID",
+      "kind": "http",
+      "binding": { "method": "delete", "path": "/api/labels/:id" },
+      "owner": {
+        "file": "src/boundary/http-validation.ts",
+        "symbol": "validateResourceId"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "HTTP-DEMO-PATH",
+      "kind": "http",
+      "consumer": { "file": "src/demo-server.ts", "symbol": "<module>" },
+      "owner": { "file": "src/demo-server.ts", "symbol": "resolveHtmlFile" },
+      "verification": ["boundary:architecture-check", "e2e"]
+    },
+    {
+      "id": "PERSISTENCE-DATABASE",
+      "kind": "persistence",
+      "consumer": { "file": "src/db.ts", "symbol": "load" },
+      "owner": {
+        "file": "src/boundary/persistence-validation.ts",
+        "symbol": "validatePersistedDatabase"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "ENV-TRACKING-SERVER",
+      "kind": "environment",
+      "consumer": { "file": "src/server.ts", "symbol": "<module>" },
+      "owner": {
+        "file": "src/boundary/environment.ts",
+        "symbol": "loadTrackingServerEnvironment"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "ENV-DEMO-SERVER",
+      "kind": "environment",
+      "consumer": { "file": "src/demo-server.ts", "symbol": "<module>" },
+      "owner": {
+        "file": "src/boundary/environment.ts",
+        "symbol": "loadDemoServerEnvironment"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "ENV-DATABASE",
+      "kind": "environment",
+      "consumer": { "file": "src/db.ts", "symbol": "<module>" },
+      "owner": {
+        "file": "src/boundary/environment.ts",
+        "symbol": "loadDatabaseEnvironment"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "BROWSER-SCRIPT-CONFIG",
+      "kind": "browser",
+      "contracts": ["scenario:testTagLoadAndPageview"],
+      "owner": { "file": "src/tracker/tracker.ts", "symbol": "<module>" },
+      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+    },
+    {
+      "id": "BROWSER-COOKIE",
+      "kind": "browser",
+      "contracts": ["scenario:testCookieInvalidValues"],
+      "owner": { "file": "src/tracker/tracker.ts", "symbol": "readCookie" },
+      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+    },
+    {
+      "id": "BROWSER-CONFIG-RESPONSE",
+      "kind": "browser",
+      "contracts": ["contract:TRACKER-CONFIG-SHAPE"],
+      "owner": {
+        "file": "src/shared/tracker-config.ts",
+        "symbol": "parseTrackerConfig"
+      },
+      "verification": [
+        "boundary:architecture-check",
+        "boundary:contract-check",
+        "mutation:check",
+        "e2e"
+      ]
+    },
+    {
+      "id": "BROWSER-DATA-LAYER",
+      "kind": "browser",
+      "contracts": ["scenario:testDataLayerQueueReplay"],
+      "owner": {
+        "file": "src/tracker/tracker.ts",
+        "symbol": "processDataLayerItem"
+      },
+      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+    },
+    {
+      "id": "BROWSER-CLICK-SELECTOR",
+      "kind": "browser",
+      "contracts": ["scenario:testClickTrigger"],
+      "owner": { "file": "src/tracker/tracker.ts", "symbol": "setupListeners" },
+      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+    }
+  ],
+  "errorContracts": [
+    {
+      "id": "ERROR-APPLICATION",
+      "kind": "application",
+      "owner": {
+        "file": "src/boundary/errors.ts",
+        "symbol": "ApplicationError"
+      },
+      "conversion": [
+        {
+          "file": "src/server.ts",
+          "symbol": "sendApplicationError"
+        },
+        {
+          "file": "src/server.ts",
+          "symbol": "boundaryErrorMiddleware"
+        }
+      ],
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "ERROR-TRANSPORT",
+      "kind": "transport",
+      "owner": { "file": "src/boundary/errors.ts", "symbol": "TransportError" },
+      "conversion": {
+        "file": "src/server.ts",
+        "symbol": "boundaryErrorMiddleware"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    },
+    {
+      "id": "ERROR-UNEXPECTED",
+      "kind": "unexpected",
+      "owner": {
+        "file": "src/boundary/errors.ts",
+        "symbol": "UnexpectedError"
+      },
+      "conversion": {
+        "file": "src/server.ts",
+        "symbol": "boundaryErrorMiddleware"
+      },
+      "verification": ["boundary:architecture-check", "boundary:contract-check"]
+    }
+  ],
+  "catchExceptions": [
+    {
+      "file": "src/shared/trigger.ts",
+      "symbol": "normalizePath",
+      "reason": "不正なpercent encodingは元のpathを使って比較する",
+      "verification": ["boundary:architecture-check", "e2e"]
+    },
+    {
+      "file": "src/tracker/tracker.ts",
+      "symbol": "readCookie",
+      "reason": "不正なCookie値は欠落として匿名IDを再発行する",
+      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+    },
+    {
+      "file": "src/tracker/tracker.ts",
+      "symbol": "setupListeners",
+      "reason": "不正な外部CSS selectorはそのclickだけを無視する",
+      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+    },
+    {
+      "file": "src/tracker/tracker.ts",
+      "symbol": "send",
+      "reason": "page unload中のbest-effort fallback失敗は再送できない",
+      "verification": ["boundary:architecture-check", "mutation:check", "e2e"]
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+import type { DbShape } from "../../src/types.js";
+
+export const fixture: DbShape | null = null;

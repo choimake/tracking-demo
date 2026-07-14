@@ -1,0 +1,7 @@
+app.post("/api/events/:id/toggle", (request, res) => {
+  validateResourceId(request["params"].id, "ev_");
+  validateToggleInput(request["body"]);
+  const event = db.events.find((item) => item.id === request["params"].id);
+  event.enabled = request["body"].enabled;
+  res.json({ event });
+});

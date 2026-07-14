@@ -1,0 +1,3 @@
+import type { BoundaryError } from "../../src/index.js";
+
+export const fixture: BoundaryError | null = null;
