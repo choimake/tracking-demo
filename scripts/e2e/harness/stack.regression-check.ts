@@ -27,7 +27,17 @@ function stackDetails(output: string): {
     /tracking=http:\/\/localhost:(\d+) site=http:\/\/localhost:(\d+) db=(.+)\n/
   );
   assert.ok(match, `stack details not found: ${output}`);
-  return { dbPath: match[3], ports: [Number(match[1]), Number(match[2])] };
+  const trackingPort = match[1];
+  const sitePort = match[2];
+  const dbPath = match[3];
+  if (
+    trackingPort === undefined ||
+    sitePort === undefined ||
+    dbPath === undefined
+  ) {
+    throw new Error(`stack details are incomplete: ${output}`);
+  }
+  return { dbPath, ports: [Number(trackingPort), Number(sitePort)] };
 }
 
 async function assertPortsReleased(ports: number[]): Promise<void> {
@@ -177,6 +187,9 @@ async function main(): Promise<void> {
     }
     assert.equal(handles.length, 2);
     const [first, second] = handles;
+    if (first === undefined || second === undefined) {
+      throw new Error("2つのstackを起動できませんでした");
+    }
     try {
       assert.notEqual(first.env.PORT, second.env.PORT);
       assert.notEqual(first.env.SITE_PORT, second.env.SITE_PORT);
@@ -254,11 +267,18 @@ async function main(): Promise<void> {
       /PORT=(\d+) SITE_PORT=(\d+) DB_PATH=(.+)\n/
     );
     assert.ok(timeoutMatch);
-    assert.equal(fs.existsSync(timeoutMatch[3]), false);
-    await assertPortsReleased([
-      Number(timeoutMatch[1]),
-      Number(timeoutMatch[2]),
-    ]);
+    const timeoutPort = timeoutMatch[1];
+    const timeoutSitePort = timeoutMatch[2];
+    const timeoutDbPath = timeoutMatch[3];
+    if (
+      timeoutPort === undefined ||
+      timeoutSitePort === undefined ||
+      timeoutDbPath === undefined
+    ) {
+      throw new Error("timeout診断からportとDB pathを取得できませんでした");
+    }
+    assert.equal(fs.existsSync(timeoutDbPath), false);
+    await assertPortsReleased([Number(timeoutPort), Number(timeoutSitePort)]);
 
     const injectedRuns = await Promise.all([
       runInjectedSuiteFailure(),
@@ -272,7 +292,11 @@ async function main(): Promise<void> {
       assert.match(injectedRun.output, /\[E2E stack\] cleanup complete/);
       return stackDetails(injectedRun.output);
     });
-    assert.notEqual(details[0].dbPath, details[1].dbPath);
+    const [firstDetails, secondDetails] = details;
+    if (firstDetails === undefined || secondDetails === undefined) {
+      throw new Error("2つのsuite失敗詳細を取得できませんでした");
+    }
+    assert.notEqual(firstDetails.dbPath, secondDetails.dbPath);
     assert.equal(new Set(details.flatMap((detail) => detail.ports)).size, 4);
     for (const detail of details) {
       assert.equal(fs.existsSync(detail.dbPath), false);

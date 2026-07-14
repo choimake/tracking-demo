@@ -1,10 +1,10 @@
 export interface NumericStats {
   n: number;
   mean: number;
-  median: number;
-  p95: number;
-  min: number;
-  max: number;
+  median: number | undefined;
+  p95: number | undefined;
+  min: number | undefined;
+  max: number | undefined;
   stddev: number;
 }
 
@@ -15,21 +15,27 @@ function sorted(values: number[]): number[] {
   return copy;
 }
 
-function percentile(sortedValues: number[], p: number): number {
+function percentile(sortedValues: number[], p: number): number | undefined {
   if (sortedValues.length === 0) {
     return Number.NaN;
   }
+  const firstValue = sortedValues[0];
   if (sortedValues.length === 1) {
-    return sortedValues[0];
+    return firstValue;
   }
   const idx = (sortedValues.length - 1) * p;
   const lo = Math.floor(idx);
   const hi = Math.ceil(idx);
+  const lower = sortedValues[lo];
+  const upper = sortedValues[hi];
   if (lo === hi) {
-    return sortedValues[lo];
+    return lower;
+  }
+  if (lower === undefined || upper === undefined) {
+    return Number.NaN;
   }
   const w = idx - lo;
-  return sortedValues[lo] * (1 - w) + sortedValues[hi] * w;
+  return lower * (1 - w) + upper * w;
 }
 
 /** 数値配列から mean / median / p95 / min / max / stddev を算出する */
@@ -46,6 +52,8 @@ export function computeStats(values: number[]): NumericStats {
     };
   }
   const s = sorted(values);
+  const min = s[0];
+  const max = s.at(-1);
   const mean = values.reduce((a, b) => a + b, 0) / values.length;
   const variance =
     values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / values.length;
@@ -54,8 +62,8 @@ export function computeStats(values: number[]): NumericStats {
     mean,
     median: percentile(s, 0.5),
     p95: percentile(s, 0.95),
-    min: s[0],
-    max: s[s.length - 1],
+    min,
+    max,
     stddev: Math.sqrt(variance),
   };
 }

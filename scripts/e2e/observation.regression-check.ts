@@ -101,7 +101,9 @@ async function runObservationRegressionCheck(): Promise<void> {
     );
     const observed = await tracking.getHitsMatching({ type: "pageview" });
     assert.equal(observed.length, 1);
-    assert.equal(observed[0].url, url);
+    const firstObserved = observed.at(0);
+    assert(firstObserved, "観測APIはpageviewを1件返す");
+    assert.equal(firstObserved.url, url);
     const fileBeforeFlush = await fs.readFile(enabled.env.DB_PATH, "utf8");
     assert.equal(
       fileBeforeFlush.includes(url),

@@ -136,7 +136,9 @@ async function buildEnv(
       PORT: tracking.port,
       SITE_PORT: site.port,
       DB_PATH,
-      DB_SAVE_DEBOUNCE_MS: options.dbSaveDebounceMs,
+      ...(options.dbSaveDebounceMs === undefined
+        ? {}
+        : { DB_SAVE_DEBOUNCE_MS: options.dbSaveDebounceMs }),
       E2E_OBSERVATION_ENABLED: options.observationEnabled === false ? "0" : "1",
       TRACKING_ORIGIN: `http://localhost:${tracking.port}`,
       DEMO_SITE_URL: `http://localhost:${site.port}`,

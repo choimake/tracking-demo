@@ -25,14 +25,16 @@ const BROWSERS: Record<
 
 function parseBrowsers(argv: string[]): BrowserName[] {
   const idx = argv.indexOf("--browsers");
-  if (idx < 0 || !argv[idx + 1]) {
+  const value = argv[idx + 1];
+  if (idx < 0 || !value) {
     throw new Error("--browsers chromium[,firefox[,webkit]] が必要です");
   }
-  const names = argv[idx + 1].split(",") as BrowserName[];
-  for (const n of names) {
-    if (!(n in BROWSERS)) {
-      throw new Error(`未知のブラウザ: ${n}`);
+  const names: BrowserName[] = [];
+  for (const name of value.split(",")) {
+    if (name !== "chromium" && name !== "firefox" && name !== "webkit") {
+      throw new Error(`未知のブラウザ: ${name}`);
     }
+    names.push(name);
   }
   return names;
 }
@@ -48,8 +50,9 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
     | Awaited<ReturnType<(typeof BROWSERS)[BrowserName]["launch"]>>
     | undefined;
   try {
-    browser = await BROWSERS[browserName].launch();
-    const probePage = await browser.newPage();
+    const launchedBrowser = await BROWSERS[browserName].launch();
+    browser = launchedBrowser;
+    const probePage = await launchedBrowser.newPage();
     const userAgent = await probePage.evaluate(() => navigator.userAgent);
     await probePage.context().close();
     const benchRunId = `bench-${process.pid}`;
@@ -61,7 +64,7 @@ async function runBrowser(browserName: BrowserName): Promise<BrowserTiming> {
       const correlationId = `${benchRunId}/${browserName}/${scenarioIndex}`;
       const runtime = await createManagedE2eRuntime({
         browserName,
-        contextFactory: (options) => browser!.newContext(options),
+        contextFactory: (options) => launchedBrowser.newContext(options),
         correlationId,
         mobile: false,
         userAgent,

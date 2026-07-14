@@ -66,6 +66,10 @@ const TIME_CONSTANT_NAME_RE =
 const TIME_VALUE_NAME_RE =
   /(?:timeout|delay|interval|wait|duration|settle|gap)[A-Za-z0-9_$]*$/i;
 
+function isArchitectureRule(value: unknown): value is ArchitectureRule {
+  return typeof value === "string" && RULE_SET.has(value);
+}
+
 function normalizePath(filePath: string): string {
   return filePath.split(path.sep).join("/");
 }
@@ -87,7 +91,7 @@ function parseAllowlist(value: unknown): ArchitectureAllowlistEntry[] {
     throw new Error("allowlistのルートは配列にする");
   }
 
-  const entries = value.map((candidate, index) => {
+  const entries = value.map<ArchitectureAllowlistEntry>((candidate, index) => {
     if (
       !candidate ||
       typeof candidate !== "object" ||
@@ -113,12 +117,17 @@ function parseAllowlist(value: unknown): ArchitectureAllowlistEntry[] {
     ) {
       throw new Error(`allowlist[${index}].fileはリポジトリ相対パスにする`);
     }
-    if (typeof record.rule !== "string" || !RULE_SET.has(record.rule)) {
+    if (!isArchitectureRule(record.rule)) {
       throw new Error(`allowlist[${index}].ruleは既知の規則にする`);
     }
     if (typeof record.reason !== "string" || record.reason.trim() === "") {
       throw new Error(`allowlist[${index}].reasonは空でない文字列にする`);
     }
+    const entry = {
+      file: normalizePath(record.file),
+      reason: record.reason.trim(),
+      rule: record.rule,
+    };
     if (isWaitRegistration) {
       if (
         record.classification !== "polling" &&
@@ -151,26 +160,16 @@ function parseAllowlist(value: unknown): ArchitectureAllowlistEntry[] {
       ) {
         throw new Error(`allowlist[${index}].toleranceMsは0以上の整数にする`);
       }
+      return {
+        ...entry,
+        classification: record.classification,
+        contractId: record.contractId.trim(),
+        durationMs: record.durationMs,
+        toleranceMs: record.toleranceMs,
+        waitId: record.waitId.trim(),
+      };
     }
-    return {
-      classification: record.classification as
-        | "polling"
-        | "product-contract-time-boundary"
-        | undefined,
-      contractId:
-        typeof record.contractId === "string"
-          ? record.contractId.trim()
-          : undefined,
-      durationMs:
-        typeof record.durationMs === "number" ? record.durationMs : undefined,
-      file: normalizePath(record.file),
-      reason: record.reason.trim(),
-      rule: record.rule as ArchitectureRule,
-      toleranceMs:
-        typeof record.toleranceMs === "number" ? record.toleranceMs : undefined,
-      waitId:
-        typeof record.waitId === "string" ? record.waitId.trim() : undefined,
-    };
+    return entry;
   });
 
   const keys = entries.map((entry) =>
@@ -783,8 +782,8 @@ function visitSourceFile(
       line: position.line + 1,
       message,
       rule,
-      requestedMs,
-      waitId,
+      ...(requestedMs === undefined ? {} : { requestedMs }),
+      ...(waitId === undefined ? {} : { waitId }),
     });
   };
 
@@ -950,16 +949,19 @@ function visitSourceFile(
       } else if (
         ts.isNewExpression(node) &&
         ts.isIdentifier(node.expression) &&
-        node.expression.text === "RegExp" &&
-        node.arguments &&
-        node.arguments.length >= 1 &&
-        isAnonymousIdPattern(staticString(node.arguments[0]) ?? "")
+        node.expression.text === "RegExp"
       ) {
-        addViolation(
-          node,
-          "anon-id-regex-single-source",
-          "匿名ID相当の正規表現はtracking/hit-payload-assertions.tsだけで定義する"
-        );
+        const patternArgument = node.arguments?.at(0);
+        if (
+          patternArgument !== undefined &&
+          isAnonymousIdPattern(staticString(patternArgument) ?? "")
+        ) {
+          addViolation(
+            node,
+            "anon-id-regex-single-source",
+            "匿名ID相当の正規表現はtracking/hit-payload-assertions.tsだけで定義する"
+          );
+        }
       }
     }
 
@@ -1116,17 +1118,21 @@ function parseArguments(args: string[]): CheckArchitectureOptions {
   let allowlistPath: string | undefined;
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
-    if (argument === "--root" && args[index + 1]) {
-      rootDir = path.resolve(args[index + 1]);
+    const value = args[index + 1];
+    if (argument === "--root" && value) {
+      rootDir = path.resolve(value);
       index += 1;
-    } else if (argument === "--allowlist" && args[index + 1]) {
-      allowlistPath = path.resolve(args[index + 1]);
+    } else if (argument === "--allowlist" && value) {
+      allowlistPath = path.resolve(value);
       index += 1;
     } else {
       throw new Error(`未対応の引数: ${argument}`);
     }
   }
-  return { allowlistPath, rootDir };
+  return {
+    ...(allowlistPath === undefined ? {} : { allowlistPath }),
+    rootDir,
+  };
 }
 
 export function runArchitectureCheck(args: string[]): number {

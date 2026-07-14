@@ -56,7 +56,10 @@ export async function testCollectSendBeaconFallback(
         `fallback fetchが${collectProbe.requests.length}回 (期待1回)`
       );
     }
-    const request = collectProbe.requests[0];
+    const request = collectProbe.requests.at(0);
+    if (request === undefined) {
+      throw new Error("fallback fetch要求を取得できない");
+    }
     if (request.method() !== "POST" || request.resourceType() !== "fetch") {
       throw new Error(
         `fallback要求が不正: method=${request.method()} resourceType=${request.resourceType()}`

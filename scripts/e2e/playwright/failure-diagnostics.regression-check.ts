@@ -114,7 +114,12 @@ async function checkCompleteManifest(directory: string): Promise<void> {
   const manifest = await writeFailureDiagnosticManifest({
     ...input,
     errors: [
-      { message: assertionFailure.message, stack: assertionFailure.stack },
+      {
+        message: assertionFailure.message,
+        ...(assertionFailure.stack === undefined
+          ? {}
+          : { stack: assertionFailure.stack }),
+      },
     ],
     now: () => new Date("2026-07-14T00:00:00.000Z"),
   });

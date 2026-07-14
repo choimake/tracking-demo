@@ -101,7 +101,9 @@ function dailyCounts(days: string[], match: (h: Hit) => boolean): number[] {
   for (const h of db.hits) {
     if (!match(h)) continue;
     const i = index.get(localDateKey(new Date(h.ts)));
-    if (i !== undefined) counts[i]++;
+    if (i === undefined) continue;
+    const count = counts[i];
+    if (count !== undefined) counts[i] = count + 1;
   }
   return counts;
 }
@@ -135,13 +137,17 @@ export function createTrackingApp(
   app.use(express.json());
 
   // ---- 計測スクリプト: TS を起動時にバンドルして配信(CDN 配信の代替) ----
-  const trackerJs = buildSync({
+  const trackerOutput = buildSync({
     bundle: true,
     entryPoints: [path.join(ROOT, "src/tracker/tracker.ts")],
     format: "iife",
     target: "es2018",
     write: false,
-  }).outputFiles[0].text;
+  }).outputFiles?.at(0);
+  if (trackerOutput === undefined) {
+    throw new Error("tracker.jsのビルド結果がありません");
+  }
+  const trackerJs = trackerOutput.text;
 
   app.get("/tracker.js", (_req, res) => {
     res.type("application/javascript").send(trackerJs);
@@ -188,7 +194,7 @@ export function createTrackingApp(
       }
     }
     const hit: Hit = {
-      eventId: type === "event" ? (eventId as string) : null,
+      eventId: type === "event" ? eventId : null,
       id: newId("hit"),
       sid,
       test: isTest,
@@ -331,7 +337,15 @@ export function createTrackingApp(
       );
       return;
     }
-    const [removed] = db.events.splice(i, 1);
+    const removed = db.events[i];
+    if (removed === undefined) {
+      sendApplicationError(
+        res,
+        applicationError("not found", 404, "not_found")
+      );
+      return;
+    }
+    db.events.splice(i, 1);
     db.hits = db.hits.filter((h) => h.eventId !== removed.id);
     save();
     res.json({ ok: true });

@@ -156,13 +156,16 @@ export function assertPageviewIdentity(
   hit: Awaited<ReturnType<typeof visitAndGetPageview>>,
   expected?: { sid?: string; vid?: string; path?: string }
 ): void {
+  const expectedPath = expected?.path;
+  const expectedSid = expected?.sid;
+  const expectedVid = expected?.vid;
   expectHitPayload(hit, {
     eventId: null,
-    sid: expected?.sid,
+    ...(expectedSid === undefined ? {} : { sid: expectedSid }),
     type: "pageview",
     uaIncludes: UA_TOKEN[ctx.browserName],
-    urlIncludes: expected?.path,
-    vid: expected?.vid,
+    ...(expectedPath === undefined ? {} : { urlIncludes: expectedPath }),
+    ...(expectedVid === undefined ? {} : { vid: expectedVid }),
     workspaceId: WORKSPACE_ID,
   });
 }

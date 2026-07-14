@@ -82,17 +82,24 @@ export async function testCookieNavigationContinuity(
   const completedPageviews = pageviews.filter((hit) =>
     hit.url.includes("/order/complete")
   );
-  if (initialSpaPageviews.length !== 1 || completedPageviews.length !== 1) {
+  const initialSpaPageview = initialSpaPageviews.at(0);
+  const completedPageview = completedPageviews.at(0);
+  if (
+    initialSpaPageviews.length !== 1 ||
+    completedPageviews.length !== 1 ||
+    initialSpaPageview === undefined ||
+    completedPageview === undefined
+  ) {
     throw new Error(
       `SPA区間のpageview内訳が不正: /spa=${initialSpaPageviews.length} /order/complete=${completedPageviews.length}`
     );
   }
-  assertPageviewIdentity(ctx, initialSpaPageviews[0], {
+  assertPageviewIdentity(ctx, initialSpaPageview, {
     path: "/spa",
     sid: first.sid,
     vid: first.vid,
   });
-  assertPageviewIdentity(ctx, completedPageviews[0], {
+  assertPageviewIdentity(ctx, completedPageview, {
     path: "/order/complete",
     sid: first.sid,
     vid: first.vid,

@@ -315,7 +315,9 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
       contextFactory: options.contextFactory,
       correlationId: options.correlationId,
       mobile: options.mobile,
-      recordVideoDir: options.recordVideoDir,
+      ...(options.recordVideoDir === undefined
+        ? {}
+        : { recordVideoDir: options.recordVideoDir }),
       userAgent: options.userAgent,
     });
     return new ManagedE2eRuntimeOwner(options, root);
@@ -395,7 +397,7 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
         message: error.message,
         name: error.name,
         pageUrl: page.url(),
-        stack: error.stack,
+        ...(error.stack === undefined ? {} : { stack: error.stack }),
       });
     });
   }
@@ -508,14 +510,15 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
     options: ManagedSessionOptions,
     callback: (session: ManagedSession) => Promise<T>
   ): Promise<T> {
+    const recordVideoDir = options.recordScenarioVideo
+      ? this.#options.recordVideoDir
+      : undefined;
     const raw = await createE2eSession({
       browserName: this.#options.browserName,
       contextFactory: this.#options.contextFactory,
       correlationId: this.#options.correlationId,
-      mobile: options.mobile,
-      recordVideoDir: options.recordScenarioVideo
-        ? this.#options.recordVideoDir
-        : undefined,
+      ...(options.mobile === undefined ? {} : { mobile: options.mobile }),
+      ...(recordVideoDir === undefined ? {} : { recordVideoDir }),
       userAgent: this.#options.userAgent,
     });
     const record = this.#registerSession(

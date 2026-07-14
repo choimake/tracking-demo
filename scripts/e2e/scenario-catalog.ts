@@ -42,7 +42,13 @@ export function verifyScenarioCatalog(): void {
     ...catalogSection.matchAll(
       /^\| `(scenario-[1-9][0-9]*)`\s*\| (.*?)\s*\|/gm
     ),
-  ].map((match) => ({ id: match[1], name: match[2].trim() }));
+  ].map((match, index) => {
+    const id = match.at(1);
+    const name = match.at(2);
+    assert.ok(id, `E2E Coverage Matrixの${index + 1}件目にIDがありません`);
+    assert.ok(name, `E2E Coverage Matrixの${index + 1}件目に名称がありません`);
+    return { id, name: name.trim() };
+  });
   const registeredEntries = e2eScenarios.map(({ id, name }) => ({ id, name }));
 
   assertUnique(registeredEntries, "id", "scenarios.ts");

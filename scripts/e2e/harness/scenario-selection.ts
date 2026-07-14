@@ -26,7 +26,7 @@ function parseSeed(value: string | undefined): number | undefined {
   return seed;
 }
 
-function shuffle<T>(items: readonly T[], seed: number): T[] {
+function shuffle(items: readonly E2eScenario[], seed: number): E2eScenario[] {
   const result = [...items];
   let state = seed || 0x6d2b_79f5;
   const random = () => {
@@ -38,7 +38,13 @@ function shuffle<T>(items: readonly T[], seed: number): T[] {
   };
   for (let index = result.length - 1; index > 0; index -= 1) {
     const target = Math.floor(random() * (index + 1));
-    [result[index], result[target]] = [result[target], result[index]];
+    const current = result[index];
+    const selected = result[target];
+    if (current === undefined || selected === undefined) {
+      throw new Error("シナリオの並べ替え対象がありません");
+    }
+    result[index] = selected;
+    result[target] = current;
   }
   return result;
 }
@@ -72,10 +78,16 @@ export function selectE2eScenarios(
     throw new Error(`未知の E2E_ORDER 値: ${rawOrder} (normal|reverse|random)`);
   }
   const seed = parseSeed(env.E2E_SEED);
-  if (rawOrder === "random" && seed === undefined) {
-    throw new Error("E2E_ORDER=random では再現用の E2E_SEED が必要です");
-  }
   if (rawOrder === "reverse") scenarios = scenarios.toReversed();
-  if (rawOrder === "random") scenarios = shuffle(scenarios, seed as number);
-  return { order: rawOrder, scenarios, seed };
+  if (rawOrder === "random") {
+    if (seed === undefined) {
+      throw new Error("E2E_ORDER=random では再現用の E2E_SEED が必要です");
+    }
+    scenarios = shuffle(scenarios, seed);
+  }
+  return {
+    order: rawOrder,
+    scenarios,
+    ...(seed === undefined ? {} : { seed }),
+  };
 }

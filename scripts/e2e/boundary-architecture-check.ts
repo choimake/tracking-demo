@@ -678,9 +678,10 @@ export function checkBoundaryArchitecture(root: string): BoundaryCheckResult {
 
 function run(args: string[]): number {
   const rootIndex = args.indexOf("--root");
+  const requestedRoot = rootIndex >= 0 ? args[rootIndex + 1] : undefined;
   const root = path.resolve(
-    rootIndex >= 0 && args[rootIndex + 1]
-      ? args[rootIndex + 1]
+    requestedRoot
+      ? requestedRoot
       : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
   );
   const result = checkBoundaryArchitecture(root);

@@ -2,16 +2,21 @@ import { parseTrigger } from "../shared/trigger.js";
 import type { ApplicationError, ValidationResult } from "./errors.js";
 import { applicationError } from "./errors.js";
 
-export interface CollectInput {
-  eventId: string | null | undefined;
+interface CollectInputBase {
   isTest: boolean;
   sid: string;
-  type: "event" | "pageview";
   ua: string;
   url: string;
   vid: string;
   ws: string;
 }
+
+export type CollectInput =
+  | (CollectInputBase & { eventId: string; type: "event" })
+  | (CollectInputBase & {
+      eventId: null | undefined;
+      type: "pageview";
+    });
 
 export interface EventInput {
   description: string;
@@ -101,26 +106,28 @@ export function validateCollectInput(
     (ua !== undefined &&
       (typeof ua !== "string" || ua.length > UA_MAX_LENGTH)) ||
     normalizedVid === null ||
-    normalizedSid === null ||
-    (type === "event" &&
-      (typeof eventId !== "string" || eventId.length === 0)) ||
-    (type === "pageview" && eventId !== undefined && eventId !== null)
+    normalizedSid === null
   ) {
     return invalid("invalid payload");
   }
-  return {
-    ok: true,
-    value: {
-      eventId: eventId as string | null | undefined,
-      isTest: test === true,
-      sid: normalizedSid,
-      type,
-      ua: typeof ua === "string" ? ua : "",
-      url: typeof url === "string" ? url : "",
-      vid: normalizedVid,
-      ws,
-    },
+  const common = {
+    isTest: test === true,
+    sid: normalizedSid,
+    ua: typeof ua === "string" ? ua : "",
+    url: typeof url === "string" ? url : "",
+    vid: normalizedVid,
+    ws,
   };
+  if (type === "event") {
+    if (typeof eventId !== "string" || eventId.length === 0) {
+      return invalid("invalid payload");
+    }
+    return { ok: true, value: { ...common, eventId, type } };
+  }
+  if (eventId !== undefined && eventId !== null) {
+    return invalid("invalid payload");
+  }
+  return { ok: true, value: { ...common, eventId, type } };
 }
 
 export function validateWorkspaceInput(

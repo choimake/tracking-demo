@@ -176,10 +176,11 @@ export function findLatestReport(): BenchReport | null {
     }));
   // oxlint-disable-next-line unicorn/no-array-sort -- tsconfig lib は ES2022(toSorted なし)
   files.sort((a, b) => b.mtime - a.mtime);
-  if (files.length === 0) {
+  const [latestFile] = files;
+  if (latestFile === undefined) {
     return null;
   }
   return JSON.parse(
-    fs.readFileSync(path.join(dir, files[0].f), "utf8")
+    fs.readFileSync(path.join(dir, latestFile.f), "utf8")
   ) as BenchReport;
 }

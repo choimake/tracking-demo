@@ -107,14 +107,18 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
       await fs.mkdir(recordVideoDir, { recursive: true });
     }
     const fixtures = parseGlobalFixtures(process.env.E2E_FIXTURES);
+    const scenario = e2eScenarios[scenarioIndex];
+    if (scenario === undefined) {
+      throw new Error(`シナリオ登録が見つかりません: ${testInfo.title}`);
+    }
     const runtime = await createManagedE2eRuntime({
       browserName: typedBrowserName,
       correlationId,
       contextFactory: (options) => browser.newContext(options),
       mobile,
-      recordVideoDir,
-      recordVideoMode: recordVideoMode ?? undefined,
-      scenarioVideoPath,
+      ...(recordVideoDir === undefined ? {} : { recordVideoDir }),
+      ...(recordVideoMode === null ? {} : { recordVideoMode }),
+      ...(scenarioVideoPath === undefined ? {} : { scenarioVideoPath }),
       userAgent: baseUserAgent,
     });
     const context: E2eContext = {
@@ -130,7 +134,7 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
       page: runtime.session.page,
       repeat: testInfo.repeatEachIndex,
       route: runtime.session.route,
-      scenarioId: e2eScenarios[scenarioIndex].id,
+      scenarioId: scenario.id,
       seed: process.env.E2E_SEED ? Number(process.env.E2E_SEED) : null,
       trackerLogs: runtime.trackerLogs,
       tracking: runtime.tracking,
@@ -151,7 +155,7 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
         hitCursor: runtime.tracking.getDiagnosticHitCursor(),
         manifestPath: testInfo.outputPath("failure-diagnostics-manifest.json"),
         repeat: testInfo.repeatEachIndex,
-        scenarioId: e2eScenarios[scenarioIndex].id,
+        scenarioId: scenario.id,
         scenarioName: testInfo.title,
         seed: process.env.E2E_SEED ? Number(process.env.E2E_SEED) : null,
         video:
@@ -170,21 +174,23 @@ export const test = base.extend<E2eTestFixtures, E2eWorkerFixtures>({
               body: Buffer.from(JSON.stringify(value, null, 2)),
               contentType: "application/json",
             }),
-          attachStackLog: stackLogPath
-            ? () =>
-                testInfo.attach("stack-log", {
-                  contentType: "text/plain",
-                  path: stackLogPath,
-                })
-            : undefined,
+          ...(stackLogPath
+            ? {
+                attachStackLog: () =>
+                  testInfo.attach("stack-log", {
+                    contentType: "text/plain",
+                    path: stackLogPath,
+                  }),
+              }
+            : {}),
           getConsoleLog: async () => runtime.diagnostics().console,
           getCorrelatedHits: () => context.tracking.getHitsMatching({}),
           getPageErrors: async () => runtime.diagnostics().pageErrors,
         });
       await runScenarioFixtureLifecycle({
-        cleanupVideo: recordVideoMode
-          ? (ok) => runtime.finalizeVideo(ok)
-          : undefined,
+        ...(recordVideoMode
+          ? { cleanupVideo: (ok) => runtime.finalizeVideo(ok) }
+          : {}),
         closeBrowserContext: () => runtime.close(),
         failureDiagnostics,
         scenarioFailed: failed,

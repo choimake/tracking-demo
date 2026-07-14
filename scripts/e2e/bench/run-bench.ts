@@ -35,10 +35,13 @@ function parseArgs(argv: string[]): CliOptions {
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--cell" && argv[i + 1]) {
-      opts.cellId = argv[++i];
-    } else if (a === "--iterations" && argv[i + 1]) {
-      opts.iterations = Number(argv[++i]);
+    const next = argv[i + 1];
+    if (a === "--cell" && next) {
+      opts.cellId = next;
+      i += 1;
+    } else if (a === "--iterations" && next) {
+      opts.iterations = Number(next);
+      i += 1;
       if (!Number.isFinite(opts.iterations) || opts.iterations < 1) {
         throw new Error("--iterations は 1 以上の整数である必要があります");
       }
@@ -46,8 +49,9 @@ function parseArgs(argv: string[]): CliOptions {
       opts.warmup = false;
     } else if (a === "--resume") {
       opts.resume = true;
-    } else if (a === "--run-id" && argv[i + 1]) {
-      opts.runId = argv[++i];
+    } else if (a === "--run-id" && next) {
+      opts.runId = next;
+      i += 1;
     } else if (a === "--help" || a === "-h") {
       printHelp();
       process.exit(0);
@@ -189,6 +193,9 @@ async function main(): Promise<void> {
   console.log(`report: ${out}`);
   for (const s of report.stats) {
     const wall = s.suite_wall_ms;
+    if (wall.median === undefined) {
+      throw new TypeError("suite_wall_ms.medianがありません");
+    }
     console.log(
       `  ${s.cellId}: suite_wall mean=${wall.mean.toFixed(0)}ms median=${wall.median.toFixed(0)}ms n=${wall.n}`
     );

@@ -291,8 +291,12 @@ try {
     },
   });
   assert(repaired.ok);
-  assert.deepEqual(repaired.value.events[0].labelIds, []);
-  assert.equal(repaired.value.labels[0].color, "#8b8d98");
+  const repairedEvent = repaired.value.events.at(0);
+  const repairedLabel = repaired.value.labels.at(0);
+  assert(repairedEvent);
+  assert(repairedLabel);
+  assert.deepEqual(repairedEvent.labelIds, []);
+  assert.equal(repairedLabel.color, "#8b8d98");
 
   // contract-id: PERSISTENCE-LOAD-RECOVERY
   const corruptDatabase = path.join(temporaryDirectory, "corrupt.json");

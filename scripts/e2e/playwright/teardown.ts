@@ -133,9 +133,12 @@ export async function runScenarioFixtureLifecycle(
   let teardownError: unknown;
   try {
     await runScenarioFixtureTeardown({
-      cleanupVideo: cleanupVideo
-        ? () => cleanupVideo(!(options.scenarioFailed || closeFailed))
-        : undefined,
+      ...(cleanupVideo
+        ? {
+            cleanupVideo: () =>
+              cleanupVideo(!(options.scenarioFailed || closeFailed)),
+          }
+        : {}),
       closeBrowserContext: async () => {
         try {
           await options.closeBrowserContext();
@@ -144,9 +147,9 @@ export async function runScenarioFixtureLifecycle(
           throw error;
         }
       },
-      failureDiagnostics: options.scenarioFailed
-        ? options.failureDiagnostics
-        : undefined,
+      ...(options.scenarioFailed
+        ? { failureDiagnostics: options.failureDiagnostics }
+        : {}),
     });
   } catch (error) {
     teardownError = error;

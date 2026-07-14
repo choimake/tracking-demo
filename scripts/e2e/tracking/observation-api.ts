@@ -9,7 +9,7 @@ import type { TrackingTransport } from "./transport.js";
 export interface HitFilter {
   eventId?: string | null;
   type?: string;
-  afterHitId?: string;
+  afterHitId?: string | undefined;
 }
 
 export class ObservationApi {
