@@ -61,16 +61,14 @@ npm run e2e
 
 | 情報                                      | 正本                                                                 |
 | ----------------------------------------- | -------------------------------------------------------------------- |
-| 製品contractと非対応範囲                  | [`spec.md`](./spec.md)                                               |
-| 公開entry point、外部入力、error contract | [`docs/boundary-inventory.md`](./docs/boundary-inventory.md)         |
-| E2E contract、担当層、ブラウザ、検証状態  | [`docs/e2e-coverage-matrix.md`](./docs/e2e-coverage-matrix.md)       |
-| E2Eの実行方法、構成、障害調査             | [`scripts/e2e/README.md`](./scripts/e2e/README.md)                   |
-| CIの品質ゲートとツールバージョン          | [`docs/continuous-integration.md`](./docs/continuous-integration.md) |
-| ミューテーションテスト（撤去済み）の経緯  | [`docs/mutation-testing-note.md`](./docs/mutation-testing-note.md)   |
-| ブラウザ並列ベンチの測定結果              | [`docs/report.md`](./docs/report.md)                                 |
-| worktreeを使う開発フロー                  | [`docs/development-flow.md`](./docs/development-flow.md)             |
+| 製品contractと非対応範囲                 | [`spec.md`](./spec.md)                                               |
+| E2E contract、担当層、ブラウザ、検証状態 | [`docs/e2e-coverage-matrix.md`](./docs/e2e-coverage-matrix.md)       |
+| E2Eの実行方法、構成、障害調査            | [`scripts/e2e/README.md`](./scripts/e2e/README.md)                   |
+| CIの品質ゲートとツールバージョン         | [`docs/continuous-integration.md`](./docs/continuous-integration.md) |
+| ミューテーションテスト（撤去済み）の経緯 | [`docs/mutation-testing-note.md`](./docs/mutation-testing-note.md)   |
+| ブラウザ並列ベンチの測定結果             | [`docs/report.md`](./docs/report.md)                                 |
+| worktreeを使う開発フロー                 | [`docs/development-flow.md`](./docs/development-flow.md)             |
 
 E2E Coverage MatrixのID・名称・件数・順序は、`npm run e2e` 開始時の scenario catalog 照合で機械検証します。
-境界inventoryのIDはMarkdownと機械可読な台帳で照合します（`boundary:*`。quality 外）。
-機械可読な台帳の所有者は実装と照合します。
+HTTP・永続化・環境変数・error の境界契約は `npm run boundary:contract-check` で検証します（quality 外）。
 `npm run quality`は型検査、静的解析、未使用コード、依存方向検査、Markdownリンク検査を実行します。

@@ -1,5 +1,0 @@
-export function swallowFailure(): void {
-  try {
-    throw new Error("fixture");
-  } catch {}
-}

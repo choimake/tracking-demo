@@ -19,8 +19,8 @@ GitHub ActionsはpushとPull Requestで3系統のworkflowを実行する。
 4. `deps`（dependency-cruiser。循環依存と E2E の依存方向・barrel import）
 5. `docs:link-check`（リポジトリ内Markdownの相対リンクとアンカー。外部URLにはアクセスしない）
 
-boundary 検査（`boundary:architecture-check`、`boundary:architecture-regression-check`、`boundary:contract-check`）は quality 外である。
-単独実行する場合は各 npm script を呼ぶ。
+boundary 契約検査（`boundary:contract-check`）は quality 外である。
+単独実行する場合は `npm run boundary:contract-check` を呼ぶ。
 
 `gitleaks`は品質検証とブラウザE2Eに秘密情報検出を重複させない。
 

@@ -1,7 +1,0 @@
-app.post("/api/events/:id/toggle", (request, res) => {
-  validateResourceId(request.params.id, "ev_");
-  validateToggleInput(request.body);
-  res.json({
-    enabled: (request as unknown as { body: { enabled: boolean } }).body.enabled,
-  });
-});

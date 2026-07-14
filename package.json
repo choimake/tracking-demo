@@ -24,8 +24,6 @@
     "e2e:mobile": "E2E_MOBILE=1 playwright test",
     "e2e:video": "RECORD_VIDEO=all playwright test",
     "e2e:video:fail": "RECORD_VIDEO=on-failure playwright test",
-    "boundary:architecture-check": "tsx scripts/e2e/boundary-architecture-check.ts",
-    "boundary:architecture-regression-check": "tsx scripts/e2e/boundary-architecture.regression-check.ts",
     "boundary:contract-check": "tsx scripts/boundary-contract.regression-check.ts"
   },
   "dependencies": {
