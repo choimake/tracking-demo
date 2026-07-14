@@ -15,6 +15,7 @@
 - **Act**: デモサイト上の操作（遷移・クリック・スクロール等）
 - **Assert**: 計測サーバー側の件数・Hit 検証
 - **barrel**: `browser/index.ts` / `tracking/index.ts` 経由の再エクスポート。テストはここから import する
+- **helper**: 発火検証の `expectFiredHit`。Hit カーソル、Act、exact count、new Hit、payload 検証の順序を固定する
 
 ## フォルダ責務
 
@@ -40,23 +41,26 @@
 
 呼び出し側は `act`、`exactCount`、`filter`、`expectedPayload`、`hitLabel` を指定する。直前シナリオの遅延ビーコンが件数に食い込む恐れがある場合は、呼び出し側が `expectFiredHit` の前に `quiesceBeacons` を呼ぶ。
 
-helperを使わない発火検証は [`architecture-allowlist.json`](./architecture-allowlist.json) にファイル、規則、理由を登録する。
+helperを使わない発火検証は、シナリオ内コメントで理由を残す。negative、at-most、no-hit検証は `expectFiredHit` へ統合しない。件数だけを最終判定にしない。
 
 ### 自動検査
 
-E2Eコーディング規則の自動検査では、担当の正本を [`architecture-check.ts`](./architecture-check.ts) とする。
-`npm run e2e:architecture-check` は字句規則とdeep import規則を実行する。
-例外は [`architecture-allowlist.json`](./architecture-allowlist.json) にファイル、規則、理由を登録する。
-失敗fixtureは `npm run e2e:architecture-regression-check` が検証する。
+E2Eコーディング規則のうち、依存方向と barrel import は `.dependency-cruiser.cjs` が検査する（`npm run deps`）。
+boundary 契約は `npm run boundary:architecture-check` が検査する。
+字句・AST による自作 E2E architecture-check は置かない。残す規約は本ファイルの文章規約とする。
 
-### 自動検査しない実装規則
+### 実装規則
 
+- `tests/` では `locator` / `getByRole` / `page.evaluate` / raw `route` を直接呼ばない。Act は `browser/` に書き、route は managed session の `route` で登録する
 - `browser/input.ts` では、クリック可能な UI に `getByRole` を優先する
 - オリジン・UAトークン等の定数は `harness/config.ts` に置く
+- 時間定数（名前が `TIMEOUT` / `DELAY` / `INTERVAL` / `WAIT` / `DURATION` / `SETTLE` / `GAP` を含むもの）は `harness/config.ts` に置く
 - `registeredWait` と `registeredAbortSignal` の実装は `harness/config.ts` に置き、`tracking` から re-export しない
-- 固定待機を直接呼ばない。許可する待機は登録済み待機APIを使い、`architecture-allowlist.json`へ分類・理由・contract ID・基準時間・許容幅を登録する
+- 固定待機を直接呼ばない。許可する待機は `registeredWait` または `registeredAbortSignal` を使い、定義は `REGISTERED_WAIT_DEFINITIONS` に置く
 - 待機の分類とClockの適用範囲は [`wait-strategy.md`](./wait-strategy.md) を正本とする
+- 匿名 ID 正規表現の定義は `tracking/hit-payload-assertions.ts` に置き、他ファイルで複製しない
 - 正規表現の直前に、マッチの意図とマッチする具体値の例をコメントで記載する
+- 関数呼び出しへ生の待機ミリ秒を渡さない。登録済み待機 API の `waitId` 経由で渡す
 
 ### 実行と隔離状態
 

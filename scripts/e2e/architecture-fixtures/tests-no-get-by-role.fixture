@@ -1,5 +1,0 @@
-export async function violation(page: {
-  getByRole: (role: string) => unknown;
-}) {
-  return page.getByRole("button");
-}

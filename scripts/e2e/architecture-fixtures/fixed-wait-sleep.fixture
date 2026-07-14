@@ -1,6 +1,0 @@
-declare function sleep(ms: number): Promise<void>;
-
-export async function violation(): Promise<void> {
-  const pause = sleep;
-  await pause(100);
-}

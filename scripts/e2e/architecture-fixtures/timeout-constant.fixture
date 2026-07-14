@@ -1,3 +1,0 @@
-const requestTimeoutMs = 5000;
-
-void requestTimeoutMs;

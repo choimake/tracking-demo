@@ -1,6 +1,0 @@
-export async function violation(page: {
-  evaluate: (callback: () => void) => unknown;
-}) {
-  await page.evaluate(() => undefined);
-  await page.evaluate(() => undefined);
-}

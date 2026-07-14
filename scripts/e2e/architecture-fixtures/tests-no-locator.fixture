@@ -1,3 +1,0 @@
-export async function violation(page: { locator: (selector: string) => unknown }) {
-  return page.locator("main");
-}

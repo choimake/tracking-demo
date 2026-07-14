@@ -1,5 +1,0 @@
-declare function registeredWait(waitId: string, ms: number): Promise<void>;
-
-export async function registered(): Promise<void> {
-  await registeredWait("fixture-registered-wait", 100);
-}

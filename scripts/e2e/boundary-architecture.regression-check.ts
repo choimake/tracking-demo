@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const E2E_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(E2E_DIR, "../..");
 const CHECK = path.join(E2E_DIR, "boundary-architecture-check.ts");
-const FIXTURES = path.join(E2E_DIR, "architecture-fixtures");
+const FIXTURES = path.join(E2E_DIR, "boundary-architecture-fixtures");
 // toggle routeの宣言全体にマッチする。例: `app.post("/api/events/:id/toggle", ...);`。
 const TOGGLE_ROUTE_PATTERN =
   /app\.post\("\/api\/events\/:id\/toggle"[\s\S]*?\n\s*\}\);/;

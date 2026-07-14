@@ -1,7 +1,0 @@
-export async function violation(): Promise<void> {
-  const Signals = globalThis.AbortSignal;
-  const { timeout } = Signals;
-  await new Promise((resolve) => {
-    timeout(100).addEventListener("abort", resolve, { once: true });
-  });
-}

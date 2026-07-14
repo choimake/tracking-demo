@@ -157,7 +157,7 @@ function registeredDuration(
   return durationMs;
 }
 
-/** architecture-allowlist.jsonへ登録した期限Signalだけを生成する。 */
+/** REGISTERED_WAIT_DEFINITIONS に登録した期限 Signal だけを生成する。 */
 export function registeredAbortSignal(
   waitId: RegisteredWaitId,
   requestedMs?: number
@@ -165,7 +165,7 @@ export function registeredAbortSignal(
   return AbortSignal.timeout(registeredDuration(waitId, requestedMs));
 }
 
-/** architecture-allowlist.jsonへ登録した固定待機だけを実行する。 */
+/** REGISTERED_WAIT_DEFINITIONS に登録した固定待機だけを実行する。 */
 export function registeredWait(
   waitId: RegisteredWaitId,
   requestedMs?: number

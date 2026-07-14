@@ -1,5 +1,0 @@
-declare const page: {
-  route(pattern: string, handler: () => void): Promise<void>;
-};
-
-await page.route("**/api/config", async () => undefined);

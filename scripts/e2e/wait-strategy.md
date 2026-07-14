@@ -4,7 +4,7 @@
 
 ## 登録規則
 
-`architecture-check.ts` は `sleep`、`setTimeout`、`AbortSignal.timeout`、`page.waitForTimeout` の直接利用を拒否する。許可する固定待機は `registeredWait` または `registeredAbortSignal` を使う。`architecture-allowlist.json` へ分類、理由、contract ID、基準時間、許容幅を登録する。検査は登録内容と `REGISTERED_WAIT_DEFINITIONS` の一致も確認する。
+固定待機の直接利用（`sleep`、`setTimeout`、`AbortSignal.timeout`、`page.waitForTimeout`）は禁止する。許可する固定待機は `registeredWait` または `registeredAbortSignal` を使う。定義は `harness/config.ts` の `REGISTERED_WAIT_DEFINITIONS` に置く。分類、理由、contract ID、基準時間、許容幅を定義に含める。
 
 登録できる分類は次の2種類とする。
 
@@ -33,7 +33,7 @@
 | `page-leave-timer.ts` の離脱前400ms      | product-contract-time-boundary | Playwright Clockで閾値未満と離脱後の閾値超過を再現する。                           |
 | `disabled-event.ts` の3000ms観測         | product-contract-time-boundary | Playwright Clockで2秒閾値を超えた後、Hitとログを確認する。                         |
 | デバッグ待機                             | debug                          | 該当なし。                                                                         |
-| `page.waitForTimeout`                    | state-wait-substitute          | 該当なし。architecture fixtureが新規利用を拒否する。                               |
+| `page.waitForTimeout`                    | state-wait-substitute          | 該当なし。新規利用は禁止する。                                                     |
 
 `harness/config.ts` の `setTimeout` は登録済み待機の実装である。個別の待機ではないため、登録対象から除外する。
 

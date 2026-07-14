@@ -1,5 +1,0 @@
-export async function violation(): Promise<void> {
-  let pause: typeof setTimeout;
-  pause = globalThis.setTimeout.bind(globalThis);
-  await new Promise((resolve) => pause(resolve, 100));
-}

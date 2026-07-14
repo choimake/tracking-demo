@@ -1,3 +1,0 @@
-const LOCAL_VID_RE = /^v_[0-9a-f-]{36}$/;
-
-void LOCAL_VID_RE;

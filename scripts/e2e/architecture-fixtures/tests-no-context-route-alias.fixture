@@ -1,8 +1,0 @@
-declare const rawContext: {
-  browser(): unknown;
-  cookies(): Promise<unknown[]>;
-  newPage(): Promise<unknown>;
-  route(pattern: string, handler: () => void): Promise<void>;
-};
-
-await rawContext.route("**/api/config", async () => undefined);
