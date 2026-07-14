@@ -5,20 +5,20 @@
 
 ## 正本の分担
 
-| 情報                                           | 正本                                                     |
-| ---------------------------------------------- | -------------------------------------------------------- |
-| コーディング規則と変更時の制約                 | [AGENTS.md](./AGENTS.md)                                 |
-| 依存方向・barrel import の自動検査             | `.dependency-cruiser.cjs`（`npm run deps`）              |
-| 実行シナリオの登録                             | [scenarios.ts](./scenarios.ts)                           |
-| contract、担当層、ブラウザ、実行頻度、検証状態 | [E2E Coverage Matrix](../../docs/e2e-coverage-matrix.md) |
-| 実行方法と障害調査手順                         | このREADME                                               |
-| runner移行の状態と履歴                         | [E2E runner移行記録](../../docs/e2e-runner-migration.md) |
+| 情報                                           | 正本                                                        |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| コーディング規則と変更時の制約                 | [AGENTS.md](./AGENTS.md)                                    |
+| 依存方向・barrel import・循環禁止の自動検査    | `.dependency-cruiser.cjs`（`npm run deps`。quality に含む） |
+| 実行シナリオの登録                             | [scenarios.ts](./scenarios.ts)                              |
+| contract、担当層、ブラウザ、実行頻度、検証状態 | [E2E Coverage Matrix](../../docs/e2e-coverage-matrix.md)    |
+| 実行方法と障害調査手順                         | このREADME                                                  |
+| runner移行の状態と履歴                         | [E2E runner移行記録](../../docs/e2e-runner-migration.md)    |
 
 シナリオの件数はREADMEへ記載しない。`scenarios.ts` と E2E Coverage Matrix の一致は
 `npm run e2e` 開始時に `verifyScenarioCatalog` が検証する。
 
-依存方向と barrel import は `npm run deps`（`.dependency-cruiser.cjs`）が検査する。
-boundary 契約は `npm run boundary:architecture-check` が検査する。
+依存方向・barrel import・循環禁止は `npm run deps`（`.dependency-cruiser.cjs`）が検査する。`npm run quality` に含まれる。
+boundary 契約は `npm run boundary:architecture-check` が検査する（quality 外）。
 E2E 字句・AST の自作 architecture-check は置かない。コーディング規約の正本は [AGENTS.md](./AGENTS.md) とする。
 
 ## Fixture の所有権と回収
@@ -227,7 +227,7 @@ Playwright Test
 計測 E2E は「ページを触る」と「サーバーにビーコンが届いたか読む」の二系統がある。
 フォルダ名がその二系統に対応している。
 
-依存方向の要約: `browser` ↛ `tracking` / `tests`。`tracking` → `harness/config` のみ（他 harness 禁止）。`harness/session`・`types` → `tracking` 可。`harness/config`・`video` ↛ `tracking`。`.dependency-cruiser.cjs` で error として担保する。
+依存方向の要約: `browser` ↛ `tracking` / `tests`。`tracking` ↛ `browser` / `tests`。`tracking` → `harness/config` のみ（他 harness 禁止）。`harness` ↛ `browser` / `tests`。`harness/session`・`types` → `tracking` 可。`harness/config`・`video` ↛ `tracking`。`tests` → `browser` / `tracking` は barrel（`index.ts`）限定。循環禁止（型だけの import は除外）。`.dependency-cruiser.cjs` で error として担保する（`npm run deps`。quality に含む）。
 
 ## 各フォルダの詳細
 

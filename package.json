@@ -15,7 +15,7 @@
     "knip": "mise exec -- knip",
     "deps": "mise exec -- depcruise --config .dependency-cruiser.cjs \"src/**/*.ts\" \"scripts/**/*.ts\"",
     "docs:link-check": "tsx scripts/markdown-links.regression-check.ts",
-    "quality": "npm run typecheck && npm run check && npm run knip && npm run docs:link-check && npm run e2e:managed-session-check",
+    "quality": "npm run typecheck && npm run check && npm run knip && npm run deps && npm run docs:link-check && npm run e2e:managed-session-check",
     "secrets": "mise exec -- gitleaks detect --source . --verbose --redact",
     "secrets:staged": "mise exec -- gitleaks protect --staged --verbose --redact",
     "e2e": "playwright test",
