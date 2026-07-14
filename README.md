@@ -24,7 +24,7 @@ npm start
 
 ## 主要検証
 
-型・静的解析・未使用コード・依存方向・Markdownリンクをまとめて実行します。
+型・静的解析・未使用コード・依存方向をまとめて実行します。
 
 ```bash
 npm run quality
@@ -59,8 +59,8 @@ npm run e2e
 
 ## 詳細正本へのリンク
 
-| 情報                                      | 正本                                                                 |
-| ----------------------------------------- | -------------------------------------------------------------------- |
+| 情報                                     | 正本                                                                 |
+| ---------------------------------------- | -------------------------------------------------------------------- |
 | 製品contractと非対応範囲                 | [`spec.md`](./spec.md)                                               |
 | E2E contract、担当層、ブラウザ、検証状態 | [`docs/e2e-coverage-matrix.md`](./docs/e2e-coverage-matrix.md)       |
 | E2Eの実行方法、構成、障害調査            | [`scripts/e2e/README.md`](./scripts/e2e/README.md)                   |
@@ -71,4 +71,4 @@ npm run e2e
 
 E2E Coverage MatrixのID・名称・件数・順序は、`npm run e2e` 開始時の scenario catalog 照合で機械検証します。
 HTTP・永続化・環境変数・error の境界契約は `npm run boundary:contract-check` で検証します（quality 外）。
-`npm run quality`は型検査、静的解析、未使用コード、依存方向検査、Markdownリンク検査を実行します。
+`npm run quality`は型検査、静的解析、未使用コード、依存方向検査を実行します。
