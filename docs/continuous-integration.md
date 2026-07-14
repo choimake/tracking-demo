@@ -4,19 +4,25 @@ GitHub ActionsはpushとPull Requestで3系統のworkflowを実行する。
 
 ## workflowの責務
 
-| workflow       | 固定job名     | 責務                                                                          |
-| -------------- | ------------- | ----------------------------------------------------------------------------- |
-| `quality.yml`  | `quality`     | 型、Markdownリンク、静的解析、未使用コード、依存規則、E2E基盤の回帰を検証する |
-| `e2e.yml`      | `browser e2e` | Chromium、Firefox、WebKitで利用者シナリオを検証する                           |
-| `gitleaks.yml` | `gitleaks`    | Git履歴に含まれる秘密情報を検出する                                           |
+| workflow       | 固定job名     | 責務                                                                 |
+| -------------- | ------------- | -------------------------------------------------------------------- |
+| `quality.yml`  | `quality`     | 型、静的解析、未使用コード、Markdownリンク、資源リーク照合を検証する |
+| `e2e.yml`      | `browser e2e` | Chromium、Firefox、WebKitで利用者シナリオを検証する                  |
+| `gitleaks.yml` | `gitleaks`    | Git履歴に含まれる秘密情報を検出する                                  |
 
 `quality`は`npm run quality`を実行する。
-このコマンドはリポジトリ内Markdownの相対リンクとアンカーも検査する。
-外部URLにはアクセスしない。
-このコマンドは`e2e:stack-check`を常に実行する。
-`e2e:stack-check`はChromiumで単一シナリオも起動し、スタックの起動と終了を検証する。
-`browser e2e`も同じシナリオをChromiumで実行する。
-この重複は、スタックの異常終了経路と利用者シナリオを別々の判定で検証するために維持する。
+このコマンドは次の5段を直列で実行する。
+
+1. `typecheck`
+2. `check`（ultracite / oxlint）
+3. `knip`
+4. `docs:link-check`（リポジトリ内Markdownの相対リンクとアンカー。外部URLにはアクセスしない）
+5. `e2e:managed-session-check`（資源リーク照合。通常E2Eでは負経路を再現しない）
+
+boundary 検査（`boundary:architecture-check`、`boundary:architecture-regression-check`、`boundary:contract-check`）と`deps`は quality 外である。
+TODO 34 で再配置する。
+単独実行する場合は各 npm script を呼ぶ。
+
 `gitleaks`は品質検証とブラウザE2Eに秘密情報検出を重複させない。
 
 ## ツールバージョンの正本
@@ -31,8 +37,8 @@ workflowにはNodeと品質CLIのバージョンを記載しない。
 CIの`gitleaks.yml`は`gitleaks/gitleaks-action@v3`が提供する実行環境を使う。
 この差は秘密情報検出を独立したworkflowに保つために許容する。
 
-`npm ci`の後に`npx playwright install --with-deps chromium`を実行する。
-この処理は`e2e:stack-check`が使うChromiumとOS依存パッケージを導入する。
+`quality`はブラウザを起動しない。
+Chromiumの導入は`e2e.yml`が担当する。
 
 ## required checkの登録
 

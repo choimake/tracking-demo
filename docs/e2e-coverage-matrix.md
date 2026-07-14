@@ -7,7 +7,7 @@
 このMatrixは、計測contractの保証先と未保証範囲を示す。新規機能のPRでは次を確認する。
 
 1. contractの入力、出力、失敗時の挙動を変える場合は該当行を更新する。
-2. シナリオを追加した場合は、stable ID、名称、種別、担当層、実行対象を追加する。`npm run e2e:scenario-catalog-check`は、ID、名称、件数、順序を`scenarios.ts`と照合する。
+2. シナリオを追加した場合は、stable ID、名称、種別、担当層、実行対象を追加する。`npm run e2e` 開始時の `verifyScenarioCatalog` が、ID、名称、件数、順序を `scenarios.ts` と照合する。
 3. 新しい重要contractにはpositiveとnegativeを用意する。境界値または障害経路がある場合は、その種別も追加する。
 4. ブラウザAPI、Cookie、History、ライフサイクルへ依存するcontractはbrowser E2Eが担当する。
 5. ブラウザを必要としない入力境界はunitまたはintegrationが担当する。
@@ -15,11 +15,11 @@
 
 ## 判定軸
 
-| 担当層      | リポジトリ内の実体                     | 担当範囲                                                                       |
-| ----------- | -------------------------------------- | ------------------------------------------------------------------------------ |
-| unit        | 専用テスト基盤なし                     | URL、trigger、configの純粋な解析と入力境界。必要なケースは未実装として管理する |
-| integration | `scripts/e2e/**/*.regression-check.ts` | stack、fixture、observation、相関、assertion、helper、scenario選択のcontract   |
-| browser E2E | `scripts/e2e/tests/`                   | tracker.jsの読み込みとページ操作から`/api/collect`までのcontract               |
+| 担当層      | リポジトリ内の実体                                        | 担当範囲                                                                             |
+| ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| unit        | 専用テスト基盤なし                                        | URL、trigger、configの純粋な解析と入力境界。必要なケースは未実装として管理する       |
+| integration | `scripts/e2e/harness/managed-session.regression-check.ts` | 資源リーク照合（route未解除・生成数と解放数の不一致）。通常E2Eでは負経路を再現しない |
+| browser E2E | `scripts/e2e/tests/`                                      | tracker.jsの読み込みとページ操作から`/api/collect`までのcontract                     |
 
 | 表記      | 意味                                                                 |
 | --------- | -------------------------------------------------------------------- |
@@ -36,7 +36,7 @@ nightlyは設定していない。
 次の35行は`scenarios.ts`の登録順と一致する。
 
 stable IDは登録順から生成する。既存行の削除と並べ替えを禁止する。新規行は末尾へ追加する。
-この規則と回帰チェックによって既存IDを固定する。
+この規則によって既存IDを固定する。シナリオ登録時の `verifyScenarioCatalog` が件数と順序を照合する。
 
 ownerは`tracker / E2E`とする。関連仕様は[`spec.md`](../spec.md)と[`scripts/e2e/README.md`](../scripts/e2e/README.md)である。
 
@@ -93,17 +93,13 @@ ownerは`tracker / E2E`とする。関連仕様は[`spec.md`](../spec.md)と[`sc
 
 ## browser E2E以外の担当
 
-| Contract / 境界                    | 種別                           | 担当層      | 対応                                                 | 頻度    |
-| ---------------------------------- | ------------------------------ | ----------- | ---------------------------------------------------- | ------- |
-| fixtureの所有権、回収、rollback    | failure / boundary             | integration | `harness/fixture.regression-check.ts`                | quality |
-| observation                        | failure / boundary             | integration | `observation.regression-check.ts`                    | quality |
-| 失敗診断manifest                   | failure / boundary             | integration | `playwright/failure-diagnostics.regression-check.ts` | quality |
-| Hit相関、assertion                 | positive / negative / boundary | integration | `tracking/*.regression-check.ts`                     | quality |
-| Cookie helper                      | positive / negative / boundary | integration | `tests/cookie-helpers.regression-check.ts`           | quality |
-| scenario選択、順序、seed           | positive / negative / boundary | integration | `harness/scenario-selection.regression-check.ts`     | quality |
-| run専用stack、signal、teardown     | failure / boundary             | integration | `harness/stack.regression-check.ts`                  | quality |
-| run専用portの遅延参照              | positive / boundary            | unit        | `harness/config.regression-check.ts`                 | quality |
-| URL、trigger、configの他の入力境界 | negative / boundary            | unit        | 専用基盤なし。未実装                                 | 未設定  |
+| Contract / 境界                    | 種別                | 担当層      | 対応                                          | 頻度    |
+| ---------------------------------- | ------------------- | ----------- | --------------------------------------------- | ------- |
+| managed sessionの資源リーク照合    | failure / boundary  | integration | `harness/managed-session.regression-check.ts` | quality |
+| URL、trigger、configの他の入力境界 | negative / boundary | unit        | 専用基盤なし。未実装                          | 未設定  |
+
+fixture・observation・失敗診断・Hit相関・Cookie helper・scenario選択・stack・config遅延参照の独立回帰は撤去した。
+異常は browser E2E の合否で検知する。
 
 ## gapの分類
 

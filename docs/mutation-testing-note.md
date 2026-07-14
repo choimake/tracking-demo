@@ -11,4 +11,4 @@
 - `npm run mutation` 系スクリプト
 
 常用しない。実行手順とカタログは残していない。
-E2Eハーネス側の `*.mutation-check.ts` はハーネス回帰の一部であり、別途整理する。
+E2Eハーネス側の `*.mutation-check.ts` も撤去済みである。

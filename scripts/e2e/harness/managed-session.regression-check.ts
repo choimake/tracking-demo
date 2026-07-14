@@ -1,3 +1,9 @@
+/**
+ * E2E で担保できない理由:
+ * 通常シナリオの合否は「資源を正しく解放した成功経路」だけを通る。
+ * route 未解除・close 失敗・生成数と解放数の不一致といった資源リーク検出は、
+ * 意図的に失敗を注入しないと発火しない。E2E 本体ではその負経路を再現しない。
+ */
 import assert from "node:assert/strict";
 
 import type { BrowserContext, Page } from "playwright";

@@ -14,7 +14,6 @@ import {
   expectAnonIdentityValues,
   expectFiredHit,
   expectHitPayload,
-  expectPageviewCountExactly,
   quiesceBeacons,
 } from "../tracking/index.js";
 
@@ -26,12 +25,6 @@ const ITP_COOKIE_CAP_SEC = 7 * 24 * 60 * 60;
 const EXPIRES_TOLERANCE_SEC = 120;
 const DUPLICATE_PAGEVIEW_VID = "v_00000000-0000-4000-8000-000000000001";
 const DUPLICATE_PAGEVIEW_SID = "s_00000000-0000-4000-8000-000000000001";
-
-interface PageviewObservationOptions {
-  observationMs?: number;
-  pollIntervalMs?: number;
-  timeoutMs?: number;
-}
 
 export function assertDemoCookieAttrs(cookie: Cookie, name: string): void {
   if (cookie.path !== "/" || cookie.sameSite !== "Lax") {
@@ -139,16 +132,6 @@ export async function visitAndGetPageview(
     tracking: ctx.tracking,
   });
   return hit;
-}
-
-/** 通常visitのpageviewをsettle観測し、正確に1件であることを保証する。 */
-export async function expectVisitPageviewExactlyOnce(
-  tracking: Pick<E2eContext["tracking"], "getHitsMatching">,
-  afterHitId: string | undefined,
-  label: string,
-  options: PageviewObservationOptions = {}
-): Promise<void> {
-  await expectPageviewCountExactly(tracking, afterHitId, 1, label, options);
 }
 
 export function assertPageviewIdentity(

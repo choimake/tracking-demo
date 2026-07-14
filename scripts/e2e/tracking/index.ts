@@ -17,10 +17,8 @@ export {
   expectEventCountExactly,
   expectEventCountExactlyIncreasedBy,
   expectHitCountAtLeast,
-  expectHitCountAtMost,
   expectHitCountExactly,
   expectNoHitsDuringObservation,
-  expectPageviewCountAtLeast,
   expectPageviewCountExactly,
 } from "./count-assertions.js";
 export {

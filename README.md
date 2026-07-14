@@ -24,14 +24,13 @@ npm start
 
 ## 主要検証
 
-初回だけ、`quality`が使うChromiumとOS依存パッケージをインストールします。
+型・静的解析・未使用コード・Markdownリンク・資源リーク照合をまとめて実行します。
 
 ```bash
-npx playwright install --with-deps chromium
 npm run quality
 ```
 
-利用者シナリオを全対象ブラウザで検証する場合は、Playwrightのブラウザを追加します。
+利用者シナリオを全対象ブラウザで検証する場合は、Playwrightのブラウザを導入します。
 続けてE2Eを実行します。
 
 ```bash
@@ -71,7 +70,7 @@ npm run e2e
 | ブラウザ並列ベンチの測定結果              | [`docs/report.md`](./docs/report.md)                                 |
 | worktreeを使う開発フロー                  | [`docs/development-flow.md`](./docs/development-flow.md)             |
 
-E2E Coverage MatrixのID・名称・件数・順序はscenario catalogと機械照合します。
-境界inventoryのIDはMarkdownと機械可読な台帳で照合します。
+E2E Coverage MatrixのID・名称・件数・順序は、`npm run e2e` 開始時の scenario catalog 照合で機械検証します。
+境界inventoryのIDはMarkdownと機械可読な台帳で照合します（`boundary:*`。quality 外。TODO 34 で再配置）。
 機械可読な台帳の所有者は実装と照合します。
-`npm run quality`はこれらの照合とMarkdownのリンク検査を実行します。
+`npm run quality`は型検査、静的解析、未使用コード、Markdownリンク、資源リーク照合を実行します。

@@ -138,22 +138,6 @@ export async function expectHitCountAtLeast(
   }
 }
 
-export async function expectPageviewCountAtLeast(
-  tracking: HitReader,
-  afterHitId: string | undefined,
-  minCount: number,
-  label: string,
-  timeoutMs = DEFAULT_WAIT_TIMEOUT_MS
-): Promise<void> {
-  await expectHitCountAtLeast(
-    tracking,
-    { afterHitId, eventId: null, type: "pageview" },
-    minCount,
-    label,
-    timeoutMs
-  );
-}
-
 export async function expectHitCountExactly(
   tracking: HitReader,
   filter: HitFilter,
@@ -211,32 +195,6 @@ export async function expectEventCountExactly(
     label,
     options
   );
-}
-
-export async function expectHitCountAtMost(
-  tracking: HitReader,
-  filter: HitFilter,
-  maximumCount: number,
-  label: string,
-  options: ObservationOptions = {}
-): Promise<void> {
-  await observeUntilDeadline(
-    options.observationMs ?? BEACON_SETTLE_MS,
-    options.pollIntervalMs ?? WAIT_POLL_INTERVAL_MS,
-    async () => {
-      const actualCount = (await tracking.getHitsMatching(filter)).length;
-      if (actualCount > maximumCount) {
-        throw assertionError({
-          actual: { count: actualCount },
-          context: { filter, label },
-          expected: { maximumCount },
-          name: "hit-count-at-most",
-          summary: `Hit 件数が上限超過: got=${actualCount} max=${maximumCount}`,
-        });
-      }
-    }
-  );
-  console.log(`  ✓ ${label}: 最大${maximumCount}件`);
 }
 
 export async function expectNoHitsDuringObservation(
