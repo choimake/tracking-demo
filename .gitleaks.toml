@@ -5,8 +5,4 @@ title = "tracking-demo"
 useDefault = true
 
 [allowlist]
-paths = [
-  '''(^|/)package-lock\.json$''',
-  '''(^|/)data/''',
-  '''(^|/)scripts/e2e/bench/results/''',
-]
+paths = ['''(^|/)package-lock\.json$''', '''(^|/)data/''']

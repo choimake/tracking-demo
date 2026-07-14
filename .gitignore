@@ -5,10 +5,6 @@ node_modules/
 data/db.json
 data/*.bak
 data/*.tmp
-data/bench-*/
-
-# E2E bench artifacts
-scripts/e2e/bench/results/
 
 # Environment / secrets
 .env

@@ -27,8 +27,7 @@
     "boundary:architecture-check": "tsx scripts/e2e/boundary-architecture-check.ts",
     "boundary:architecture-regression-check": "tsx scripts/e2e/boundary-architecture.regression-check.ts",
     "boundary:contract-check": "tsx scripts/boundary-contract.regression-check.ts",
-    "e2e:managed-session-check": "tsx scripts/e2e/harness/managed-session.regression-check.ts",
-    "e2e:bench": "tsx scripts/e2e/bench/run-bench.ts"
+    "e2e:managed-session-check": "tsx scripts/e2e/harness/managed-session.regression-check.ts"
   },
   "dependencies": {
     "esbuild": "^0.24.2",

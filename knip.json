@@ -2,8 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/tracker/tracker.ts",
-    "scripts/e2e/playwright/scenarios.spec.ts",
-    "scripts/e2e/bench/suite-worker.ts"
+    "scripts/e2e/playwright/scenarios.spec.ts"
   ],
   "project": ["src/**/*.ts", "scripts/**/*.ts"],
   "ignoreBinaries": ["mise"],

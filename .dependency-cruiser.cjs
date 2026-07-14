@@ -31,8 +31,6 @@ module.exports = {
         pathNot: [
           "(^|/)main\\.ts$",
           "(^|/)run\\.ts$",
-          "(^|/)run-bench\\.ts$",
-          "(^|/)suite-worker\\.ts$",
           "\\.d\\.ts$",
           "(^|/)gamp\\.ts$",
         ],
