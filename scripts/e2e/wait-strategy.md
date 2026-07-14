@@ -45,7 +45,7 @@ Playwright Clockは、time-on-pageの発火時刻を直接検証しないnegativ
 
 `installClock`の完了後は実時間を進めない。ページ内時刻は`advanceClockBy`だけで進める。`runFor`はClockの停止状態を維持する。`gotoDemoPage`が待つtracker初期化はtimerの発火に依存しないため、停止中でも完了する。
 
-`harness/managed-session.regression-check.ts`は`install`、`pauseAt`、`runFor`の呼び出し順を検査する。mockではブラウザ内の`Date.now()`が停止することを実証できない。実時間経過中の停止とページ読み込み完了は、Clockを使う3シナリオのWebKit通常順、逆順、固定seed実行で確認する。
+`installClock`と`advanceClockBy`の呼び出し順は`session.ts`が保証する。mockではブラウザ内の`Date.now()`が停止することを実証できない。実時間経過中の停止とページ読み込み完了は、Clockを使う3シナリオのWebKit通常順、逆順、固定seed実行で確認する。
 
 `time-on-page.ts` はClockを使わない。2秒の発火をChromium、Firefox、WebKitの実時間で検証する。dedupの1000ms境界もClockを使わない。製品が `Date.now()` の実時間差をcontractとしているためである。
 

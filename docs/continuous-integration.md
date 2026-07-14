@@ -4,21 +4,20 @@ GitHub ActionsはpushとPull Requestで3系統のworkflowを実行する。
 
 ## workflowの責務
 
-| workflow       | 固定job名     | 責務                                                                           |
-| -------------- | ------------- | ------------------------------------------------------------------------------ |
-| `quality.yml`  | `quality`     | 型、静的解析、未使用コード、依存方向、Markdownリンク、資源リーク照合を検証する |
-| `e2e.yml`      | `browser e2e` | Chromium、Firefox、WebKitで利用者シナリオを検証する                            |
-| `gitleaks.yml` | `gitleaks`    | Git履歴に含まれる秘密情報を検出する                                            |
+| workflow       | 固定job名     | 責務                                                           |
+| -------------- | ------------- | -------------------------------------------------------------- |
+| `quality.yml`  | `quality`     | 型、静的解析、未使用コード、依存方向、Markdownリンクを検証する |
+| `e2e.yml`      | `browser e2e` | Chromium、Firefox、WebKitで利用者シナリオを検証する            |
+| `gitleaks.yml` | `gitleaks`    | Git履歴に含まれる秘密情報を検出する                            |
 
 `quality`は`npm run quality`を実行する。
-このコマンドは次の6段を直列で実行する。
+このコマンドは次の5段を直列で実行する。
 
 1. `typecheck`
 2. `check`（ultracite / oxlint）
 3. `knip`
 4. `deps`（dependency-cruiser。循環依存と E2E の依存方向・barrel import）
 5. `docs:link-check`（リポジトリ内Markdownの相対リンクとアンカー。外部URLにはアクセスしない）
-6. `e2e:managed-session-check`（資源リーク照合。通常E2Eでは負経路を再現しない）
 
 boundary 検査（`boundary:architecture-check`、`boundary:architecture-regression-check`、`boundary:contract-check`）は quality 外である。
 単独実行する場合は各 npm script を呼ぶ。

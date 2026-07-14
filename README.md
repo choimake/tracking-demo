@@ -24,7 +24,7 @@ npm start
 
 ## 主要検証
 
-型・静的解析・未使用コード・Markdownリンク・資源リーク照合をまとめて実行します。
+型・静的解析・未使用コード・依存方向・Markdownリンクをまとめて実行します。
 
 ```bash
 npm run quality
@@ -73,4 +73,4 @@ npm run e2e
 E2E Coverage MatrixのID・名称・件数・順序は、`npm run e2e` 開始時の scenario catalog 照合で機械検証します。
 境界inventoryのIDはMarkdownと機械可読な台帳で照合します（`boundary:*`。quality 外）。
 機械可読な台帳の所有者は実装と照合します。
-`npm run quality`は型検査、静的解析、未使用コード、依存方向検査、Markdownリンク、資源リーク照合を実行します。
+`npm run quality`は型検査、静的解析、未使用コード、依存方向検査、Markdownリンク検査を実行します。

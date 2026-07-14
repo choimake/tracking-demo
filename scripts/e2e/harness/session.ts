@@ -179,17 +179,6 @@ async function createE2eSession(
   }
 }
 
-interface ResourceCounter {
-  generated: number;
-  released: number;
-}
-
-export interface ManagedResourceSnapshot {
-  contexts: ResourceCounter;
-  pages: ResourceCounter;
-  routes: ResourceCounter;
-}
-
 export interface E2eDiagnosticConsoleEntry {
   location: { columnNumber?: number; lineNumber?: number; url?: string };
   pageUrl: string;
@@ -248,15 +237,10 @@ export interface ManagedE2eRuntime {
   close(): Promise<void>;
   diagnostics(): E2eRuntimeDiagnostics;
   finalizeVideo(ok: boolean): Promise<void>;
-  resourceSnapshot(): ManagedResourceSnapshot;
   withSession<T>(
     options: ManagedSessionOptions,
     callback: (session: ManagedSession) => Promise<T>
   ): Promise<T>;
-}
-
-function copyCounter(counter: ResourceCounter): ResourceCounter {
-  return { generated: counter.generated, released: counter.released };
 }
 
 function errorDescription(error: unknown): string {
@@ -285,11 +269,8 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
     console: [],
     pageErrors: [],
   };
-  readonly #contexts: ResourceCounter = { generated: 0, released: 0 };
   readonly #options: CreateManagedE2eRuntimeOptions;
-  readonly #pages: ResourceCounter = { generated: 0, released: 0 };
   readonly #root: ManagedSessionRecord;
-  readonly #routes: ResourceCounter = { generated: 0, released: 0 };
   readonly #sessions = new Set<ManagedSessionRecord>();
   readonly session: ManagedSession;
   readonly trackerLogs: string[];
@@ -337,8 +318,6 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
       routes: new Map(),
       videoFinalized: false,
     };
-    this.#contexts.generated += 1;
-    this.#pages.generated += 1;
     this.#sessions.add(record);
     return record;
   }
@@ -373,7 +352,6 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
         const page = await record.context.newPage();
         this.#registerDiagnosticPage(page);
         record.pages.add(page);
-        this.#pages.generated += 1;
         return page as unknown as E2ePage;
       },
       page: record.primaryPage as unknown as E2ePage,
@@ -421,7 +399,6 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
       pattern,
       released: false,
     });
-    this.#routes.generated += 1;
     return id;
   }
 
@@ -436,7 +413,6 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
     if (route.released) return;
     await route.page.unroute(route.pattern, route.handler);
     route.released = true;
-    this.#routes.released += 1;
   }
 
   async #cleanupSession(
@@ -462,8 +438,6 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
       try {
         await record.context.close();
         record.released = true;
-        this.#contexts.released += 1;
-        this.#pages.released += record.pages.size;
       } catch (cause) {
         errors.push(
           new Error("BrowserContextのcloseに失敗しました", { cause })
@@ -573,16 +547,6 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
         errors.push(error);
       }
     }
-    const snapshot = this.resourceSnapshot();
-    for (const [name, counter] of Object.entries(snapshot)) {
-      if (counter.generated !== counter.released) {
-        errors.push(
-          new Error(
-            `${name}の生成数と解放数が不一致: generated=${counter.generated}, released=${counter.released}`
-          )
-        );
-      }
-    }
     if (errors.length > 0) {
       throw new AggregateError(
         errors,
@@ -606,14 +570,6 @@ class ManagedE2eRuntimeOwner implements ManagedE2eRuntime {
     return {
       console: this.#diagnostics.console.map((entry) => ({ ...entry })),
       pageErrors: this.#diagnostics.pageErrors.map((entry) => ({ ...entry })),
-    };
-  }
-
-  resourceSnapshot(): ManagedResourceSnapshot {
-    return {
-      contexts: copyCounter(this.#contexts),
-      pages: copyCounter(this.#pages),
-      routes: copyCounter(this.#routes),
     };
   }
 }

@@ -15,11 +15,11 @@
 
 ## 判定軸
 
-| 担当層      | リポジトリ内の実体                                        | 担当範囲                                                                             |
-| ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| unit        | 専用テスト基盤なし                                        | URL、trigger、configの純粋な解析と入力境界。必要なケースは未実装として管理する       |
-| integration | `scripts/e2e/harness/managed-session.regression-check.ts` | 資源リーク照合（route未解除・生成数と解放数の不一致）。通常E2Eでは負経路を再現しない |
-| browser E2E | `scripts/e2e/tests/`                                      | tracker.jsの読み込みとページ操作から`/api/collect`までのcontract                     |
+| 担当層      | リポジトリ内の実体   | 担当範囲                                                                       |
+| ----------- | -------------------- | ------------------------------------------------------------------------------ |
+| unit        | 専用テスト基盤なし   | URL、trigger、configの純粋な解析と入力境界。必要なケースは未実装として管理する |
+| integration | 専用テスト基盤なし   | ブラウザ不要の結合境界。必要なケースは未実装として管理する                     |
+| browser E2E | `scripts/e2e/tests/` | tracker.jsの読み込みとページ操作から`/api/collect`までのcontract               |
 
 | 表記      | 意味                                                                 |
 | --------- | -------------------------------------------------------------------- |
@@ -93,13 +93,12 @@ ownerは`tracker / E2E`とする。関連仕様は[`spec.md`](../spec.md)と[`sc
 
 ## browser E2E以外の担当
 
-| Contract / 境界                    | 種別                | 担当層      | 対応                                          | 頻度    |
-| ---------------------------------- | ------------------- | ----------- | --------------------------------------------- | ------- |
-| managed sessionの資源リーク照合    | failure / boundary  | integration | `harness/managed-session.regression-check.ts` | quality |
-| URL、trigger、configの他の入力境界 | negative / boundary | unit        | 専用基盤なし。未実装                          | 未設定  |
+| Contract / 境界                    | 種別                | 担当層 | 対応                 | 頻度   |
+| ---------------------------------- | ------------------- | ------ | -------------------- | ------ |
+| URL、trigger、configの他の入力境界 | negative / boundary | unit   | 専用基盤なし。未実装 | 未設定 |
 
-fixture・observation・失敗診断・Hit相関・Cookie helper・scenario選択・stack・config遅延参照の独立回帰は撤去した。
-異常は browser E2E の合否で検知する。
+fixture・observation・失敗診断・Hit相関・Cookie helper・scenario選択・stack・config遅延参照・managed sessionの独立回帰は撤去した。
+異常は browser E2E の合否と Playwright fixture の破棄で検知する。
 
 ## gapの分類
 

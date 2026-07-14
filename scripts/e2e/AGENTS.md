@@ -74,7 +74,7 @@ boundary 契約は `npm run boundary:architecture-check` が検査する（quali
 - 常にシナリオごとに BrowserContext を開閉する（Cookie 等の隔離のため。録画の有無は問わない）
 - 追加contextは `E2eContext.withSession` で作る。追加pageはmanaged sessionの `newPage` で作る
 - routeはmanaged sessionの `route` で登録する。runtimeはcallback終了時に未解除routeをすべて解除する
-- シナリオはBrowserContext、page、videoを直接解放しない。runtimeが生成数と解放数を照合する
+- シナリオはBrowserContext、page、videoを直接解放しない。解放はruntimeのcleanupとPlaywright fixture破棄が担う
 - 副作用は自シナリオの page 内に閉じる。Cookie 無効化は独立contextで行い、終了後にシナリオ page が無傷であることを assert する（例: `cookie-unavailable.ts`）
 - フィクスチャやトグルしたイベント状態は teardown で戻す
 
