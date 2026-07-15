@@ -57,7 +57,9 @@ const log = (...args: unknown[]) => console.info("[tracker]", ...args);
   // 計測サーバーは Set-Cookie しない。サイト(:3200)文脈の document.cookie で first-party として扱う。
   const VID_COOKIE = "_td_vid";
   const SID_COOKIE = "_td_sid";
-  const VID_MAX_AGE_SEC = 2 * 365 * 24 * 60 * 60; // 2年(ローリング延長)
+  // why: ブラウザは長い期限を切り詰める(WebKit(libsoup)は1年、Chrome/Firefoxは400日)。
+  // why: 1年は全ブラウザが設定値どおり保持する上限。長期の再訪識別はローリング延長が担う。
+  const VID_MAX_AGE_SEC = 365 * 24 * 60 * 60; // 1年(ローリング延長)
   const SID_MAX_AGE_SEC = 30 * 60; // 30分(スライディング延長)
   const VID_RE = /^v_[0-9a-f-]{36}$/;
   const SID_RE = /^s_[0-9a-f-]{36}$/;

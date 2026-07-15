@@ -28,8 +28,7 @@ export async function testCookieRollingExpiration(
       shortened,
       `${spec.name}(短縮後)`,
       SHORT_MAX_AGE_SEC,
-      shortenedAt,
-      ctx.browserName
+      shortenedAt
     );
     const renewedAt = Date.now() / 1000;
     const hit = await visitAndGetPageview(ctx, "/products");
@@ -39,12 +38,6 @@ export async function testCookieRollingExpiration(
       (cookie) => cookie.name === spec.name
     );
     if (!renewed) throw new Error(`${spec.name} 再延長後にCookieがない`);
-    assertCookieExpires(
-      renewed,
-      spec.name,
-      spec.maxAge,
-      renewedAt,
-      ctx.browserName
-    );
+    assertCookieExpires(renewed, spec.name, spec.maxAge, renewedAt);
   }
 }

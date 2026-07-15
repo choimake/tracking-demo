@@ -7,7 +7,6 @@ import {
   WORKSPACE_ID,
   getDemoSiteOrigin,
 } from "../harness/config.js";
-import type { BrowserName } from "../harness/config.js";
 import type { E2eContext, E2ePage, ManagedSession } from "../harness/types.js";
 import {
   assertionError,
@@ -17,11 +16,9 @@ import {
   quiesceBeacons,
 } from "../tracking/index.js";
 
-export const VID_MAX_AGE_SEC = 2 * 365 * 24 * 60 * 60;
+export const VID_MAX_AGE_SEC = 365 * 24 * 60 * 60;
 export const SID_MAX_AGE_SEC = 30 * 60;
 export const SHORT_MAX_AGE_SEC = 60;
-const BROWSER_COOKIE_CAP_SEC = 400 * 24 * 60 * 60;
-const ITP_COOKIE_CAP_SEC = 7 * 24 * 60 * 60;
 const EXPIRES_TOLERANCE_SEC = 120;
 const DUPLICATE_PAGEVIEW_VID = "v_00000000-0000-4000-8000-000000000001";
 const DUPLICATE_PAGEVIEW_SID = "s_00000000-0000-4000-8000-000000000001";
@@ -47,27 +44,20 @@ export function assertDemoCookieAttrs(cookie: Cookie, name: string): void {
   }
 }
 
+// Max-Age はブラウザの切り詰め上限(WebKit(libsoup)=1年、Chrome/Firefox=400日)以下で設定する。
+// このため期限はブラウザ共通の「発行時刻 + Max-Age」1本で検証できる。
 export function assertCookieExpires(
   cookie: Cookie,
   name: string,
   maxAgeSec: number,
-  issuedAtSec: number,
-  browserName: BrowserName
+  issuedAtSec: number
 ): void {
-  const caps = [maxAgeSec, Math.min(maxAgeSec, BROWSER_COOKIE_CAP_SEC)];
-  if (browserName === "webkit") {
-    caps.push(Math.min(maxAgeSec, ITP_COOKIE_CAP_SEC));
-  }
   if (
-    !caps.some(
-      (seconds) =>
-        Math.abs(cookie.expires - (issuedAtSec + seconds)) <=
-        EXPIRES_TOLERANCE_SEC
-    )
+    Math.abs(cookie.expires - (issuedAtSec + maxAgeSec)) > EXPIRES_TOLERANCE_SEC
   ) {
     throw assertionError({
       actual: { expires: cookie.expires },
-      context: { browserName, cookieName: name, issuedAtSec },
+      context: { cookieName: name, issuedAtSec },
       expected: { maxAgeSec, toleranceSec: EXPIRES_TOLERANCE_SEC },
       name: "cookie-expiration",
       summary: `${name} expires が Max-Age=${maxAgeSec}s 相当でない`,

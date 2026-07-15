@@ -24,18 +24,6 @@ export async function testCookieIssuance(ctx: E2eContext): Promise<void> {
   }
   assertDemoCookieAttrs(vid, "_td_vid");
   assertDemoCookieAttrs(sid, "_td_sid");
-  assertCookieExpires(
-    vid,
-    "_td_vid",
-    VID_MAX_AGE_SEC,
-    issuedAt,
-    ctx.browserName
-  );
-  assertCookieExpires(
-    sid,
-    "_td_sid",
-    SID_MAX_AGE_SEC,
-    issuedAt,
-    ctx.browserName
-  );
+  assertCookieExpires(vid, "_td_vid", VID_MAX_AGE_SEC, issuedAt);
+  assertCookieExpires(sid, "_td_sid", SID_MAX_AGE_SEC, issuedAt);
 }
