@@ -5,8 +5,8 @@
 ## 適用範囲
 
 - 対象: `scripts/e2e/` 配下のテスト・Act・Assert・ハーネス
-- 対象: [`@playwright/test` への段階移行](../../docs/e2e-runner-migration.md)
-- 対象外: POM、本番アプリ本体の変更、決定済みの段階を無視した移行
+- 対象: Playwright Test（`@playwright/test`）による実行。実行方法の正本は [README.md](./README.md) とする
+- 対象外: POM、本番アプリ本体の変更
 - スコープ外の検証項目を勝手に広げない（非対応contractと未検証一覧は README「スコープ外」）
 
 ## 用語

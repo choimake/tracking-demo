@@ -142,4 +142,4 @@ fixture・observation・Hit相関・Cookie helper・scenario選択・stack・con
 - 通常E2Eは登録済みの全シナリオを3ブラウザでCI実行する。Cookie、単一scenario、単一browserを選択できる。
 - 通常順、逆順、seed固定ランダム順を選択できる。`npm run e2e:flake`はCookieをChromiumで20回反復する。
 - 成功時は診断 artifact を残さない。失敗時は Playwright 標準の trace / screenshot / report と失敗メッセージで調査する。
-- ミューテーションテスト基盤は撤去済みである。経緯は[`mutation-testing-note.md`](./mutation-testing-note.md)を参照する。
+- ミューテーションテスト基盤は撤去済みである。

@@ -65,8 +65,6 @@ npm run e2e
 | E2E contract、担当層、ブラウザ、検証状態 | [`docs/e2e-coverage-matrix.md`](./docs/e2e-coverage-matrix.md)       |
 | E2Eの実行方法、構成、障害調査            | [`scripts/e2e/README.md`](./scripts/e2e/README.md)                   |
 | CIの品質ゲートとツールバージョン         | [`docs/continuous-integration.md`](./docs/continuous-integration.md) |
-| ミューテーションテスト（撤去済み）の経緯 | [`docs/mutation-testing-note.md`](./docs/mutation-testing-note.md)   |
-| ブラウザ並列ベンチの測定結果             | [`docs/report.md`](./docs/report.md)                                 |
 | worktreeを使う開発フロー                 | [`docs/development-flow.md`](./docs/development-flow.md)             |
 
 E2E Coverage MatrixのID・名称・件数・順序は、`npm run e2e` 開始時の scenario catalog 照合で機械検証します。
