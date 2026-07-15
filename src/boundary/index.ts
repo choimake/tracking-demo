@@ -15,7 +15,6 @@ export {
   loadDatabaseEnvironment,
   loadDemoServerEnvironment,
   loadTrackingServerEnvironment,
-  validateEnvironmentForContract,
 } from "./environment.js";
 export {
   validateCollectInput,

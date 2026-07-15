@@ -12,7 +12,6 @@ export {
   loadDemoServerEnvironment,
   loadTrackingServerEnvironment,
   validateCollectInput,
-  validateEnvironmentForContract,
   validateEventInput,
   validateLabelInput,
   validatePersistedDatabase,

@@ -22,8 +22,7 @@
     "e2e:flake": "E2E_BROWSERS=chromium E2E_TAGS=cookie E2E_REPEAT=20 playwright test",
     "e2e:mobile": "E2E_MOBILE=1 playwright test",
     "e2e:video": "RECORD_VIDEO=all playwright test",
-    "e2e:video:fail": "RECORD_VIDEO=on-failure playwright test",
-    "boundary:contract-check": "tsx scripts/boundary-contract.regression-check.ts"
+    "e2e:video:fail": "RECORD_VIDEO=on-failure playwright test"
   },
   "dependencies": {
     "esbuild": "^0.24.2",

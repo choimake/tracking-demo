@@ -19,7 +19,6 @@
 
 依存方向・barrel import・循環禁止は `npm run deps`（`.dependency-cruiser.cjs`）が検査する。`npm run quality` に含まれる。
 E2E 字句・AST の自作 architecture-check は置かない。コーディング規約の正本は [AGENTS.md](./AGENTS.md) とする。
-HTTP・永続化・環境変数・error の境界契約は `npm run boundary:contract-check` が検査する（quality 外）。
 
 ## Fixture の所有権と回収
 

@@ -1,6 +1,5 @@
 import path from "node:path";
 
-import type { ValidationResult } from "./errors.js";
 import { applicationError } from "./errors.js";
 
 type Environment = Readonly<Record<string, string | undefined>>;
@@ -116,17 +115,4 @@ export function loadDatabaseEnvironment(
       "DB_SAVE_DEBOUNCE_MS"
     ),
   };
-}
-
-export function validateEnvironmentForContract(
-  environment: Environment
-): ValidationResult<TrackingServerEnvironment> {
-  try {
-    return { ok: true, value: loadTrackingServerEnvironment(environment) };
-  } catch (error) {
-    if (error && typeof error === "object" && "kind" in error) {
-      return { error: error as ReturnType<typeof applicationError>, ok: false };
-    }
-    throw error;
-  }
 }

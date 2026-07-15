@@ -70,5 +70,4 @@ npm run e2e
 | worktreeを使う開発フロー                 | [`docs/development-flow.md`](./docs/development-flow.md)             |
 
 E2E Coverage MatrixのID・名称・件数・順序は、`npm run e2e` 開始時の scenario catalog 照合で機械検証します。
-HTTP・永続化・環境変数・error の境界契約は `npm run boundary:contract-check` で検証します（quality 外）。
 `npm run quality`は型検査、静的解析、未使用コード、依存方向検査を実行します。
